@@ -4,7 +4,7 @@ import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDaN37qj7QBWN3Ro98KOrhPk5i8rKVnWx8",
-  authDomain: "mypetdex.app",
+  authDomain: "mypetdex-c4315.firebaseapp.com",
   projectId: "mypetdex-c4315",
   storageBucket: "mypetdex-c4315.firebasestorage.app",
   messagingSenderId: "209772699227",
