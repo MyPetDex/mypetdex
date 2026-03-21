@@ -1,3 +1,4 @@
+import emailjs from '@emailjs/browser';
 import { useState, useEffect } from "react";
 import { auth, db } from "./firebase";
 import {
@@ -12,7 +13,25 @@ import {
   doc, setDoc, getDoc, collection, addDoc,
   updateDoc, deleteDoc, onSnapshot, query, where
 } from "firebase/firestore";
-
+const sendReminderEmail = (userEmail, userName, petName, reminder) => {
+  emailjs.send(
+    "service_7k1uaus",
+    "template_3dmpdxo",
+    {
+      user_email: userEmail,
+      user_name: userName,
+      pet_name: petName,
+      reminder_title: reminder.title,
+      reminder_date: reminder.date,
+      reminder_time: reminder.time,
+    },
+    "pHuUcf_xuyMHp1qPG"
+  ).then(() => {
+    console.log("Reminder email sent!");
+  }).catch((error) => {
+    console.error("Email error:", error);
+  });
+};
 const C = {
   bg: "#0F1A14", card: "#16251B", cardBorder: "#1E3526",
   green: "#3DD68C", gold: "#F5C842", text: "#EFF6F1",
@@ -718,6 +737,7 @@ function PetDetail({ pet, user, onBack, onDelete }) {
     await updateDoc(doc(db, "pets", pet.id), { reminders: updated });
     setRForm({ title:"", date:"", time:"", repeat:"None", notes:"" });
     setAddingR(false);
+    sendReminderEmail(user.email, profile?.name, pet.name, newR);
     showToast("✅ Reminder saved!");
   };
 
