@@ -737,7 +737,7 @@ function PetDetail({ pet, user, onBack, onDelete }) {
     await updateDoc(doc(db, "pets", pet.id), { reminders: updated });
     setRForm({ title:"", date:"", time:"", repeat:"None", notes:"" });
     setAddingR(false);
-    sendReminderEmail(user.email, profile?.name, pet.name, newR);
+    sendReminderEmail(user.email, pet.name, pet.name, newR);
     showToast("✅ Reminder saved!");
   };
 
