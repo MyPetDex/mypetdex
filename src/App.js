@@ -5,6 +5,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  sendPasswordResetEmail,
+  deleteUser,
 } from "firebase/auth";
 import {
   doc, setDoc, getDoc, collection, addDoc,
@@ -335,6 +337,7 @@ function LoginScreen({ onBack, onSuccess }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const login = async () => {
     if (!email || !password) { setError("Please enter your email and password"); return; }
@@ -349,16 +352,36 @@ function LoginScreen({ onBack, onSuccess }) {
     setLoading(false);
   };
 
+  const forgotPassword = async () => {
+    if (!email) { setError("Please enter your email address first"); return; }
+    setLoading(true); setError("");
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setResetSent(true);
+    } catch (e) {
+      setError("Could not send reset email. Please check your email address.");
+    }
+    setLoading(false);
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
       <div style={{ width: "100%", maxWidth: 380 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>Back</button>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 24px" }}>Welcome back 🐾</h2>
+        {resetSent && (
+          <div style={{ background: C.green + "22", border: `1px solid ${C.green}`, borderRadius: 10, padding: "10px 14px", color: C.green, fontSize: 13, marginBottom: 16 }}>
+            ✅ Password reset email sent! Check your inbox.
+          </div>
+        )}
         {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
         <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" />
         <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="password" />
         <button style={{ ...btn(), width: "100%", marginTop: 8 }} onClick={login} disabled={loading}>{loading ? "Signing in..." : "Sign In"}</button>
+        <button onClick={forgotPassword} disabled={loading} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 13, fontFamily: font, marginTop: 14, width: "100%", textAlign: "center" }}>
+          Forgot password?
+        </button>
       </div>
     </div>
   );
@@ -457,12 +480,10 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
 
   return (
     <div>
-      {/* ── My Pets Section ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets 🐾</h2>
         <button onClick={() => setTab("pets")} style={{ ...btn(C.cardBorder, C.green), padding: "6px 14px", fontSize: 13, border: `1px solid ${C.green}` }}>+ Add Pet</button>
       </div>
-
       {pets.length === 0 && (
         <div style={{ ...card, textAlign: "center", padding: 24, marginBottom: 20 }}>
           <div style={{ fontSize: 40 }}>🐾</div>
@@ -470,8 +491,6 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
           <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>Tap "Add Pet" to get started</div>
         </div>
       )}
-
-      {/* ── All Pets as Cards ── */}
       {pets.map(pet => (
         <div key={pet.id} style={{ ...card, marginBottom: 14, cursor: "pointer" }} onClick={() => setTab("pets")}>
           <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
@@ -501,8 +520,6 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
           </div>
         </div>
       ))}
-
-      {/* ── Quick Actions ── */}
       <div style={{ ...card }}>
         <div style={{ color: C.text, fontWeight: 800, fontSize: 15, marginBottom: 12 }}>Quick Actions</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -618,11 +635,6 @@ function PetsTab({ user }) {
                 )}
               </div>
             </div>
-            {photoPreview && (
-              <div style={{ marginTop: 8, padding: "8px 12px", background: C.green + "18", borderRadius: 10, border: `1px solid ${C.green}44` }}>
-                <span style={{ color: C.green, fontSize: 12, fontWeight: 700 }}>Photo selected - will be saved when you click Save Pet below</span>
-              </div>
-            )}
           </div>
           <Field label="Pet Name" value={form.name} onChange={set("name")} placeholder="Buddy" required />
           <Field label="Type" as="select" value={form.type} onChange={set("type")} options={["Dog","Cat","Rabbit","Bird","Other"]} />
@@ -749,15 +761,12 @@ function PetDetail({ pet, user, onBack, onDelete }) {
           </div>
         )}
       </div>
-
       <div style={{ display: "flex", borderBottom: `1px solid ${C.cardBorder}`, marginBottom: 16 }}>
         <button style={tabStyle("info")} onClick={() => setActiveTab("info")}>Info</button>
         <button style={tabStyle("vaccines")} onClick={() => setActiveTab("vaccines")}>💉 Vaccines ({vaccines.length})</button>
         <button style={tabStyle("reminders")} onClick={() => setActiveTab("reminders")}>⏰ Reminders ({reminders.length})</button>
       </div>
-
       {activeTab === "info" && <EditPetInfo pet={pet} onDelete={onDelete} onSaved={() => showToast("✅ Pet info updated!")} />}
-
       {activeTab === "vaccines" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
@@ -795,7 +804,6 @@ function PetDetail({ pet, user, onBack, onDelete }) {
           )}
         </div>
       )}
-
       {activeTab === "reminders" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
@@ -1060,6 +1068,49 @@ function BookingsTab() {
   );
 }
 
+// ─── Delete Account Button ────────────────────────────────────────────────────
+function DeleteAccountButton({ user, onLogout }) {
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleDelete = async () => {
+    setDeleting(true); setError("");
+    try {
+      await deleteDoc(doc(db, "users", user.uid));
+      await deleteUser(user);
+      onLogout();
+    } catch (e) {
+      if (e.code === "auth/requires-recent-login") {
+        setError("For security, please sign out and sign back in before deleting your account.");
+      } else {
+        setError("Could not delete account. Please try again.");
+      }
+    }
+    setDeleting(false);
+  };
+
+  if (!confirming) return (
+    <button onClick={() => setConfirming(true)} style={{ ...btn(C.danger + "11", C.danger), border: `1px solid ${C.danger}44`, width: "100%", marginBottom: 10 }}>
+      🗑️ Delete My Account
+    </button>
+  );
+
+  return (
+    <div style={{ ...card, border: `1.5px solid ${C.danger}`, marginBottom: 10 }}>
+      <div style={{ color: C.danger, fontWeight: 800, fontSize: 15, marginBottom: 8 }}>⚠️ Delete Account</div>
+      <div style={{ color: C.muted, fontSize: 13, marginBottom: 14 }}>This will permanently delete your account and all your data. This cannot be undone!</div>
+      {error && <div style={{ color: C.danger, fontSize: 12, marginBottom: 10 }}>{error}</div>}
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={handleDelete} disabled={deleting} style={{ ...btn(C.danger, "#fff"), flex: 1 }}>
+          {deleting ? "Deleting..." : "Yes, Delete Everything"}
+        </button>
+        <button onClick={() => setConfirming(false)} style={{ ...btn(C.cardBorder, C.muted) }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Settings Tab ─────────────────────────────────────────────────────────────
 function SettingsTab({ user, profile, onProfileUpdate, onLogout }) {
   const [section, setSection] = useState("main");
@@ -1176,7 +1227,8 @@ function SettingsTab({ user, profile, onProfileUpdate, onLogout }) {
         <div style={{ color: C.muted, fontSize: 13 }}>📧 help@mypetdex.app</div>
         <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>🌐 mypetdex.app</div>
       </div>
-      <button onClick={onLogout} style={{ ...btn(C.danger + "22", C.danger), border: `1px solid ${C.danger}`, width: "100%" }}>Sign Out</button>
+      <DeleteAccountButton user={user} onLogout={onLogout} />
+      <button onClick={onLogout} style={{ ...btn(C.danger + "22", C.danger), border: `1px solid ${C.danger}`, width: "100%", marginTop: 10 }}>Sign Out</button>
     </div>
   );
 }
