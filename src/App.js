@@ -587,6 +587,7 @@ function PetsTab({ user }) {
       ...form, uid: user.uid,
       photoURL: photoPreview || "",
       vaccines: [], reminders: [],
+      ownerEmail: user.email,
       createdAt: new Date().toISOString()
     });
     setAdding(false);
@@ -729,18 +730,16 @@ function PetDetail({ pet, user, onBack, onDelete }) {
     await updateDoc(doc(db, "pets", pet.id), { vaccines: updated });
   };
 
-  const saveReminder = async () => {
-    if (!rForm.title) return;
-    const newR = { ...rForm, id: Date.now().toString() };
-    const updated = [...reminders, newR];
-    setReminders(updated);
-    await updateDoc(doc(db, "pets", pet.id), { reminders: updated });
-    setRForm({ title:"", date:"", time:"", repeat:"None", notes:"" });
-    setAddingR(false);
-    console.log("Sending email to:", user?.email);
-    sendReminderEmail(user?.email, pet.name, pet.name, newR);
-    showToast("✅ Reminder saved!");
-  };
+    const saveReminder = async () => {
+  if (!rForm.title) return;
+  const newR = { ...rForm, id: Date.now().toString(), sent: false };
+  const updated = [...reminders, newR];
+  setReminders(updated);
+  await updateDoc(doc(db, "pets", pet.id), { reminders: updated });
+  setRForm({ title: "", date: "", time: "", repeat: "None" });
+  setAddingR(false);
+  showToast("✅ Reminder saved!");
+};
 
   const deleteReminder = async (id) => {
     const updated = reminders.filter(r => r.id !== id);
