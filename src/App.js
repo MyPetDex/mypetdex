@@ -712,7 +712,7 @@ function PetDetail({ pet, user, onBack, onDelete }) {
 
     const saveReminder = async () => {
   if (!rForm.title) return;
-  const newR = { ...rForm, id: Date.now().toString(), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };, sent: false };
+const newR = { ...rForm, id: Date.now().toString(), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
   const updated = [...reminders, newR];
   setReminders(updated);
   await updateDoc(doc(db, "pets", pet.id), { reminders: updated });
