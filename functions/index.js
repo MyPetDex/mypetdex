@@ -1,54 +1,67 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const emailjs = require("@emailjs/nodejs");
 
 admin.initializeApp();
 const db = admin.firestore();
 
-exports.sendScheduledReminders = onSchedule("every 60 minutes", async () => {
-  const now = new Date();
-  const petsSnap = await db.collection("pets").get();
+const emailjsKey = defineSecret("EMAILJS_PRIVATE_KEY");
 
-  for (const petDoc of petsSnap.docs) {
-    const pet = petDoc.data();
-    const reminders = pet.reminders || [];
+exports.sendScheduledReminders = onSchedule(
+  { schedule: "every 60 minutes", secrets: [emailjsKey] },
+  async () => {
+    const now = new Date();
+    const petsSnap = await db.collection("pets").get();
 
-    for (const reminder of reminders) {
-      if (reminder.sent) continue;
+    for (const petDoc of petsSnap.docs) {
+      const pet = petDoc.data();
+      const reminders = pet.reminders || [];
 
-      const reminderTime = new Date(`${reminder.date}T${reminder.time}`);
-      const diffMinutes = (reminderTime - now) / 1000 / 60;
+      for (const reminder of reminders) {
+        console.log("Checking:", JSON.stringify(reminder));
+        if (reminder.sent) continue;
 
-      if (diffMinutes <= 60 && diffMinutes >= 0) {
-        try {
-          await emailjs.send(
-            "service_7k1uaus",
-            "template_3dmpdxo",
-            {
-              to_email: pet.ownerEmail,
-              pet_name: pet.name,
-              reminder_title: reminder.title,
-              reminder_date: reminder.date,
-              reminder_time: reminder.time,
-            },
-            {
-              publicKey: "pHuUcf_xuyMHp1qPG",
-              privateKey: "tGHnJwvPSCyi8XZo8TNlo",
-            }
-          );
+        const tz = reminder.timezone || "America/New_York";
 
-          const updatedReminders = reminders.map((r) =>
-            r.id === reminder.id ? { ...r, sent: true } : r
-          );
-          await db.collection("pets").doc(petDoc.id).update({
-            reminders: updatedReminders,
-          });
+        // Convert reminder date+time from user's timezone to UTC
+        const localStr = `${reminder.date}T${reminder.time}:00`;
+        const utcBase = new Date(localStr); // treated as UTC initially
+        const tzOffset =
+          new Date(utcBase.toLocaleString("en-US", { timeZone: "UTC" })) -
+          new Date(utcBase.toLocaleString("en-US", { timeZone: tz }));
+        const reminderUTC = new Date(utcBase.getTime() + tzOffset);
 
-          console.log(`Sent reminder "${reminder.title}" for ${pet.name}`);
-        } catch (err) {
-          console.error("EmailJS error:", err);
+        const diffMinutes = (now - reminderUTC) / 1000 / 60;
+        console.log(`diffMinutes (${tz}):`, diffMinutes);
+
+        if (diffMinutes >= 0 && diffMinutes <= 60) {
+          try {
+            await emailjs.send(
+              "service_7k1uaus",
+              "template_3dmpdxo",
+              {
+                to_email: pet.ownerEmail,
+                pet_name: pet.name,
+                reminder_title: reminder.title,
+                reminder_date: reminder.date,
+                reminder_time: reminder.time,
+              },
+              {
+                publicKey: "pHuUcf_xuyMHp1qPG",
+                privateKey: emailjsKey.value(),
+              }
+            );
+            const updated = reminders.map((r) =>
+              r.id === reminder.id ? { ...r, sent: true } : r
+            );
+            await db.collection("pets").doc(petDoc.id).update({ reminders: updated });
+            console.log("Sent:", reminder.title);
+          } catch (err) {
+            console.error("EmailJS error:", err);
+          }
         }
       }
     }
   }
-});
+);
