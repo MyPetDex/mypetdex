@@ -9,7 +9,7 @@ const db = admin.firestore();
 const emailjsKey = defineSecret("EMAILJS_PRIVATE_KEY");
 
 exports.sendScheduledReminders = onSchedule(
-  { schedule: "every 60 minutes", secrets: [emailjsKey] },
+  { schedule: "every 5 minutes", secrets: [emailjsKey] },
   async () => {
     const now = new Date();
     const petsSnap = await db.collection("pets").get();
@@ -35,7 +35,7 @@ exports.sendScheduledReminders = onSchedule(
         const diffMinutes = (now - reminderUTC) / 1000 / 60;
         console.log(`diffMinutes (${tz}):`, diffMinutes);
 
-        if (diffMinutes >= 0 && diffMinutes <= 60) {
+        if (diffMinutes >= 0 && diffMinutes <= 5) {
           try {
             await emailjs.send(
               "service_7k1uaus",
