@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import emailjs from "@emailjs/browser";
 import { auth, db } from "./firebase";
 import {
   createUserWithEmailAndPassword,
@@ -250,7 +251,31 @@ function RegisterScreen({ onBack, onSuccess }) {
           photoURL: "", uid: cred.user.uid, createdAt: new Date().toISOString()
         });
       }
-      onSuccess(profile);
+      // Send welcome email
+try {
+  await emailjs.send(
+    "service_7k1uaus",
+    "template_2wbilsd",
+    {
+      to_email: form.email,
+      to_name: form.email.split("@")[0],
+    },
+    { publicKey: "Fp0nQuFeAXba8AMsM" }
+  );
+  // Notify John
+  await emailjs.send(
+    "service_7k1uaus",
+    "template_2wbilsd",
+    {
+      to_email: "mypetdexapp@gmail.com",
+      to_name: "John",
+    },
+    { publicKey: "Fp0nQuFeAXba8AMsM" }
+  );
+} catch (emailErr) {
+  console.error("Welcome email error:", emailErr);
+}
+onSuccess(profile);
     } catch (e) {
       setError(e.message.includes("email-already-in-use") ? "This email is already registered!" : e.message);
     }
