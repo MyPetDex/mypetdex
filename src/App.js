@@ -251,24 +251,37 @@ function RegisterScreen({ onBack, onSuccess }) {
           photoURL: "", uid: cred.user.uid, createdAt: new Date().toISOString()
         });
       }
-      // Send welcome email
+// Send welcome email
 try {
+  let subject_line = "";
+  let message_body = "";
+
+  if (role === "owner") {
+    subject_line = "Welcome to MyPetDex! 🐾";
+    message_body = `Hi ${form.email.split("@")[0]},\n\nWelcome to MyPetDex! Here's what you can do:\n- Add and manage your pet profiles\n- Track vaccines and health records\n- Set reminders for vet visits\n- Find trusted local service providers\n- Browse pets for adoption\n\nNeed help? Reply to this email anytime.\n\nThe MyPetDex Team\nhelp@mypetdex.app`;
+  } else if (role === "provider") {
+    subject_line = "Welcome to MyPetDex – Provider Account 🐾";
+    message_body = `Hi ${form.businessName || form.email.split("@")[0]},\n\nWelcome to MyPetDex! Your provider account is ready.\n\n💰 Service Fee: 5% per booking after your first 6 months free.\n\n📋 Required Documents:\n${form.licensed === "yes" ? "- Business License\n- Google Business Page\n- Google Reviews Page" : "- Google Reviews Page"}\n\nPlease reply to this email with your documents to activate your listing.\n\nThe MyPetDex Team\nhelp@mypetdex.app`;
+  } else if (role === "shelter") {
+    subject_line = "Welcome to MyPetDex – Shelter Account 🐾";
+    message_body = `Hi ${form.shelterName || form.email.split("@")[0]},\n\nWelcome to MyPetDex! Your shelter account is ready.\n\n📋 Required Documents:\n- Shelter Name\n- Website\n- License Number\n\nPlease reply with your documents to complete verification.\n\n🐶 Adoption Listings: Once verified, you can submit pets for adoption. All listings are reviewed by our team before going live.\n\nThe MyPetDex Team\nhelp@mypetdex.app`;
+  }
+
   await emailjs.send(
     "service_7k1uaus",
     "template_2wbilsd",
-    {
-      to_email: form.email,
-      to_name: form.email.split("@")[0],
-    },
+    { to_email: form.email, subject_line, message_body },
     { publicKey: "Fp0nQuFeAXba8AMsM" }
   );
+
   // Notify John
   await emailjs.send(
     "service_7k1uaus",
     "template_2wbilsd",
     {
       to_email: "mypetdexapp@gmail.com",
-      to_name: "John",
+      subject_line: `New ${role} signup: ${form.email}`,
+      message_body: `A new ${role} just signed up!\n\nEmail: ${form.email}\nRole: ${role}\nTime: ${new Date().toLocaleString()}`,
     },
     { publicKey: "Fp0nQuFeAXba8AMsM" }
   );
