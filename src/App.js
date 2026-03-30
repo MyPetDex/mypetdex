@@ -309,7 +309,7 @@ function RegisterScreen({ onBack, onSuccess }) {
           <Field label="Google Review Link" value={form.googleReview} onChange={set("googleReview")} placeholder="https://maps.google.com/..." />
           <Field label="About Your Business" as="textarea" value={form.bio} onChange={set("bio")} placeholder="Tell pet owners what makes you special..." />
           <div style={{ ...card, background: "#1a2e1e", marginBottom: 16 }}>
-            <p style={{ color: C.gold, fontSize: 12, fontWeight: 700, margin: 0 }}>30 Days FREE then only 10-15% commission on bookings. No monthly fees!</p>
+            </p>
           </div>
           <button style={{ ...btn(), width: "100%" }} onClick={submit} disabled={loading}>{loading ? "Creating Account..." : "Create Provider Account"}</button>
         </>}

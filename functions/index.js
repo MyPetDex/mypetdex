@@ -48,7 +48,7 @@ exports.sendScheduledReminders = onSchedule(
                 reminder_time: reminder.time,
               },
               {
-                publicKey: "pHuUcf_xuyMHp1qPG",
+                publicKey: "Fp0nQuFeAXba8AMsM",
                 privateKey: emailjsKey.value(),
               }
             );
