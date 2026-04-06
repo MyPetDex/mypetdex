@@ -210,6 +210,7 @@ useEffect(() => {
     </div>
   );
 
+  if (new URLSearchParams(window.location.search).get('demo')) return null;
   if (screen === "landing") return <Landing onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} />;
   if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} />;
   if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} />;
