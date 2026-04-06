@@ -187,11 +187,15 @@ export default function App() {
 useEffect(() => {
   const params = new URLSearchParams(window.location.search);
   if (params.get('demo') === 'true') {
+    setLoading(true);
     signInWithEmailAndPassword(auth, 'demo@mypetdex.app', 'Demo2026!')
       .then(() => {
         window.history.replaceState({}, '', window.location.pathname);
       })
-      .catch(err => console.log('Demo login failed:', err));
+      .catch(err => {
+        console.log('Demo login failed:', err);
+        setLoading(false);
+      });
   }
 }, []);
 
