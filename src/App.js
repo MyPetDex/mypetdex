@@ -183,6 +183,18 @@ export default function App() {
     return unsub;
   }, []);
 
+  // Auto demo login from URL
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('demo') === 'true') {
+    signInWithEmailAndPassword(auth, 'demo@mypetdex.app', 'Demo2026!')
+      .then(() => {
+        window.history.replaceState({}, '', window.location.pathname);
+      })
+      .catch(err => console.log('Demo login failed:', err));
+  }
+}, []);
+
   if (loading) return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
