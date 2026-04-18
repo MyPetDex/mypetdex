@@ -6,13 +6,15 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  sendEmailVerification,
   sendPasswordResetEmail,
   deleteUser,
 } from "firebase/auth";
 import {
   doc, setDoc, getDoc, collection, addDoc,
   updateDoc, deleteDoc, onSnapshot, query, where
-} from "firebase/firestore"; 
+} from "firebase/firestore";
+import { canAddPet, hasFeature, UpgradePrompt } from './planUtils';
 const C = {
   bg: "#0F1A14", card: "#16251B", cardBorder: "#1E3526",
   green: "#3DD68C", gold: "#F5C842", text: "#EFF6F1",
@@ -162,23 +164,69 @@ function compressImage(file, callback) {
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null); // eslint-disable-line no-unused-vars
   const [profile, setProfile] = useState(null);
   const [screen, setScreen] = useState("landing");
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (u) {
-        setUser(u);
-        const snap = await getDoc(doc(db, "users", u.uid));
-        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
-        else setScreen("app");
-      } else {
-        setUser(null); setProfile(null); setScreen("landing");
+    // Inject dark theme styles for select elements
+    const style = document.createElement('style');
+    style.textContent = `
+      select {
+        background: ${C.inputBg} !important;
+        border: 1.5px solid ${C.cardBorder} !important;
+        border-radius: 10px !important;
+        padding: 11px 14px !important;
+        color: ${C.text} !important;
+        font-family: ${font} !important;
+        font-size: 14px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        outline: none !important;
+        cursor: pointer !important;
       }
-      setLoading(false);
+      select option {
+        background: ${C.card} !important;
+        color: ${C.text} !important;
+        padding: 8px !important;
+      }
+      select:focus {
+        border-color: ${C.green} !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
+  // Auth state listener - controls loading and screen routing
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        if (firebaseUser.email === 'mypetdexapp@gmail.com') {
+          setScreen('admin');
+          setLoading(false);
+        } else if (!firebaseUser.emailVerified && firebaseUser.email !== 'demo@mypetdex.app') {
+          setScreen('verify');
+          setLoading(false);
+        } else {
+          try {
+            const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+            setProfile(snap.exists() ? snap.data() : { email: firebaseUser.email, role: "owner", uid: firebaseUser.uid });
+          } catch (e) {
+            console.error("Error loading profile:", e);
+          }
+          setScreen('app');
+          setLoading(false);
+        }
+      } else {
+        setUser(null);
+        setProfile(null);
+        setScreen('landing');
+        setLoading(false);
+      }
     });
     return unsub;
   }, []);
@@ -211,9 +259,17 @@ useEffect(() => {
   );
 
   if (new URLSearchParams(window.location.search).get('demo')) return null;
+  if (screen === "admin") return <AdminDashboard onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "landing") return <Landing onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} />;
   if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} />;
   if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} />;
+  if (screen === "verify") return <VerifyEmail onVerified={async () => {
+    const u = auth.currentUser;
+    if (!u) return;
+    const snap = await getDoc(doc(db, "users", u.uid));
+    setProfile(snap.exists() ? snap.data() : { email: u.email, role: "owner", uid: u.uid });
+    setScreen("app");
+  }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
 }
 
@@ -255,10 +311,10 @@ function RegisterScreen({ onBack, onSuccess }) {
   const submit = async () => {
     if (!form.email || !form.password) { setError("Please fill in all required fields"); return; }
     setLoading(true); setError("");
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
       const { password, ...formWithoutPassword } = form;
-      const profile = { ...formWithoutPassword, role, uid: cred.user.uid, createdAt: new Date().toISOString() };
+      const profile = { ...formWithoutPassword, role, uid: cred.user.uid, createdAt: new Date().toISOString() , plan: "free", billingCycle: "monthly"};
       await setDoc(doc(db, "users", cred.user.uid), profile);
       if (role === "owner" && form.petName) {
         await addDoc(collection(db, "pets"), {
@@ -302,10 +358,17 @@ try {
     },
     { publicKey: "Fp0nQuFeAXba8AMsM" }
   );
-} catch (emailErr) {
-  console.error("Welcome email error:", emailErr);
-}
-onSuccess(profile);
+  } catch (emailErr) {
+    console.error("Welcome email error:", emailErr);
+  }
+
+      // Send verification email and do NOT let user into the app until verified
+      try {
+        await sendEmailVerification(cred.user, { url: window.location.origin });
+      } catch (verErr) {
+        console.error("Verification email error:", verErr);
+      }
+      // Do not call onSuccess(profile) here; onAuthStateChanged will show the verify screen
     } catch (e) {
       setError(e.message.includes("email-already-in-use") ? "This email is already registered!" : e.message);
     }
@@ -396,9 +459,8 @@ function LoginScreen({ onBack, onSuccess }) {
     if (!email || !password) { setError("Please enter your email and password"); return; }
     setLoading(true); setError("");
     try {
-      const cred = await signInWithEmailAndPassword(auth, email, password);
-      const snap = await getDoc(doc(db, "users", cred.user.uid));
-      onSuccess(snap.exists() ? snap.data() : { email, role: "owner" });
+      // Sign in. onAuthStateChanged will handle redirecting to verify/app based on email verification.
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (e) {
       setError("Invalid email or password. Please try again.");
     }
@@ -435,6 +497,216 @@ function LoginScreen({ onBack, onSuccess }) {
         <button onClick={forgotPassword} disabled={loading} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 13, fontFamily: font, marginTop: 14, width: "100%", textAlign: "center" }}>
           Forgot password?
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Verify Email Screen ──────────────────────────────────────────────────────
+function VerifyEmail({ onVerified, onLogout }) {
+  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState("");
+  const user = auth.currentUser;
+
+  const resend = async () => {
+    if (!user) { setMessage("No signed-in user."); return; }
+    setSending(true); setMessage("");
+    try {
+      await sendEmailVerification(user, { url: window.location.origin });
+      setMessage("Verification email sent. Check your inbox.");
+    } catch (e) {
+      console.error("resend error", e);
+      setMessage("Could not send verification email. Try again later.");
+    }
+    setSending(false);
+  };
+
+  const check = async () => {
+    if (!user) { setMessage("No signed-in user."); return; }
+    setSending(true); setMessage("");
+    try {
+      await user.reload();
+      if (user.emailVerified) {
+        await onVerified();
+      } else {
+        setMessage("Email still not verified. Please check your inbox and follow the link.");
+      }
+    } catch (e) {
+      console.error("verify check error", e);
+      setMessage("Error checking verification. Try again.");
+    }
+    setSending(false);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: "100%", maxWidth: 520 }}>
+        <div style={{ ...card, textAlign: "center" }}>
+          <div style={{ fontSize: 40 }}>📧</div>
+          <h2 style={{ color: C.text, fontWeight: 900 }}>Verify Your Email</h2>
+          <p style={{ color: C.muted }}>We've sent a verification link to <strong style={{ color: C.text }}>{user?.email}</strong>. Please open that email and click the link to verify your address.</p>
+          <p style={{ color: C.muted, fontSize: 13, marginTop: -8 }}>📬 Can't find it? Check your <strong style={{ color: C.text }}>spam or junk folder</strong>.</p>
+          {message && <div style={{ background: C.green + "22", border: `1px solid ${C.green}`, borderRadius: 10, padding: "10px 14px", color: C.green, fontSize: 13, margin: "12px 0" }}>{message}</div>}
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 12 }}>
+            <button onClick={resend} disabled={sending} style={{ ...btn(C.green), minWidth: 160 }}>{sending ? "Sending..." : "Resend Email"}</button>
+            <button onClick={check} disabled={sending} style={{ ...btn(C.cardBorder, C.green), minWidth: 160, border: `1px solid ${C.green}` }}>{sending ? "Checking..." : "I've Verified"}</button>
+          </div>
+          <button onClick={onLogout} style={{ marginTop: 16, background: "none", border: "none", color: C.muted, cursor: "pointer" }}>Sign out</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Admin Dashboard ──────────────────────────────────────────────────────────
+function AdminDashboard({ onLogout }) {
+  const [adminTab, setAdminTab] = useState("shelters");
+  const [shelters, setShelters] = useState([]);
+  const [providers, setProviders] = useState([]);
+  const [shelterPets, setShelterPets] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState(null);
+
+  useEffect(() => {
+    const q1 = query(collection(db, "users"), where("role", "==", "shelter"));
+    const unsub1 = onSnapshot(q1, snap => setShelters(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+
+    const q2 = query(collection(db, "users"), where("role", "==", "provider"));
+    const unsub2 = onSnapshot(q2, snap => setProviders(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+
+    const unsub3 = onSnapshot(collection(db, "shelterPets"), snap => {
+      const petsMap = {};
+      snap.docs.forEach(d => {
+        const pet = { id: d.id, ...d.data() };
+        if (!petsMap[pet.uid]) petsMap[pet.uid] = [];
+        petsMap[pet.uid].push(pet);
+      });
+      setShelterPets(petsMap);
+      setLoading(false);
+    });
+
+    return () => { unsub1(); unsub2(); unsub3(); };
+  }, []);
+
+  const updateStatus = async (uid, status) => {
+    await updateDoc(doc(db, "users", uid), { status });
+  };
+
+  const toggleSuspend = async (uid, suspended) => {
+    await updateDoc(doc(db, "users", uid), { suspended: !suspended });
+  };
+
+  const statusBadge = (status) => {
+    const colors = { approved: C.green, rejected: C.danger, pending: C.gold };
+    const labels = { approved: "✓ Approved", rejected: "✗ Rejected", pending: "⏳ Pending" };
+    const s = status || "pending";
+    return <span style={{ background: colors[s] + "22", color: colors[s], borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{labels[s]}</span>;
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, paddingBottom: 80 }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      <div style={{ background: C.card, borderBottom: `1px solid ${C.cardBorder}`, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 26 }}>🛡️</span>
+          <div>
+            <span style={{ color: C.green, fontWeight: 900, fontSize: 20 }}>MyPetDex</span>
+            <span style={{ color: C.gold, fontSize: 11, fontWeight: 800, marginLeft: 8, background: C.gold + "22", borderRadius: 6, padding: "2px 8px" }}>ADMIN</span>
+          </div>
+        </div>
+        <button onClick={onLogout} style={{ background: "none", border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: "5px 12px", color: C.muted, fontFamily: font, fontSize: 12, cursor: "pointer" }}>Sign out</button>
+      </div>
+
+      <div style={{ padding: "16px", maxWidth: 600, margin: "0 auto" }}>
+        <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+          <div style={{ ...card, flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 28, fontWeight: 900, color: C.green }}>{shelters.length}</div>
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>🏠 Shelters</div>
+          </div>
+          <div style={{ ...card, flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 28, fontWeight: 900, color: C.green }}>{providers.length}</div>
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>🛎️ Providers</div>
+          </div>
+          <div style={{ ...card, flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 28, fontWeight: 900, color: C.gold }}>{shelters.filter(s => !s.status || s.status === "pending").length}</div>
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>⏳ Pending</div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          {["shelters", "providers"].map(t => (
+            <button key={t} onClick={() => setAdminTab(t)} style={{ ...btn(adminTab === t ? C.green : C.card, adminTab === t ? "#0F1A14" : C.muted), border: `1px solid ${adminTab === t ? C.green : C.cardBorder}`, flex: 1, padding: "10px", fontSize: 14 }}>
+              {t === "shelters" ? "🏠 Shelters" : "🛎️ Service Providers"}
+            </button>
+          ))}
+        </div>
+
+        {loading && <Spinner />}
+
+        {!loading && adminTab === "shelters" && (
+          shelters.length === 0
+            ? <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>No shelters registered yet.</div>
+            : shelters.map(s => (
+              <div key={s.id} style={{ ...card, marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                  <div>
+                    <div style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>{s.shelterName || s.name || s.email}</div>
+                    <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>{s.email}</div>
+                    {s.ein && <div style={{ color: C.muted, fontSize: 12 }}>EIN: {s.ein}</div>}
+                    {s.license && <div style={{ color: C.muted, fontSize: 12 }}>License: {s.license}</div>}
+                    <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>Joined: {s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "N/A"}</div>
+                  </div>
+                  {statusBadge(s.status)}
+                </div>
+                <div onClick={() => setExpandedId(expandedId === s.id ? null : s.id)} style={{ color: C.green, fontSize: 13, cursor: "pointer", fontWeight: 700, marginBottom: 8 }}>
+                  🐶 {shelterPets[s.uid]?.length || 0} pets listed {expandedId === s.id ? "▲" : "▼"}
+                </div>
+                {expandedId === s.id && (shelterPets[s.uid] || []).map(pet => (
+                  <div key={pet.id} style={{ background: C.bg, borderRadius: 10, padding: "8px 12px", marginBottom: 6, fontSize: 13, color: C.muted }}>
+                    <strong style={{ color: C.text }}>{pet.name}</strong> · {pet.type} · {pet.breed} · Age: {pet.age}
+                    {pet.notes && <div style={{ marginTop: 2 }}>{pet.notes}</div>}
+                  </div>
+                ))}
+                <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                  {(!s.status || s.status === "pending") && <>
+                    <button onClick={() => updateStatus(s.uid, "approved")} style={{ ...btn(C.green), padding: "7px 16px", fontSize: 13 }}>✓ Approve</button>
+                    <button onClick={() => updateStatus(s.uid, "rejected")} style={{ ...btn(C.danger), padding: "7px 16px", fontSize: 13 }}>✗ Reject</button>
+                  </>}
+                  {s.status === "approved" && <button onClick={() => updateStatus(s.uid, "rejected")} style={{ ...btn(C.danger), padding: "7px 16px", fontSize: 13 }}>✗ Revoke</button>}
+                  {s.status === "rejected" && <button onClick={() => updateStatus(s.uid, "approved")} style={{ ...btn(C.green), padding: "7px 16px", fontSize: 13 }}>✓ Approve</button>}
+                  <button onClick={() => toggleSuspend(s.uid, s.suspended)} style={{ ...btn(s.suspended ? C.gold : C.cardBorder, s.suspended ? "#0F1A14" : C.muted), padding: "7px 16px", fontSize: 13, border: `1px solid ${s.suspended ? C.gold : C.cardBorder}` }}>
+                    {s.suspended ? "🔓 Unsuspend" : "🔒 Suspend"}
+                  </button>
+                </div>
+              </div>
+            ))
+        )}
+
+        {!loading && adminTab === "providers" && (
+          providers.length === 0
+            ? <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>No service providers registered yet.</div>
+            : providers.map(p => (
+              <div key={p.id} style={{ ...card, marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <div style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>{p.businessName || p.name || p.email}</div>
+                    <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>{p.email}</div>
+                    {p.service && <div style={{ color: C.muted, fontSize: 12 }}>Service: {p.service}</div>}
+                    {p.priceRange && <div style={{ color: C.muted, fontSize: 12 }}>Price: {p.priceRange}</div>}
+                    {p.state && <div style={{ color: C.muted, fontSize: 12 }}>📍 {p.city}, {p.state}</div>}
+                    {p.bio && <div style={{ color: C.muted, fontSize: 12, marginTop: 4, fontStyle: "italic" }}>"{p.bio}"</div>}
+                    <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>Joined: {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "N/A"}</div>
+                  </div>
+                  {p.suspended && <span style={{ background: C.danger + "22", color: C.danger, borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>🔒 Suspended</span>}
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <button onClick={() => toggleSuspend(p.uid, p.suspended)} style={{ ...btn(p.suspended ? C.gold : C.cardBorder, p.suspended ? "#0F1A14" : C.muted), padding: "7px 16px", fontSize: 13, border: `1px solid ${p.suspended ? C.gold : C.cardBorder}` }}>
+                    {p.suspended ? "🔓 Unsuspend" : "🔒 Suspend"}
+                  </button>
+                </div>
+              </div>
+            ))
+        )}
       </div>
     </div>
   );
@@ -535,7 +807,7 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets 🐾</h2>
-        <button onClick={() => setTab("pets")} style={{ ...btn(C.cardBorder, C.green), padding: "6px 14px", fontSize: 13, border: `1px solid ${C.green}` }}>+ Add Pet</button>
+        <button onClick={() => { if (canAddPet(profile, pets.length)) { setTab("pets"); } else { alert(`Your ${profile?.plan || 'free'} plan allows ${profile?.plan === 'plus' ? '3' : '1'} pet. Upgrade to add more!`); } }} style={{ ...btn(C.cardBorder, C.green), padding: "6px 14px", fontSize: 13, border: `1px solid ${C.green}` }}>+ Add Pet</button>
       </div>
       {pets.length === 0 && (
         <div style={{ ...card, textAlign: "center", padding: 24, marginBottom: 20 }}>
@@ -1023,12 +1295,21 @@ function RecipesTab({ profile }) {
   const [filter, setFilter] = useState(petType);
   const [open, setOpen] = useState(null);
   const recipes = filter === "Cat" ? CAT_RECIPES : DOG_RECIPES;
-  return (
-    <div>
+  console.log("plan:", profile?.plan, "hasFeature:", hasFeature(profile, 'recipes'));
+
+  if (!hasFeature(profile, 'recipes')) {
+    return (
+      <div style={{ padding: 24 }}>
+        <UpgradePrompt feature="Recipes" requiredPlan="Plus" />
+      </div>
+    );
+  }
+return (
+  <div>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Healthy Recipes 🍽️</h2>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Homemade meals your pet will love</p>
-      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        {["Dog","Cat"].map(t => <button key={t} onClick={() => setFilter(t)} style={{ ...btn(filter === t ? C.green : C.cardBorder, filter === t ? "#0F1A14" : C.muted), padding: "9px 22px", fontSize: 14 }}>{t === "Dog" ? "🐶 Dog" : "🐱 Cat"}</button>)}
+     <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+      {["Dog","Cat"].map(t => <button key={t} onClick={() => setFilter(t)} style={{ ...btn(filter === t ? C.green : C.cardBorder, filter === t ? "#0F1A14" : C.muted), padding: "9px 22px", fontSize: 14 }}>{t === "Dog" ? "🐶 Dog" : "🐱 Cat"}</button>)}
       </div>
       {petType !== filter && <div style={{ ...card, background: "#1a2e1e", marginBottom: 16 }}><p style={{ color: C.gold, fontSize: 12, margin: 0 }}>Your pet is a {petType} — make sure you select the right recipes!</p></div>}
       {recipes.map(r => (
@@ -1061,30 +1342,56 @@ function RecipesTab({ profile }) {
 // ─── Adoption Tab ─────────────────────────────────────────────────────────────
 function AdoptionTab({ profile }) {
   const [filterState, setFilterState] = useState(profile?.state || "");
-  const filtered = SHELTERS.filter(s => !filterState || s.state === filterState);
+  const [shelters, setShelters] = useState([]);
+  const [shelterPets, setShelterPets] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, "users"), where("role", "==", "shelter"), where("status", "==", "approved"));
+    const unsub1 = onSnapshot(q, snap => setShelters(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    const unsub2 = onSnapshot(collection(db, "shelterPets"), snap => {
+      const petsMap = {};
+      snap.docs.forEach(d => {
+        const pet = { id: d.id, ...d.data() };
+        if (!petsMap[pet.uid]) petsMap[pet.uid] = [];
+        petsMap[pet.uid].push(pet);
+      });
+      setShelterPets(petsMap);
+      setLoading(false);
+    });
+    return () => { unsub1(); unsub2(); };
+  }, []);
+
+  const filtered = shelters.filter(s => !filterState || s.state === filterState);
+
   return (
     <div>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Adopt a Pet ❤️</h2>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Verified shelters — free access for all shelters</p>
       <div style={{ marginBottom: 18 }}><span style={label}>Filter by State</span><select value={filterState} onChange={e => setFilterState(e.target.value)} style={{ ...input, appearance: "none" }}><option value="">All States</option>{US_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-      {filtered.map(shelter => (
-        <div key={shelter.id} style={{ ...card, marginBottom: 16 }}>
-          <div style={{ color: C.text, fontWeight: 900, fontSize: 16, marginBottom: 2 }}>🏠 {shelter.name}</div>
-          <div style={{ color: C.muted, fontSize: 13, marginBottom: 14 }}>📍 {shelter.city}, {shelter.state} <Badge text="Verified" color={C.green} /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {shelter.pets.map((pet, i) => (
-              <div key={i} style={{ background: C.inputBg, borderRadius: 12, padding: 14, border: `1px solid ${C.cardBorder}` }}>
-                <div style={{ fontSize: 32, textAlign: "center" }}>{pet.emoji}</div>
-                <div style={{ color: C.text, fontWeight: 800, fontSize: 15, textAlign: "center" }}>{pet.name}</div>
-                <div style={{ color: C.muted, fontSize: 12, textAlign: "center" }}>{pet.breed}</div>
-                <div style={{ color: C.muted, fontSize: 12, textAlign: "center", marginBottom: 10 }}>Age: {pet.age}</div>
-                <button style={{ ...btn(C.green), width: "100%", padding: "8px 0", fontSize: 12 }}>Inquire 🐾</button>
-              </div>
-            ))}
+      {loading && <Spinner />}
+      {!loading && filtered.map(shelter => {
+        const pets = shelterPets[shelter.uid] || [];
+        return (
+          <div key={shelter.id} style={{ ...card, marginBottom: 16 }}>
+            <div style={{ color: C.text, fontWeight: 900, fontSize: 16, marginBottom: 2 }}>🏠 {shelter.shelterName || shelter.name}</div>
+            <div style={{ color: C.muted, fontSize: 13, marginBottom: 14 }}>📍 {shelter.city}, {shelter.state} <Badge text="Verified" color={C.green} /></div>
+            {pets.length === 0 && <div style={{ color: C.muted, fontSize: 13, marginBottom: 8 }}>No pets listed yet.</div>}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {pets.map(pet => (
+                <div key={pet.id} style={{ background: C.inputBg, borderRadius: 12, padding: 14, border: `1px solid ${C.cardBorder}` }}>
+                  <div style={{ fontSize: 32, textAlign: "center" }}>{pet.type === "Cat" ? "🐈" : "🐕"}</div>
+                  <div style={{ color: C.text, fontWeight: 800, fontSize: 15, textAlign: "center" }}>{pet.name}</div>
+                  <div style={{ color: C.muted, fontSize: 12, textAlign: "center" }}>{pet.breed}</div>
+                  <div style={{ color: C.muted, fontSize: 12, textAlign: "center", marginBottom: 10 }}>Age: {pet.age}</div>
+                  <button style={{ ...btn(C.green), width: "100%", padding: "8px 0", fontSize: 12 }}>Inquire 🐾</button>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
-      {filtered.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>No shelters found in this state yet. Check back soon!</div>}
+        );
+      })}
+      {!loading && filtered.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>No approved shelters found in this state yet. Check back soon!</div>}
     </div>
   );
 }
