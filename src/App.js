@@ -1291,52 +1291,580 @@ function ServicesTab({ profile }) {
   );
 }
 
-// ─── Recipes Tab ──────────────────────────────────────────────────────────────
-function RecipesTab({ profile }) {
-  const petType = profile?.petType || "Dog";
-  const [filter, setFilter] = useState(petType);
-  const [open, setOpen] = useState(null);
-  const recipes = filter === "Cat" ? CAT_RECIPES : DOG_RECIPES;
-  console.log("plan:", profile?.plan, "hasFeature:", hasFeature(profile, 'recipes'));
+// ─── Smart Recipe Builder Tab ─────────────────────────────────────────────────
+// Replaces RecipesTab in App.js
+// Paste this after AITab function and before AdoptionTab
+// Then change: {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} />}
+// To:          {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} user={user} pets={pets} />}
+// Also update PetsTab to pass pets up, OR load pets inside this component (we do it here)
 
+const INGREDIENTS = {
+  proteins: [
+    { id: "chicken", label: "🍗 Chicken", popular: true },
+    { id: "beef", label: "🥩 Beef", popular: true },
+    { id: "turkey", label: "🦃 Turkey", popular: true },
+    { id: "salmon", label: "🐟 Salmon", popular: true },
+    { id: "egg", label: "🥚 Eggs", popular: true },
+    { id: "lamb", label: "🐑 Lamb", popular: false },
+    { id: "duck", label: "🦆 Duck", popular: false },
+    { id: "tuna", label: "🐠 Tuna", popular: false },
+    { id: "cod", label: "🐡 Cod", popular: false },
+    { id: "venison", label: "🦌 Venison", popular: false },
+    { id: "pork", label: "🐷 Pork", popular: false },
+    { id: "cottage_cheese", label: "🧀 Cottage Cheese", popular: false },
+  ],
+  carbs: [
+    { id: "white_rice", label: "🍚 White Rice", popular: true },
+    { id: "sweet_potato", label: "🍠 Sweet Potato", popular: true },
+    { id: "brown_rice", label: "🌾 Brown Rice", popular: true },
+    { id: "oats", label: "🌾 Oats", popular: false },
+    { id: "quinoa", label: "🌿 Quinoa", popular: false },
+    { id: "potato", label: "🥔 Potato", popular: false },
+    { id: "lentils", label: "🫘 Lentils", popular: false },
+    { id: "barley", label: "🌾 Barley", popular: false },
+  ],
+  fats: [
+    { id: "olive_oil", label: "🫒 Olive Oil", popular: true },
+    { id: "fish_oil", label: "🐟 Fish Oil", popular: true },
+    { id: "coconut_oil", label: "🥥 Coconut Oil", popular: false },
+    { id: "flaxseed", label: "🌱 Flaxseed", popular: false },
+  ],
+  veggies: [
+    { id: "carrots", label: "🥕 Carrots", popular: true },
+    { id: "peas", label: "🫛 Peas", popular: true },
+    { id: "spinach", label: "🥬 Spinach", popular: true },
+    { id: "broccoli", label: "🥦 Broccoli", popular: true },
+    { id: "zucchini", label: "🥒 Zucchini", popular: false },
+    { id: "green_beans", label: "🫘 Green Beans", popular: false },
+    { id: "cucumber", label: "🥒 Cucumber", popular: false },
+    { id: "kale", label: "🥬 Kale", popular: false },
+    { id: "celery", label: "🌿 Celery", popular: false },
+    { id: "beets", label: "🫀 Beets", popular: false },
+  ],
+  fruits: [
+    { id: "blueberries", label: "🫐 Blueberries", popular: true },
+    { id: "apple", label: "🍎 Apple (no seeds)", popular: true },
+    { id: "banana", label: "🍌 Banana", popular: false },
+    { id: "watermelon", label: "🍉 Watermelon (no seeds)", popular: false },
+    { id: "mango", label: "🥭 Mango", popular: false },
+    { id: "strawberries", label: "🍓 Strawberries", popular: false },
+  ],
+};
+
+const HEALTH_CONDITIONS = [
+  { id: "healthy", label: "✅ Healthy / Maintenance", default: true },
+  { id: "weight_loss", label: "⚖️ Weight Loss" },
+  { id: "weight_gain", label: "📈 Weight Gain / Underweight" },
+  { id: "joint_support", label: "🦴 Joint Support / Arthritis" },
+  { id: "sensitive_stomach", label: "🫀 Sensitive Stomach" },
+  { id: "kidney_support", label: "💧 Kidney Support (Low Phosphorus)" },
+  { id: "skin_coat", label: "✨ Skin & Coat Health" },
+  { id: "high_energy", label: "⚡ High Energy / Working Dog" },
+  { id: "senior", label: "👴 Senior Pet" },
+  { id: "puppy", label: "🐶 Puppy / Kitten" },
+  { id: "allergies", label: "🌿 Food Allergies / Sensitivities" },
+  { id: "diabetes", label: "💉 Diabetes Management" },
+];
+
+const ACTIVITY_LEVELS = [
+  { id: "low", label: "🛋️ Low (mostly resting)" },
+  { id: "moderate", label: "🚶 Moderate (daily walks)" },
+  { id: "active", label: "🏃 Active (runs/plays daily)" },
+  { id: "very_active", label: "⚡ Very Active (working dog)" },
+];
+
+function RecipesTab({ profile, user }) {
+  const [pets, setPets] = useState([]);
+  const [selectedPet, setSelectedPet] = useState(null);
+  const [step, setStep] = useState(1); // 1=pet, 2=ingredients, 3=health, 4=result
+  const [selected, setSelected] = useState({
+    proteins: [], carbs: [], fats: [], veggies: [], fruits: [],
+  });
+  const [showAll, setShowAll] = useState({
+    proteins: false, carbs: false, fats: false, veggies: false, fruits: false,
+  });
+  const [healthCondition, setHealthCondition] = useState("healthy");
+  const [activityLevel, setActivityLevel] = useState("moderate");
+  const [excludeIngredients, setExcludeIngredients] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [recipe, setRecipe] = useState(null);
+  const [savedRecipes, setSavedRecipes] = useState([]);
+  const [viewSaved, setViewSaved] = useState(false);
+
+  // Load pets
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, "pets"), where("uid", "==", user.uid));
+    const unsub = onSnapshot(q, snap => {
+      const petList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setPets(petList);
+      if (petList.length === 1) setSelectedPet(petList[0]);
+    });
+    return unsub;
+  }, [user]);
+
+  // Load saved recipes
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, "savedRecipes"), where("uid", "==", user.uid));
+    const unsub = onSnapshot(q, snap => {
+      setSavedRecipes(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [user]);
+
+  const toggleIngredient = (category, id) => {
+    setSelected(prev => {
+      const current = prev[category];
+      const isSelected = current.includes(id);
+      // Max 2 fats
+      if (category === "fats" && !isSelected && current.length >= 2) return prev;
+      return {
+        ...prev,
+        [category]: isSelected ? current.filter(i => i !== id) : [...current, id],
+      };
+    });
+  };
+
+  const totalSelected = Object.values(selected).flat().length;
+
+  const generateRecipe = async () => {
+    if (!selectedPet || selected.proteins.length === 0) return;
+    setGenerating(true);
+    setRecipe(null);
+
+    const petInfo = `${selectedPet.name}, ${selectedPet.type || "Dog"}, ${selectedPet.breed || "mixed breed"}, ${selectedPet.age || "adult"}, ${selectedPet.weight || "unknown weight"}`;
+    const selectedIngredients = Object.entries(selected)
+      .map(([cat, ids]) => {
+        if (ids.length === 0) return null;
+        const items = ids.map(id => INGREDIENTS[cat].find(i => i.id === id)?.label.replace(/[^\w\s,]/g, "").trim()).join(", ");
+        return `${cat}: ${items}`;
+      })
+      .filter(Boolean)
+      .join("\n");
+
+    const healthLabel = HEALTH_CONDITIONS.find(h => h.id === healthCondition)?.label || "Healthy";
+    const activityLabel = ACTIVITY_LEVELS.find(a => a.id === activityLevel)?.label || "Moderate";
+
+    const prompt = `You are a veterinary nutritionist creating a balanced homemade pet food recipe.
+
+Pet: ${petInfo}
+Health condition: ${healthLabel}
+Activity level: ${activityLabel}
+Selected ingredients:
+${selectedIngredients}
+${excludeIngredients ? `Ingredients to exclude: ${excludeIngredients}` : ""}
+
+Create a single balanced recipe using ONLY the selected ingredients. Return your response in this EXACT JSON format (no markdown, no backticks):
+{
+  "name": "Recipe name",
+  "emoji": "single emoji",
+  "prepTime": "X minutes",
+  "servings": "X days worth",
+  "dailyAmount": "X cups or X grams per day",
+  "calories": "approximately X kcal per day",
+  "ingredients": [
+    {"item": "ingredient name", "amount": "X grams or cups", "note": "optional note"}
+  ],
+  "steps": [
+    "Step 1 description",
+    "Step 2 description"
+  ],
+  "nutrition": {
+    "protein": "X%",
+    "fat": "X%",
+    "carbs": "X%",
+    "moisture": "X%"
+  },
+  "tips": "One helpful tip specific to this pet and recipe",
+  "disclaimer": "Always consult your veterinarian before changing your pet's diet."
+}`;
+
+    try {
+      const response = await fetch(
+        "https://us-central1-mypetdex-c4315.cloudfunctions.net/aiProxy",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: prompt }],
+          }),
+        }
+      );
+      const data = await response.json();
+      const text = data?.content?.[0]?.text || "";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      setRecipe(parsed);
+      setStep(4);
+    } catch (err) {
+      setRecipe({ error: "Could not generate recipe. Please try again." });
+      setStep(4);
+    }
+    setGenerating(false);
+  };
+
+  const saveRecipe = async () => {
+    if (!recipe || !user) return;
+    await addDoc(collection(db, "savedRecipes"), {
+      ...recipe,
+      uid: user.uid,
+      petId: selectedPet?.id,
+      petName: selectedPet?.name,
+      createdAt: new Date().toISOString(),
+    });
+    alert("Recipe saved! ✅");
+  };
+
+  const resetBuilder = () => {
+    setStep(1);
+    setRecipe(null);
+    setSelected({ proteins: [], carbs: [], fats: [], veggies: [], fruits: [] });
+    setHealthCondition("healthy");
+    setActivityLevel("moderate");
+    setExcludeIngredients("");
+  };
+
+  // Gate for free users
   if (!hasFeature(profile, 'recipes')) {
     return (
       <div style={{ padding: 24 }}>
-        <UpgradePrompt feature="Recipes" requiredPlan="Plus" />
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Recipe Builder 🍽️</h2>
+        <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>AI-powered balanced meal generator</p>
+        <UpgradePrompt feature="Recipe Builder" requiredPlan="Plus" />
       </div>
     );
   }
-return (
-  <div>
-      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Healthy Recipes 🍽️</h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Homemade meals your pet will love</p>
-     <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-      {["Dog","Cat"].map(t => <button key={t} onClick={() => setFilter(t)} style={{ ...btn(filter === t ? C.green : C.cardBorder, filter === t ? "#0F1A14" : C.muted), padding: "9px 22px", fontSize: 14 }}>{t === "Dog" ? "🐶 Dog" : "🐱 Cat"}</button>)}
+
+  // Saved recipes view
+  if (viewSaved) return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <button onClick={() => setViewSaved(false)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font }}>← Back</button>
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 20, margin: 0 }}>Saved Recipes 📚</h2>
       </div>
-      {petType !== filter && <div style={{ ...card, background: "#1a2e1e", marginBottom: 16 }}><p style={{ color: C.gold, fontSize: 12, margin: 0 }}>Your pet is a {petType} — make sure you select the right recipes!</p></div>}
-      {recipes.map(r => (
+      {savedRecipes.length === 0 && (
+        <div style={{ ...card, textAlign: "center", padding: 40, color: C.muted }}>No saved recipes yet. Generate one!</div>
+      )}
+      {savedRecipes.map(r => (
         <div key={r.id} style={{ ...card, marginBottom: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <span style={{ fontSize: 32 }}>{r.emoji}</span>
-              <div><div style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>{r.name}</div><div style={{ color: C.muted, fontSize: 12 }}>⏱️ {r.time}</div></div>
-            </div>
-            <button onClick={() => setOpen(open === r.id ? null : r.id)} style={{ background: "none", border: "none", color: C.green, fontFamily: font, fontWeight: 800, cursor: "pointer", fontSize: 13 }}>{open === r.id ? "Hide" : "View"}</button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>{r.emoji} {r.name}</div>
+            <span style={{ color: C.muted, fontSize: 11 }}>For {r.petName}</span>
           </div>
-          {open === r.id && (
-            <div style={{ marginTop: 16 }}>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ color: C.green, fontWeight: 800, fontSize: 13, marginBottom: 6 }}>INGREDIENTS</div>
-                {r.ingredients.map((ing, i) => <div key={i} style={{ color: C.muted, fontSize: 13, padding: "3px 0" }}>• {ing}</div>)}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ background: C.green + "22", color: C.green, borderRadius: 8, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>⏱️ {r.prepTime}</span>
+            <span style={{ background: C.gold + "22", color: C.gold, borderRadius: 8, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>🔥 {r.calories}</span>
+          </div>
+          <button onClick={async () => await deleteDoc(doc(db, "savedRecipes", r.id))} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 12, fontFamily: font, marginTop: 8 }}>🗑️ Delete</button>
+        </div>
+      ))}
+    </div>
+  );
+
+  // Result view
+  if (step === 4) return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <button onClick={resetBuilder} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font }}>← New Recipe</button>
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 20, margin: 0 }}>Your Recipe 🍽️</h2>
+      </div>
+      {recipe?.error ? (
+        <div style={{ ...card, color: C.danger, textAlign: "center", padding: 40 }}>{recipe.error}</div>
+      ) : recipe ? (
+        <div>
+          {/* Header */}
+          <div style={{ ...card, marginBottom: 14, background: `linear-gradient(135deg, ${C.card}, #1a2e1e)` }}>
+            <div style={{ fontSize: 48, textAlign: "center", marginBottom: 8 }}>{recipe.emoji}</div>
+            <div style={{ color: C.text, fontWeight: 900, fontSize: 22, textAlign: "center", marginBottom: 4 }}>{recipe.name}</div>
+            <div style={{ color: C.muted, fontSize: 13, textAlign: "center", marginBottom: 16 }}>Made for {selectedPet?.name} · {recipe.prepTime}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {[["🔥 Daily Calories", recipe.calories], ["🍽️ Daily Amount", recipe.dailyAmount], ["📦 Servings", recipe.servings], ["⏱️ Prep Time", recipe.prepTime]].map(([k, v]) => (
+                <div key={k} style={{ background: C.inputBg, borderRadius: 10, padding: "10px 12px", textAlign: "center" }}>
+                  <div style={{ color: C.muted, fontSize: 11, fontWeight: 700 }}>{k}</div>
+                  <div style={{ color: C.green, fontWeight: 800, fontSize: 13, marginTop: 2 }}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Nutrition */}
+          <div style={{ ...card, marginBottom: 14 }}>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 12 }}>Nutrition Breakdown</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+              {[["Protein", recipe.nutrition?.protein, C.green], ["Fat", recipe.nutrition?.fat, C.gold], ["Carbs", recipe.nutrition?.carbs, "#a78bfa"], ["Moisture", recipe.nutrition?.moisture, "#38bdf8"]].map(([k, v, color]) => (
+                <div key={k} style={{ background: C.inputBg, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+                  <div style={{ color, fontWeight: 900, fontSize: 16 }}>{v}</div>
+                  <div style={{ color: C.muted, fontSize: 10, marginTop: 2 }}>{k}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Ingredients */}
+          <div style={{ ...card, marginBottom: 14 }}>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 12 }}>🛒 Ingredients</div>
+            {(recipe.ingredients || []).map((ing, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < recipe.ingredients.length - 1 ? `1px solid ${C.cardBorder}` : "none" }}>
+                <span style={{ color: C.text, fontSize: 13 }}>{ing.item}</span>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ color: C.green, fontWeight: 700, fontSize: 13 }}>{ing.amount}</span>
+                  {ing.note && <div style={{ color: C.muted, fontSize: 11 }}>{ing.note}</div>}
+                </div>
               </div>
-              <div>
-                <div style={{ color: C.green, fontWeight: 800, fontSize: 13, marginBottom: 6 }}>STEPS</div>
-                {r.steps.map((s, i) => <div key={i} style={{ color: C.text, fontSize: 13, padding: "4px 0" }}>{i + 1}. {s}</div>)}
+            ))}
+          </div>
+
+          {/* Steps */}
+          <div style={{ ...card, marginBottom: 14 }}>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 12 }}>👨‍🍳 Preparation</div>
+            {(recipe.steps || []).map((step, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, marginBottom: 10 }}>
+                <div style={{ width: 24, height: 24, borderRadius: "50%", background: C.green, color: "#0F1A14", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 12, flexShrink: 0 }}>{i + 1}</div>
+                <span style={{ color: C.text, fontSize: 13, lineHeight: 1.5 }}>{step}</span>
               </div>
+            ))}
+          </div>
+
+          {/* Tip */}
+          {recipe.tips && (
+            <div style={{ ...card, marginBottom: 14, background: C.gold + "11", border: `1px solid ${C.gold}33` }}>
+              <div style={{ color: C.gold, fontWeight: 800, fontSize: 13, marginBottom: 4 }}>💡 Pro Tip</div>
+              <div style={{ color: C.text, fontSize: 13 }}>{recipe.tips}</div>
+            </div>
+          )}
+
+          {/* Disclaimer */}
+          <div style={{ ...card, marginBottom: 14, background: C.danger + "11", border: `1px solid ${C.danger}22` }}>
+            <div style={{ color: C.muted, fontSize: 12 }}>⚕️ {recipe.disclaimer}</div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+            <button onClick={saveRecipe} style={{ ...btn(C.green), flex: 1 }}>💾 Save Recipe</button>
+            <button onClick={resetBuilder} style={{ ...btn(C.cardBorder, C.muted), flex: 1 }}>🔄 New Recipe</button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  // Builder steps 1-3
+  const stepTitles = ["", "Which pet?", "Pick ingredients", "Health & lifestyle"];
+  const stepSubs = ["", "Select the pet you're cooking for", "Choose what you have available", "Tell us about your pet's needs"];
+
+  const renderIngredientSection = (category, emoji, label) => {
+    const items = showAll[category] ? INGREDIENTS[category] : INGREDIENTS[category].filter(i => i.popular);
+    const hasMore = INGREDIENTS[category].some(i => !i.popular);
+    return (
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ color: C.text, fontWeight: 800, fontSize: 14 }}>{emoji} {label}</div>
+          {category === "fats" && <span style={{ color: C.muted, fontSize: 11 }}>max 2</span>}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {items.map(item => {
+            const isSelected = selected[category].includes(item.id);
+            return (
+              <button key={item.id} onClick={() => toggleIngredient(category, item.id)} style={{
+                background: isSelected ? C.green : C.cardBorder,
+                color: isSelected ? "#0F1A14" : C.muted,
+                border: `1.5px solid ${isSelected ? C.green : C.cardBorder}`,
+                borderRadius: 20,
+                padding: "7px 14px",
+                fontFamily: font,
+                fontWeight: isSelected ? 800 : 600,
+                fontSize: 13,
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}>
+                {item.label}
+              </button>
+            );
+          })}
+          {hasMore && (
+            <button onClick={() => setShowAll(prev => ({ ...prev, [category]: !prev[category] }))} style={{
+              background: "none",
+              border: `1.5px dashed ${C.cardBorder}`,
+              color: C.muted,
+              borderRadius: 20,
+              padding: "7px 14px",
+              fontFamily: font,
+              fontSize: 12,
+              cursor: "pointer",
+            }}>
+              {showAll[category] ? "Show less ↑" : "More ↓"}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>Recipe Builder 🍽️</h2>
+        <button onClick={() => setViewSaved(true)} style={{ background: "none", border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: "5px 12px", color: C.muted, fontFamily: font, fontSize: 12, cursor: "pointer" }}>
+          📚 Saved ({savedRecipes.length})
+        </button>
+      </div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>AI-powered balanced meals for your pet</p>
+
+      {/* Step indicator */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
+        {[1, 2, 3].map(s => (
+          <div key={s} style={{
+            flex: 1, height: 4, borderRadius: 2,
+            background: step >= s ? C.green : C.cardBorder,
+            transition: "background 0.3s",
+          }} />
+        ))}
+      </div>
+
+      {/* Step title */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ color: C.text, fontWeight: 900, fontSize: 18 }}>{stepTitles[step]}</div>
+        <div style={{ color: C.muted, fontSize: 13, marginTop: 2 }}>{stepSubs[step]}</div>
+      </div>
+
+      {/* STEP 1 — Pet selection */}
+      {step === 1 && (
+        <div>
+          {pets.length === 0 ? (
+            <div style={{ ...card, textAlign: "center", padding: 40, color: C.muted }}>Add a pet first to generate recipes!</div>
+          ) : (
+            <div>
+              {pets.map(pet => (
+                <div key={pet.id} onClick={() => setSelectedPet(pet)} style={{
+                  ...card, marginBottom: 12, cursor: "pointer",
+                  border: `2px solid ${selectedPet?.id === pet.id ? C.green : C.cardBorder}`,
+                  background: selectedPet?.id === pet.id ? C.green + "11" : C.card,
+                }}>
+                  <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                    <Avatar emoji={pet.type === "Cat" ? "🐱" : "🐶"} size={52} img={pet.photoURL} />
+                    <div>
+                      <div style={{ color: C.text, fontWeight: 900, fontSize: 17 }}>{pet.name}</div>
+                      <div style={{ color: C.muted, fontSize: 13 }}>{pet.breed} · {pet.age} · {pet.weight}</div>
+                    </div>
+                    {selectedPet?.id === pet.id && <div style={{ marginLeft: "auto", color: C.green, fontSize: 22 }}>✓</div>}
+                  </div>
+                </div>
+              ))}
+              <button onClick={() => selectedPet && setStep(2)} disabled={!selectedPet} style={{ ...btn(C.green), width: "100%", marginTop: 8, opacity: selectedPet ? 1 : 0.4 }}>
+                Continue →
+              </button>
             </div>
           )}
         </div>
-      ))}
+      )}
+
+      {/* STEP 2 — Ingredients */}
+      {step === 2 && (
+        <div>
+          <div style={{ ...card, marginBottom: 20, background: C.green + "11", border: `1px solid ${C.green}33` }}>
+            <div style={{ color: C.green, fontSize: 13, fontWeight: 700 }}>Building for: {selectedPet?.name} ({selectedPet?.weight})</div>
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>Select what you have available. Portions will be calculated by AI.</div>
+          </div>
+
+          {renderIngredientSection("proteins", "🥩", "Proteins (required)")}
+          {renderIngredientSection("carbs", "🍚", "Carbs")}
+          {renderIngredientSection("fats", "🫒", "Fats (max 2)")}
+          {renderIngredientSection("veggies", "🥦", "Vegetables")}
+          {renderIngredientSection("fruits", "🍎", "Fruits")}
+
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 8 }}>🚫 Any ingredients to exclude?</div>
+            <input
+              value={excludeIngredients}
+              onChange={e => setExcludeIngredients(e.target.value)}
+              placeholder="e.g. dairy, fish, nuts..."
+              style={{
+                background: C.inputBg,
+                border: `1.5px solid ${C.cardBorder}`,
+                borderRadius: 10,
+                padding: "11px 14px",
+                color: C.text,
+                fontFamily: font,
+                fontSize: 14,
+                width: "100%",
+                boxSizing: "border-box",
+                outline: "none",
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setStep(1)} style={{ ...btn(C.cardBorder, C.muted) }}>← Back</button>
+            <button onClick={() => selected.proteins.length > 0 && setStep(3)} disabled={selected.proteins.length === 0} style={{ ...btn(C.green), flex: 1, opacity: selected.proteins.length > 0 ? 1 : 0.4 }}>
+              Continue ({totalSelected} selected) →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 3 — Health & lifestyle */}
+      {step === 3 && (
+        <div>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 10 }}>Health condition</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {HEALTH_CONDITIONS.map(h => (
+                <div key={h.id} onClick={() => setHealthCondition(h.id)} style={{
+                  ...card,
+                  cursor: "pointer",
+                  padding: "12px 16px",
+                  border: `2px solid ${healthCondition === h.id ? C.green : C.cardBorder}`,
+                  background: healthCondition === h.id ? C.green + "11" : C.card,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}>
+                  <span style={{ color: C.text, fontSize: 14 }}>{h.label}</span>
+                  {healthCondition === h.id && <span style={{ color: C.green }}>✓</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 10 }}>Activity level</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {ACTIVITY_LEVELS.map(a => (
+                <div key={a.id} onClick={() => setActivityLevel(a.id)} style={{
+                  ...card,
+                  cursor: "pointer",
+                  padding: "12px 16px",
+                  border: `2px solid ${activityLevel === a.id ? C.green : C.cardBorder}`,
+                  background: activityLevel === a.id ? C.green + "11" : C.card,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}>
+                  <span style={{ color: C.text, fontSize: 14 }}>{a.label}</span>
+                  {activityLevel === a.id && <span style={{ color: C.green }}>✓</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setStep(2)} style={{ ...btn(C.cardBorder, C.muted) }}>← Back</button>
+            <button onClick={generateRecipe} disabled={generating} style={{ ...btn(C.green), flex: 1 }}>
+              {generating ? "Generating recipe... 🤖" : "✨ Generate Recipe"}
+            </button>
+          </div>
+
+          {generating && (
+            <div style={{ ...card, marginTop: 16, textAlign: "center", padding: 30 }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🤖</div>
+              <div style={{ color: C.green, fontWeight: 800, fontSize: 15 }}>Creating {selectedPet?.name}'s recipe...</div>
+              <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>Calculating portions based on weight & health needs</div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
