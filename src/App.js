@@ -746,7 +746,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} />}
         {tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} />}
         {tab === "services" && isOwner && <ServicesTab profile={currentProfile} />}
-        {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} />}
+        {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} user={user} />}
         {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} />}
         {tab === "adoption" && isOwner && <AdoptionTab profile={currentProfile} />}
         {tab === "profile" && isProvider && <ProviderProfile profile={currentProfile} />}
