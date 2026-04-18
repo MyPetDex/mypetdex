@@ -79,11 +79,13 @@ const SEED_PROVIDERS = [
   { id:4, name:"Sunny Paws Grooming", state:"Florida", city:"Miami", service:"Grooming", price:"$35-$75", rating:4.6, reviews:98, googleReview:"https://maps.google.com", logo:"🐾" },
   { id:5, name:"Empire Pet Care", state:"New York", city:"New York City", service:"Dog Walking", price:"$25-$40/hr", rating:4.8, reviews:310, googleReview:"https://maps.google.com", logo:"🗽" },
 ];
+// eslint-disable-next-line no-unused-vars
 const DOG_RECIPES = [
   { id:1, name:"Chicken & Rice Bowl", time:"25 min", emoji:"🍚", ingredients:["1 cup cooked chicken","1/2 cup brown rice","1 carrot (diced)","1/2 cup peas"], steps:["Cook chicken thoroughly","Boil rice until soft","Steam carrots and peas","Mix all together, cool before serving"] },
   { id:2, name:"Peanut Butter Treats", time:"15 min", emoji:"🥜", ingredients:["1 cup oat flour","1/2 cup peanut butter (xylitol-free)","2 eggs","1/4 cup water"], steps:["Preheat oven to 350F","Mix all ingredients into dough","Roll and cut into shapes","Bake 15 min until golden"] },
   { id:3, name:"Sweet Potato & Turkey", time:"30 min", emoji:"🍠", ingredients:["1 cup ground turkey","1 sweet potato (mashed)","1/2 cup green beans","1 tbsp olive oil"], steps:["Brown turkey in pan","Boil and mash sweet potato","Steam green beans","Combine with olive oil, cool before serving"] },
 ];
+// eslint-disable-next-line no-unused-vars
 const CAT_RECIPES = [
   { id:1, name:"Tuna & Pumpkin Pate", time:"10 min", emoji:"🐟", ingredients:["1 can tuna in water","2 tbsp pumpkin puree","1 tbsp plain yogurt"], steps:["Drain tuna well","Blend with pumpkin and yogurt","Serve at room temp","Store remainder in fridge max 2 days"] },
   { id:2, name:"Chicken Liver Bites", time:"20 min", emoji:"🍗", ingredients:["1/2 cup chicken liver","1 egg","2 tbsp oat flour"], steps:["Cook liver until fully done","Mash with fork","Mix in egg and flour","Form small bites, bake 12 min at 325F"] },
