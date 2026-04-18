@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: user is signed in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    // Helper: email on the auth token is verified
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+    // Helper: user is the demo account (bypasses verification)
+    function isDemoAccount() {
+      return isSignedIn() && request.auth.token.email == 'demo@mypetdex.app';
+    }
+    // Helper: user is the admin
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'mypetdexapp@gmail.com';
+    }
+
+    // Users documents: only the user may read/write their own profile, admin can read/write all
+    // Approved shelters and providers can be read by any verified user (for adoption/services browsing)
+    match /users/{userId} {
+      // Allow creating profile immediately on registration (before email verification)
+      allow create: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      // Read requires verification (or admin/demo)
+      allow read: if isAdmin()
+        || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId)
+        || ((isEmailVerified() || isDemoAccount()) && (
+             (resource.data.role == 'shelter' && resource.data.status == 'approved') ||
+             (resource.data.role == 'provider')
+           ));
+      // Update/delete requires verification
+      allow update, delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
+      match /{subPath=**} {
+        allow read, write: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
+      }
+    }
+
+    // Shelter pets are public adoption listings — any verified user can read them
+    match /shelterPets/{docId} {
+      allow read: if isEmailVerified() || isDemoAccount() || isAdmin();
+      allow create: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.resource.data.uid == request.auth.uid);
+      allow update, delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && resource.data.uid == request.auth.uid);
+    }
+
+    // Generic rule for top-level collections that store an owning `uid` field
+    match /{collection}/{docId} {
+      allow create: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.resource.data.uid == request.auth.uid);
+      allow read, update, delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && resource.data.uid == request.auth.uid);
+    }
+
+    // Deny everything else by default (covers any other paths)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
