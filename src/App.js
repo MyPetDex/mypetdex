@@ -1529,18 +1529,24 @@ Guidelines:
         paddingTop: 12,
         borderTop: `1px solid ${C.cardBorder}`,
       }}>
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && sendMessage()}
-          placeholder={`Ask about ${pets[0]?.name || "your pet"}...`}
-          style={{
-            ...input,
-            flex: 1,
-            borderRadius: 24,
-            padding: "12px 18px",
-          }}
-        />
+      <input
+  value={input}
+  onChange={e => setInput(e.target.value)}
+  onKeyDown={e => e.key === "Enter" && sendMessage()}
+  placeholder={`Ask about ${pets[0]?.name || "your pet"}...`}
+  style={{
+    background: C.inputBg,
+    border: `1.5px solid ${C.cardBorder}`,
+    borderRadius: 24,
+    padding: "12px 18px",
+    color: C.text,
+    fontFamily: font,
+    fontSize: 14,
+    flex: 1,
+    boxSizing: "border-box",
+    outline: "none",
+  }}
+/>
         <button
           onClick={sendMessage}
           disabled={loading || !input.trim()}
