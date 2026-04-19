@@ -270,10 +270,34 @@ useEffect(() => {
     const u = auth.currentUser;
     if (!u) return;
     const snap = await getDoc(doc(db, "users", u.uid));
-    setProfile(snap.exists() ? snap.data() : { email: u.email, role: "owner", uid: u.uid });
+    const userData = snap.exists() ? snap.data() : { email: u.email, role: "owner", uid: u.uid };
+    setProfile(userData);
+    // Send welcome email to owners after verification
+    if (userData.role === "owner") {
+      try {
+        const firstName = userData.name?.split(" ")[0] || userData.email?.split("@")[0];
+        const plan = userData.plan || "free";
+        const planFeatures = plan === "free"
+          ? "✅ 1 pet profile\n✅ Vaccine & health records\n✅ Email reminders\n✅ Provider search\n✅ Photo uploads\n❌ AI Assistant (Plus/Family)\n❌ Recipe Builder (Plus/Family)"
+          : plan === "plus"
+          ? "✅ 3 pets\n✅ Vaccine & health records\n✅ Email reminders\n✅ Provider search\n✅ Photo uploads\n✅ AI Assistant\n✅ Recipe Builder"
+          : "✅ Unlimited pets\n✅ All features included\n✅ Priority support\n✅ Early access to new features";
+        await emailjs.send(
+          "service_7k1uaus",
+          "template_2wbilsd",
+          {
+            to_email: userData.email,
+            subject_line: "Welcome to MyPetDex! 🐾",
+            message_body: `Hi ${firstName},\n\nWelcome to MyPetDex! Your email is verified and your account is ready.\n\nYour plan: ${plan.charAt(0).toUpperCase() + plan.slice(1)}\n\nWhat's included:\n${planFeatures}\n\n${plan === "free" ? "💡 Upgrade to Plus ($3/mo) to unlock AI Assistant and Recipe Builder!\n\n" : ""}Need help? Reply to this email anytime.\n\nThe MyPetDex Team\nhelp@mypetdex.app`,
+          },
+          { publicKey: "Fp0nQuFeAXba8AMsM" }
+        );
+      } catch (emailErr) {
+        console.error("Welcome email error:", emailErr);
+      }
+    }
     setScreen("app");
   }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
-  return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
 }
 
 // ─── Landing ─────────────────────────────────────────────────────────────────
@@ -327,30 +351,9 @@ function RegisterScreen({ onBack, onSuccess }) {
           photoURL: "", uid: cred.user.uid, createdAt: new Date().toISOString()
         });
       }
-// Send welcome email
+// Send welcome email (providers and shelters only — owners get it after email verification)
 try {
-  let subject_line = "";
-  let message_body = "";
-
-  if (role === "owner") {
-    subject_line = "Welcome to MyPetDex! 🐾";
-    message_body = `Hi ${form.email.split("@")[0]},\n\nWelcome to MyPetDex! Here's what you can do:\n- Add and manage your pet profiles\n- Track vaccines and health records\n- Set reminders for vet visits\n- Find trusted local service providers\n- Browse pets for adoption\n\nNeed help? Reply to this email anytime.\n\nThe MyPetDex Team\nhelp@mypetdex.app`;
-  } else if (role === "provider") {
-    subject_line = "Welcome to MyPetDex – Provider Account 🐾";
-    message_body = `Hi ${form.businessName || form.email.split("@")[0]},\n\nWelcome to MyPetDex! Your provider account is ready.\n\n💰 Service Fee: 5% per booking after your first 6 months free.\n\n📋 Required Documents:\n${form.licensed === "yes" ? "- Business License\n- Google Business Page\n- Google Reviews Page" : "- Google Reviews Page"}\n\nPlease reply to this email with your documents to activate your listing.\n\nThe MyPetDex Team\nhelp@mypetdex.app`;
-  } else if (role === "shelter") {
-    subject_line = "Welcome to MyPetDex – Shelter Account 🐾";
-    message_body = `Hi ${form.shelterName || form.email.split("@")[0]},\n\nWelcome to MyPetDex! Your shelter account is ready.\n\n📋 Required Documents:\n- Shelter Name\n- Website\n- License Number\n\nPlease reply with your documents to complete verification.\n\n🐶 Adoption Listings: Once verified, you can submit pets for adoption. All listings are reviewed by our team before going live.\n\nThe MyPetDex Team\nhelp@mypetdex.app`;
-  }
-
-  await emailjs.send(
-    "service_7k1uaus",
-    "template_2wbilsd",
-    { to_email: form.email, subject_line, message_body },
-    { publicKey: "Fp0nQuFeAXba8AMsM" }
-  );
-
-  // Notify John
+  // Always notify John
   await emailjs.send(
     "service_7k1uaus",
     "template_2wbilsd",
@@ -361,9 +364,28 @@ try {
     },
     { publicKey: "Fp0nQuFeAXba8AMsM" }
   );
-  } catch (emailErr) {
-    console.error("Welcome email error:", emailErr);
+
+  // Send welcome email immediately for providers and shelters only
+  if (role === "provider" || role === "shelter") {
+    let subject_line = "";
+    let message_body = "";
+    if (role === "provider") {
+      subject_line = "Welcome to MyPetDex – Provider Account 🐾";
+      message_body = `Hi ${form.businessName || form.email.split("@")[0]},\n\nWelcome to MyPetDex! Your provider account is ready.\n\n💰 Service Fee: 5% per booking after your first 6 months free.\n\n📋 Required Documents:\n${form.licensed === "yes" ? "- Business License\n- Google Business Page\n- Google Reviews Page" : "- Google Reviews Page"}\n\nPlease reply to this email with your documents to activate your listing.\n\nThe MyPetDex Team\nhelp@mypetdex.app`;
+    } else if (role === "shelter") {
+      subject_line = "Welcome to MyPetDex – Shelter Account 🐾";
+      message_body = `Hi ${form.shelterName || form.email.split("@")[0]},\n\nWelcome to MyPetDex! Your shelter account is ready.\n\n📋 Required Documents:\n- Shelter Name\n- Website\n- License Number\n\nPlease reply with your documents to complete verification.\n\n🐶 Adoption Listings: Once verified, you can submit pets for adoption.\n\nThe MyPetDex Team\nhelp@mypetdex.app`;
+    }
+    await emailjs.send(
+      "service_7k1uaus",
+      "template_2wbilsd",
+      { to_email: form.email, subject_line, message_body },
+      { publicKey: "Fp0nQuFeAXba8AMsM" }
+    );
   }
+} catch (emailErr) {
+  console.error("Welcome email error:", emailErr);
+}
 
       // Send verification email and do NOT let user into the app until verified
       try {
