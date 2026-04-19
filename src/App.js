@@ -744,7 +744,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       </div>
       <div style={{ padding: "20px 16px", maxWidth: 540, margin: "0 auto" }}>
         {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} />}
-        {tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} />}
+        {tab ==={tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} />}
         {tab === "services" && isOwner && <ServicesTab profile={currentProfile} />}
         {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} user={user} />}
         {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} />}
@@ -1183,9 +1183,10 @@ function PetDetail({ pet, user, profile, onBack, onDelete }) {
           )}
         </div>
       )}
+      {activeTab === "calories" && <CalcTab pet={pet} profile={profile} />}
     </div>
   );
-  {activeTab === "calories" && <CalcTab pet={pet} profile={profile} />}
+  
 }
 
 // ─── Edit Pet Info ────────────────────────────────────────────────────────────
