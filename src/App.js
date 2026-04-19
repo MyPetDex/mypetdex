@@ -985,7 +985,7 @@ function PetsTab({ user, profile }) {
 }
 
 // ─── Pet Detail ───────────────────────────────────────────────────────────────
-function PetDetail({ pet, user, onBack, onDelete }) {
+function PetDetail({ pet, user, profile, onBack, onDelete }) {
   const [activeTab, setActiveTab] = useState("info");
   const [vaccines, setVaccines] = useState(pet.vaccines || []);
   const [reminders, setReminders] = useState(pet.reminders || []);
