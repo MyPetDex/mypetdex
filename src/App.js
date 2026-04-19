@@ -864,7 +864,7 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
 }
 
 // ─── Pets Tab ─────────────────────────────────────────────────────────────────
-function PetsTab({ user }) {
+function PetsTab({ user, profile }) {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -911,7 +911,7 @@ function PetsTab({ user }) {
   };
 
   if (selectedPet) return (
-    <PetDetail pet={selectedPet} user={user} onBack={() => setSelectedPetId(null)} onDelete={() => deletePet(selectedPet.id)} />
+   <PetDetail pet={selectedPet} user={user} profile={profile} onBack={() => setSelectedPetId(null)} onDelete={() => deletePet(selectedPet.id)} />
   );
 
   return (
@@ -1102,6 +1102,7 @@ function PetDetail({ pet, user, onBack, onDelete }) {
         <button style={tabStyle("info")} onClick={() => setActiveTab("info")}>Info</button>
         <button style={tabStyle("vaccines")} onClick={() => setActiveTab("vaccines")}>💉 Vaccines ({vaccines.length})</button>
         <button style={tabStyle("reminders")} onClick={() => setActiveTab("reminders")}>⏰ Reminders ({reminders.length})</button>
+        <button style={tabStyle("calories")} onClick={() => setActiveTab("calories")}>🔢 Calories</button>
       </div>
       {activeTab === "info" && <EditPetInfo pet={pet} onDelete={onDelete} onSaved={() => showToast("✅ Pet info updated!")} />}
       {activeTab === "vaccines" && (
@@ -1184,6 +1185,7 @@ function PetDetail({ pet, user, onBack, onDelete }) {
       )}
     </div>
   );
+  {activeTab === "calories" && <CalcTab pet={pet} profile={profile} />}
 }
 
 // ─── Edit Pet Info ────────────────────────────────────────────────────────────
@@ -2097,6 +2099,332 @@ Guidelines:
           ↑
         </button>
       </div>
+    </div>
+  );
+}
+// ─── Calorie Calculator Tab ────────────────────────────────────────────────────
+// Add this function anywhere in App.js (e.g. after RecipesTab)
+// Then add it as a tab inside PetDetail
+
+function CalcTab({ pet, profile }) {
+  const [neutered, setNeutered] = useState(true);
+  const [activityLevel, setActivityLevel] = useState("moderate");
+  const [healthGoal, setHealthGoal] = useState("maintain");
+  const [lifeStage, setLifeStage] = useState("adult");
+  const [result, setResult] = useState(null);
+
+  // Determine life stage from pet age automatically
+  useEffect(() => {
+    const age = pet?.age?.toLowerCase() || "";
+    const isdog = (pet?.type || "Dog") !== "Cat";
+    if (age.includes("puppy") || age.includes("kitten") || 
+        age.includes("month") || age === "0" || age.includes("wk") ||
+        (parseFloat(age) < 1 && age !== "")) {
+      setLifeStage("puppy");
+    } else if (parseFloat(age) >= (isdog ? 7 : 10)) {
+      setLifeStage("senior");
+    } else {
+      setLifeStage("adult");
+    }
+  }, [pet]);
+
+  // Parse weight to kg
+  const parseWeightKg = () => {
+    const w = pet?.weight || "";
+    const num = parseFloat(w);
+    if (isNaN(num)) return null;
+    if (w.toLowerCase().includes("kg")) return num;
+    return num * 0.453592; // lbs to kg
+  };
+
+  // NRC/AAFCO Formula
+  // RER = 70 × (body weight in kg)^0.75
+  // MER = RER × life stage multiplier
+  const calculate = () => {
+    const weightKg = parseWeightKg();
+    if (!weightKg || weightKg <= 0) {
+      setResult({ error: "Could not parse weight. Make sure pet weight is set (e.g. '55 lbs' or '25 kg')." });
+      return;
+    }
+
+    const RER = 70 * Math.pow(weightKg, 0.75);
+    const isCat = (pet?.type || "Dog") === "Cat";
+
+    // Life stage multipliers (NRC/AAFCO standard)
+    let multiplier = 1.6; // default adult intact
+    if (lifeStage === "puppy") {
+      multiplier = weightKg < 2 ? 3.0 : weightKg < 10 ? 2.5 : 2.0;
+    } else if (lifeStage === "senior") {
+      multiplier = neutered ? 1.2 : 1.4;
+    } else {
+      // Adult
+      if (neutered) {
+        multiplier = activityLevel === "low" ? 1.2
+          : activityLevel === "moderate" ? 1.4
+          : activityLevel === "active" ? 1.6
+          : 1.8;
+      } else {
+        multiplier = activityLevel === "low" ? 1.4
+          : activityLevel === "moderate" ? 1.6
+          : activityLevel === "active" ? 1.8
+          : 2.0;
+      }
+    }
+
+    // Health goal adjustments
+    if (healthGoal === "lose") multiplier = Math.max(multiplier * 0.8, 1.0);
+    if (healthGoal === "gain") multiplier *= 1.2;
+    if (healthGoal === "pregnant") multiplier = 2.0;
+    if (healthGoal === "nursing") multiplier = isCat ? 2.5 : 3.0;
+
+    const dailyKcal = Math.round(RER * multiplier);
+
+    // Common food portions
+    // Dry kibble: ~3.5 kcal/gram average
+    // Wet food: ~1 kcal/gram average  
+    // Raw/homemade: ~1.2 kcal/gram average
+    const kibbleCups = (dailyKcal / 350).toFixed(1); // ~350 kcal/cup
+    const wetFoodGrams = Math.round(dailyKcal / 1.0);
+    const rawGrams = Math.round(dailyKcal / 1.2);
+
+    // Meals per day
+    const mealsPerDay = lifeStage === "puppy" ? 3 : 2;
+    const kibblePerMeal = (parseFloat(kibbleCups) / mealsPerDay).toFixed(2);
+    const rawPerMeal = Math.round(rawGrams / mealsPerDay);
+
+    setResult({
+      weightKg: weightKg.toFixed(1),
+      weightLbs: (weightKg * 2.20462).toFixed(1),
+      RER: Math.round(RER),
+      MER: dailyKcal,
+      multiplier: multiplier.toFixed(2),
+      kibbleCups,
+      kibblePerMeal,
+      wetFoodGrams,
+      rawGrams,
+      rawPerMeal,
+      mealsPerDay,
+      lifeStage,
+    });
+  };
+
+  const activityOptions = [
+    { id: "low", label: "🛋️ Low", desc: "mostly resting" },
+    { id: "moderate", label: "🚶 Moderate", desc: "daily walks" },
+    { id: "active", label: "🏃 Active", desc: "runs/plays daily" },
+    { id: "very_active", label: "⚡ Very Active", desc: "working/sport dog" },
+  ];
+
+  const healthGoalOptions = [
+    { id: "maintain", label: "✅ Maintain weight" },
+    { id: "lose", label: "⬇️ Lose weight" },
+    { id: "gain", label: "⬆️ Gain weight" },
+    { id: "pregnant", label: "🤰 Pregnant" },
+    { id: "nursing", label: "🍼 Nursing" },
+  ];
+
+  const lifeStageOptions = [
+    { id: "puppy", label: "🐶 Puppy / Kitten" },
+    { id: "adult", label: "🐕 Adult" },
+    { id: "senior", label: "👴 Senior" },
+  ];
+
+  if (!hasFeature(profile, 'ai')) {
+    return (
+      <div style={{ padding: 16 }}>
+        <UpgradePrompt feature="Calorie Calculator" requiredPlan="Plus" />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Pet weight display */}
+      <div style={{ ...card, marginBottom: 16, background: C.green + "11", border: `1px solid ${C.green}33` }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ color: C.green, fontWeight: 800, fontSize: 13 }}>📊 {pet.name}'s Weight</div>
+            <div style={{ color: C.text, fontWeight: 900, fontSize: 22, marginTop: 2 }}>{pet.weight || "Not set"}</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ color: C.muted, fontSize: 11 }}>Formula</div>
+            <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>NRC/AAFCO</div>
+            <div style={{ color: C.muted, fontSize: 11 }}>RER = 70 × kg^0.75</div>
+          </div>
+        </div>
+        {!pet.weight && (
+          <div style={{ color: C.gold, fontSize: 12, marginTop: 8 }}>⚠️ Add weight to pet profile for accurate results</div>
+        )}
+      </div>
+
+      {/* Life stage */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ color: C.text, fontWeight: 800, fontSize: 13, marginBottom: 8 }}>Life Stage</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {lifeStageOptions.map(o => (
+            <button key={o.id} onClick={() => setLifeStage(o.id)} style={{
+              flex: 1, padding: "8px 4px", borderRadius: 10, fontFamily: font, fontSize: 12,
+              fontWeight: lifeStage === o.id ? 800 : 600,
+              background: lifeStage === o.id ? C.green : C.cardBorder,
+              color: lifeStage === o.id ? "#0F1A14" : C.muted,
+              border: `1.5px solid ${lifeStage === o.id ? C.green : C.cardBorder}`,
+              cursor: "pointer",
+            }}>{o.label}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Neutered */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ color: C.text, fontWeight: 800, fontSize: 13, marginBottom: 8 }}>Reproductive Status</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {[["true", "✂️ Spayed/Neutered"], ["false", "🔵 Intact"]].map(([val, lbl]) => (
+            <button key={val} onClick={() => setNeutered(val === "true")} style={{
+              flex: 1, padding: "8px 4px", borderRadius: 10, fontFamily: font, fontSize: 12,
+              fontWeight: neutered === (val === "true") ? 800 : 600,
+              background: neutered === (val === "true") ? C.green : C.cardBorder,
+              color: neutered === (val === "true") ? "#0F1A14" : C.muted,
+              border: `1.5px solid ${neutered === (val === "true") ? C.green : C.cardBorder}`,
+              cursor: "pointer",
+            }}>{lbl}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Activity */}
+      {lifeStage === "adult" && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ color: C.text, fontWeight: 800, fontSize: 13, marginBottom: 8 }}>Activity Level</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {activityOptions.map(o => (
+              <button key={o.id} onClick={() => setActivityLevel(o.id)} style={{
+                padding: "10px 8px", borderRadius: 10, fontFamily: font, fontSize: 12,
+                fontWeight: activityLevel === o.id ? 800 : 600,
+                background: activityLevel === o.id ? C.green : C.cardBorder,
+                color: activityLevel === o.id ? "#0F1A14" : C.muted,
+                border: `1.5px solid ${activityLevel === o.id ? C.green : C.cardBorder}`,
+                cursor: "pointer", textAlign: "left",
+              }}>
+                <div>{o.label}</div>
+                <div style={{ fontSize: 10, marginTop: 2, opacity: 0.8 }}>{o.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Health goal */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ color: C.text, fontWeight: 800, fontSize: 13, marginBottom: 8 }}>Goal</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {healthGoalOptions.map(o => (
+            <button key={o.id} onClick={() => setHealthGoal(o.id)} style={{
+              padding: "10px 14px", borderRadius: 10, fontFamily: font, fontSize: 13,
+              fontWeight: healthGoal === o.id ? 800 : 600,
+              background: healthGoal === o.id ? C.green + "22" : "none",
+              color: healthGoal === o.id ? C.green : C.muted,
+              border: `1.5px solid ${healthGoal === o.id ? C.green : C.cardBorder}`,
+              cursor: "pointer", textAlign: "left",
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+            }}>
+              {o.label}
+              {healthGoal === o.id && <span>✓</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button onClick={calculate} style={{ ...btn(C.green), width: "100%", fontSize: 16, marginBottom: 20 }}>
+        🔢 Calculate Daily Calories
+      </button>
+
+      {/* Results */}
+      {result?.error && (
+        <div style={{ ...card, border: `1px solid ${C.danger}`, color: C.danger, fontSize: 13, padding: 16 }}>
+          {result.error}
+        </div>
+      )}
+
+      {result && !result.error && (
+        <div>
+          {/* Main result */}
+          <div style={{ ...card, marginBottom: 14, background: `linear-gradient(135deg, ${C.card}, #1a2e1e)`, textAlign: "center" }}>
+            <div style={{ color: C.muted, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Daily Calories for {pet.name}</div>
+            <div style={{ color: C.green, fontWeight: 900, fontSize: 52, lineHeight: 1, margin: "12px 0 4px" }}>{result.MER}</div>
+            <div style={{ color: C.muted, fontSize: 13 }}>kcal / day</div>
+            <div style={{ color: C.muted, fontSize: 11, marginTop: 8 }}>
+              RER: {result.RER} kcal × {result.multiplier} multiplier
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 12 }}>
+              <span style={{ background: C.green + "22", color: C.green, borderRadius: 8, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
+                {result.weightKg} kg / {result.weightLbs} lbs
+              </span>
+              <span style={{ background: C.gold + "22", color: C.gold, borderRadius: 8, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
+                {result.mealsPerDay}x meals/day
+              </span>
+            </div>
+          </div>
+
+          {/* Feeding guide */}
+          <div style={{ ...card, marginBottom: 14 }}>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 12 }}>🍽️ Feeding Guide</div>
+            {[
+              {
+                icon: "🥣",
+                type: "Dry Kibble",
+                total: `${result.kibbleCups} cups/day`,
+                perMeal: `${result.kibblePerMeal} cups per meal`,
+                note: "~350 kcal/cup average",
+              },
+              {
+                icon: "🥫",
+                type: "Wet Food",
+                total: `${result.wetFoodGrams}g / day`,
+                perMeal: `${Math.round(result.wetFoodGrams / result.mealsPerDay)}g per meal`,
+                note: "~1 kcal/gram average",
+              },
+              {
+                icon: "🥩",
+                type: "Raw / Homemade",
+                total: `${result.rawGrams}g / day`,
+                perMeal: `${result.rawPerMeal}g per meal`,
+                note: "~1.2 kcal/gram average",
+              },
+            ].map((f, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 0", borderBottom: i < 2 ? `1px solid ${C.cardBorder}` : "none" }}>
+                <div style={{ fontSize: 28 }}>{f.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: C.text, fontWeight: 800, fontSize: 13 }}>{f.type}</div>
+                  <div style={{ color: C.muted, fontSize: 11 }}>{f.note}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ color: C.green, fontWeight: 800, fontSize: 13 }}>{f.total}</div>
+                  <div style={{ color: C.muted, fontSize: 11 }}>{f.perMeal}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Goal tip */}
+          {healthGoal === "lose" && (
+            <div style={{ ...card, marginBottom: 14, background: C.gold + "11", border: `1px solid ${C.gold}33` }}>
+              <div style={{ color: C.gold, fontWeight: 800, fontSize: 13, marginBottom: 4 }}>⬇️ Weight Loss Mode</div>
+              <div style={{ color: C.text, fontSize: 13 }}>Calories reduced by 20%. Monitor weight weekly and adjust if needed. Aim for 1-2% body weight loss per week.</div>
+            </div>
+          )}
+          {healthGoal === "gain" && (
+            <div style={{ ...card, marginBottom: 14, background: C.green + "11", border: `1px solid ${C.green}33` }}>
+              <div style={{ color: C.green, fontWeight: 800, fontSize: 13, marginBottom: 4 }}>⬆️ Weight Gain Mode</div>
+              <div style={{ color: C.text, fontSize: 13 }}>Calories increased by 20%. Add extra meals rather than larger portions. Recheck weight every 2 weeks.</div>
+            </div>
+          )}
+
+          {/* Disclaimer */}
+          <div style={{ ...card, background: C.danger + "08", border: `1px solid ${C.danger}22`, marginBottom: 14 }}>
+            <div style={{ color: C.muted, fontSize: 11 }}>⚕️ This calculator uses the NRC/AAFCO Resting Energy Requirement (RER) formula. Results are estimates — always consult your veterinarian before changing your pet's diet, especially for weight management or health conditions.</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
