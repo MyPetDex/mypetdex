@@ -301,6 +301,7 @@ useEffect(() => {
     }
     setScreen("app");
   }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
+  if (screen === "app") return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
 }
 
 // ─── Landing ─────────────────────────────────────────────────────────────────
