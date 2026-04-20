@@ -743,7 +743,6 @@ function AdminDashboard({ onLogout }) {
   // eslint-disable-next-line no-unused-vars
 
 // ─── Main App Shell ───────────────────────────────────────────────────────────
-  // eslint-disable-next-line no-unused-vars
 function MainApp({ user, profile, tab, setTab, onLogout }) {
   const [currentProfile, setCurrentProfile] = useState(profile);
   const role = currentProfile?.role || "owner";
