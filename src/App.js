@@ -173,6 +173,7 @@ export default function App() {
   const [screen, setScreen] = useState("landing");
   // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line no-unused-vars
   const [tab, setTab] = useState("home");
 
   useEffect(() => {
@@ -738,8 +739,9 @@ function AdminDashboard({ onLogout }) {
     </div>
   );
 }
-// eslint-disable-next-line no-unused-vars
-// ─── Main App Shell ───────────────────────────────────────────────────────────
+
+// ─── Main App Shell
+// eslint-disable-next-line no-unused-vars ───────────────────────────────────────────────────────────
 function MainApp({ user, profile, tab, setTab, onLogout }) {
   const [currentProfile, setCurrentProfile] = useState(profile);
   const role = currentProfile?.role || "owner";
