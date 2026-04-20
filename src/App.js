@@ -168,8 +168,10 @@ function compressImage(file, callback) {
 // ─── Main Export ──────────────────────────────────────────────────────────────
 export default function App() {
   const [user, setUser] = useState(null); // eslint-disable-line no-unused-vars
+  // eslint-disable-next-line no-unused-vars
   const [profile, setProfile] = useState(null);
   const [screen, setScreen] = useState("landing");
+  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
 
@@ -736,7 +738,7 @@ function AdminDashboard({ onLogout }) {
     </div>
   );
 }
-
+// eslint-disable-next-line no-unused-vars
 // ─── Main App Shell ───────────────────────────────────────────────────────────
 function MainApp({ user, profile, tab, setTab, onLogout }) {
   const [currentProfile, setCurrentProfile] = useState(profile);
