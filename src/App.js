@@ -280,11 +280,8 @@ useEffect(() => {
       try {
         const firstName = userData.name?.split(" ")[0] || userData.email?.split("@")[0];
         const plan = userData.plan || "free";
-        const planFeatures = plan === "free"
-          ? "✅ 1 pet profile\n✅ Vaccine & health records\n✅ Email reminders\n✅ Provider search\n✅ Photo uploads\n❌ AI Assistant (Plus/Family)\n❌ Recipe Builder (Plus/Family)"
-          : plan === "plus"
-          ? "✅ 3 pets\n✅ Vaccine & health records\n✅ Email reminders\n✅ Provider search\n✅ Photo uploads\n✅ AI Assistant\n✅ Recipe Builder"
-          : "✅ Unlimited pets\n✅ All features included\n✅ Priority support\n✅ Early access to new features";
+        const plan = userData.plan || "free";
+        const planColor = plan === "family" ? "#F5C842" : plan === "plus" ? "#3DD68C" : "#7A9E89";
         const planColor = plan === "family" ? "#F5C842" : plan === "plus" ? "#3DD68C" : "#7A9E89";
         const featuresHTML = plan === "free"
           ? `<div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ 1 pet profile</div>
