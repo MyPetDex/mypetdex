@@ -280,8 +280,6 @@ useEffect(() => {
       try {
         const firstName = userData.name?.split(" ")[0] || userData.email?.split("@")[0];
         const plan = userData.plan || "free";
-        const plan = userData.plan || "free";
-        const planColor = plan === "family" ? "#F5C842" : plan === "plus" ? "#3DD68C" : "#7A9E89";
         const planColor = plan === "family" ? "#F5C842" : plan === "plus" ? "#3DD68C" : "#7A9E89";
         const featuresHTML = plan === "free"
           ? `<div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ 1 pet profile</div>
