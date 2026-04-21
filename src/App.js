@@ -554,6 +554,7 @@ function VerifyEmail({ onVerified, onLogout }) {
     if (!user) { setMessage("No signed-in user."); return; }
     setSending(true); setMessage("");
     try {
+      await new Promise(resolve => setTimeout(resolve, 2000));
       await user.reload();
       if (user.emailVerified) {
         await onVerified();
