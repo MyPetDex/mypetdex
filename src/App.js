@@ -550,13 +550,17 @@ function VerifyEmail({ onVerified, onLogout }) {
     setSending(false);
   };
 
-  const check = async () => {
+const check = async () => {
     if (!user) { setMessage("No signed-in user."); return; }
     setSending(true); setMessage("");
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      await user.reload();
-      if (user.emailVerified) {
+      let verified = false;
+      for (let i = 0; i < 5; i++) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await user.reload();
+        if (user.emailVerified) { verified = true; break; }
+      }
+      if (verified) {
         await onVerified();
       } else {
         setMessage("Email still not verified. Please check your inbox and follow the link.");
