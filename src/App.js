@@ -285,13 +285,47 @@ useEffect(() => {
           : plan === "plus"
           ? "✅ 3 pets\n✅ Vaccine & health records\n✅ Email reminders\n✅ Provider search\n✅ Photo uploads\n✅ AI Assistant\n✅ Recipe Builder"
           : "✅ Unlimited pets\n✅ All features included\n✅ Priority support\n✅ Early access to new features";
+        const planColor = plan === "family" ? "#F5C842" : plan === "plus" ? "#3DD68C" : "#7A9E89";
+        const featuresHTML = plan === "free"
+          ? `<div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ 1 pet profile</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Vaccine &amp; health records</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Email reminders</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Provider search</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Photo uploads</div>
+             <div style="margin-bottom:8px;color:#7A9E89;font-size:14px;">❌ AI Assistant <span style="font-size:11px;">(Plus/Family)</span></div>
+             <div style="margin-bottom:16px;color:#7A9E89;font-size:14px;">❌ Recipe Builder <span style="font-size:11px;">(Plus/Family)</span></div>
+             <div style="background:#3DD68C22;border:1px solid #3DD68C44;border-radius:10px;padding:12px 16px;margin-top:8px;">
+               <span style="color:#3DD68C;font-size:13px;font-weight:bold;">💡 Upgrade to Plus ($3/mo) to unlock AI Assistant and Recipe Builder!</span>
+             </div>`
+          : plan === "plus"
+          ? `<div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ 3 pet profiles</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Vaccine &amp; health records</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Email reminders</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Provider search</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Photo uploads</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ AI Assistant 🤖</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Recipe Builder 🍽️</div>`
+          : `<div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Unlimited pet profiles</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ All features included</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ AI Assistant 🤖</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Recipe Builder 🍽️</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Priority support</div>
+             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Early access to new features</div>`;
         await emailjs.send(
           "service_7k1uaus",
           "template_2wbilsd",
           {
             to_email: userData.email,
+            to_name: firstName,
             subject_line: "Welcome to MyPetDex! 🐾",
-            message_body: `Hi ${firstName},\n\nWelcome to MyPetDex! Your email is verified and your account is ready.\n\nYour plan: ${plan.charAt(0).toUpperCase() + plan.slice(1)}\n\nWhat's included:\n${planFeatures}\n\n${plan === "free" ? "💡 Upgrade to Plus ($3/mo) to unlock AI Assistant and Recipe Builder!\n\n" : ""}Need help? Reply to this email anytime.\n\nThe MyPetDex Team\nhelp@mypetdex.app`,
+            message_body: `<div style="display:inline-block;background:${planColor}22;border:1px solid ${planColor}44;border-radius:8px;padding:4px 12px;margin-bottom:16px;">
+              <span style="color:${planColor};font-size:12px;font-weight:bold;">YOUR PLAN: ${plan.toUpperCase()}</span>
+            </div>
+            <div style="color:#7A9E89;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">What's included</div>
+            ${featuresHTML}
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid #1E3526;">
+              <a href="https://app.mypetdex.app" style="display:block;background:#3DD68C;color:#0F1A14;text-align:center;padding:14px;border-radius:12px;font-weight:900;font-size:15px;text-decoration:none;">Open MyPetDex 🐾</a>
+            </div>`,
           },
           { publicKey: "Fp0nQuFeAXba8AMsM" }
         );
