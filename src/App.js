@@ -2543,7 +2543,11 @@ function DeleteAccountButton({ user, onLogout }) {
       onLogout();
     } catch (e) {
       if (e.code === "auth/requires-recent-login") {
-        setError("For security, please sign out and sign back in before deleting your account.");
+        setError("For security, you need to sign in again before deleting. Signing you out now...");
+        setTimeout(async () => {
+          await signOut(auth);
+          onLogout();
+        }, 2000);
       } else {
         setError("Could not delete account. Please try again.");
       }
