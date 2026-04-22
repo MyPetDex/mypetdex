@@ -281,7 +281,22 @@ useEffect(() => {
       await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, email: userData.email, name, profile: userData }),
+        body: JSON.stringify({ 
+          role, 
+          email: userData.email, 
+          name,
+          profile: {
+            name: userData.name || "",
+            email: userData.email || "",
+            role: userData.role || "",
+            businessName: userData.businessName || "",
+            shelterName: userData.shelterName || "",
+            city: userData.city || "",
+            state: userData.state || "",
+            plan: userData.plan || "free",
+            createdAt: userData.createdAt || "",
+          }
+        }),
       });
     } catch (emailErr) {
       console.error("Post-verification email error:", emailErr);
