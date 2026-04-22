@@ -275,6 +275,18 @@ useEffect(() => {
     const snap = await getDoc(doc(db, "users", u.uid));
     const userData = snap.exists() ? snap.data() : { email: u.email, role: "owner", uid: u.uid };
     setProfile(userData);
+    // Send welcome email + admin notification after verification
+    try {
+      const role = userData.role || "owner";
+      const name = userData.name?.split(" ")[0] || userData.businessName?.split(" ")[0] || userData.shelterName?.split(" ")[0] || userData.email?.split("@")[0];
+      await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role, email: userData.email, name, profile: userData }),
+      });
+    } catch (emailErr) {
+      console.error("Post-verification email error:", emailErr);
+    }
     setScreen("app");
   }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "app") return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
