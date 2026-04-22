@@ -219,7 +219,34 @@ export default function App() {
         } else {
           try {
             const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-            setProfile(snap.exists() ? snap.data() : { email: firebaseUser.email, role: "owner", uid: firebaseUser.uid });
+            const userData = snap.exists() ? snap.data() : { email: firebaseUser.email, role: "owner", uid: firebaseUser.uid };
+            setProfile(userData);
+            // Send welcome email only once after first verification
+            if (snap.exists() && !userData.welcomeEmailSent) {
+              await updateDoc(doc(db, "users", firebaseUser.uid), { welcomeEmailSent: true });
+              const role = userData.role || "owner";
+              const name = userData.name?.split(" ")[0] || userData.businessName?.split(" ")[0] || userData.shelterName?.split(" ")[0] || userData.email?.split("@")[0];
+              fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  role,
+                  email: userData.email,
+                  name,
+                  profile: {
+                    name: userData.name || "",
+                    email: userData.email || "",
+                    role: userData.role || "",
+                    businessName: userData.businessName || "",
+                    shelterName: userData.shelterName || "",
+                    city: userData.city || "",
+                    state: userData.state || "",
+                    plan: userData.plan || "free",
+                    createdAt: userData.createdAt || "",
+                  }
+                }),
+              }).catch(err => console.error("Welcome email error:", err));
+            }
           } catch (e) {
             console.error("Error loading profile:", e);
           }
