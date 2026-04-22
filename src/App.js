@@ -392,6 +392,7 @@ try {
     "template_2wbilsd",
     {
       to_email: "mypetdexapp@gmail.com",
+      to_name: "John (Admin)",
       subject_line: `New ${role} signup: ${form.email}`,
       message_body: `A new ${role} just signed up!\n\nEmail: ${form.email}\nRole: ${role}\nTime: ${new Date().toLocaleString()}`,
     },
