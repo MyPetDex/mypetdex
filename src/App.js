@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import emailjs from "@emailjs/browser";
 import { auth, db } from "./firebase";
 import {
   createUserWithEmailAndPassword,
