@@ -275,59 +275,6 @@ useEffect(() => {
     const snap = await getDoc(doc(db, "users", u.uid));
     const userData = snap.exists() ? snap.data() : { email: u.email, role: "owner", uid: u.uid };
     setProfile(userData);
-    // Send welcome email to owners after verification
-    if (userData.role === "owner") {
-      try {
-        const firstName = userData.name?.split(" ")[0] || userData.email?.split("@")[0];
-        const plan = userData.plan || "free";
-        const planColor = plan === "family" ? "#F5C842" : plan === "plus" ? "#3DD68C" : "#7A9E89";
-        const featuresHTML = plan === "free"
-          ? `<div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ 1 pet profile</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Vaccine &amp; health records</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Email reminders</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Provider search</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Photo uploads</div>
-             <div style="margin-bottom:8px;color:#7A9E89;font-size:14px;">❌ AI Assistant <span style="font-size:11px;">(Plus/Family)</span></div>
-             <div style="margin-bottom:16px;color:#7A9E89;font-size:14px;">❌ Recipe Builder <span style="font-size:11px;">(Plus/Family)</span></div>
-             <div style="background:#3DD68C22;border:1px solid #3DD68C44;border-radius:10px;padding:12px 16px;margin-top:8px;">
-               <span style="color:#3DD68C;font-size:13px;font-weight:bold;">💡 Upgrade to Plus ($3/mo) to unlock AI Assistant and Recipe Builder!</span>
-             </div>`
-          : plan === "plus"
-          ? `<div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ 3 pet profiles</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Vaccine &amp; health records</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Email reminders</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Provider search</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Photo uploads</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ AI Assistant 🤖</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Recipe Builder 🍽️</div>`
-          : `<div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Unlimited pet profiles</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ All features included</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ AI Assistant 🤖</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Recipe Builder 🍽️</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Priority support</div>
-             <div style="margin-bottom:8px;color:#EFF6F1;font-size:14px;">✅ Early access to new features</div>`;
-        await emailjs.send(
-          "service_7k1uaus",
-          "template_2wbilsd",
-          {
-            to_email: userData.email,
-            to_name: firstName,
-            subject_line: "Welcome to MyPetDex! 🐾",
-            message_body: `<div style="display:inline-block;background:${planColor}22;border:1px solid ${planColor}44;border-radius:8px;padding:4px 12px;margin-bottom:16px;">
-              <span style="color:${planColor};font-size:12px;font-weight:bold;">YOUR PLAN: ${plan.toUpperCase()}</span>
-            </div>
-            <div style="color:#7A9E89;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">What's included</div>
-            ${featuresHTML}
-            <div style="margin-top:20px;padding-top:16px;border-top:1px solid #1E3526;">
-              <a href="https://app.mypetdex.app" style="display:block;background:#3DD68C;color:#0F1A14;text-align:center;padding:14px;border-radius:12px;font-weight:900;font-size:15px;text-decoration:none;">Open MyPetDex 🐾</a>
-            </div>`,
-          },
-          { publicKey: "Fp0nQuFeAXba8AMsM" }
-        );
-      } catch (emailErr) {
-        console.error("Welcome email error:", emailErr);
-      }
-    }
     setScreen("app");
   }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "app") return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
