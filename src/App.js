@@ -803,18 +803,35 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
     return unsub;
   }, [user, isOwner]);
 
-  if (isProvider) return (
+if (isProvider) return (
     <div>
-      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22 }}>Provider Dashboard 🛎️</h2>
-      <div style={{ ...card, marginBottom: 14 }}>
-        <div style={{ color: C.gold, fontWeight: 800, fontSize: 16 }}>30-Day Free Trial Active</div>
-        <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>After trial: 10-15% commission only on bookings. No monthly fees!</div>
+      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 14 }}>Provider Dashboard 🛎️</h2>
+      <div style={{ ...card, marginBottom: 14, background: C.gold + "11", border: `1px solid ${C.gold}33` }}>
+        <div style={{ color: C.gold, fontWeight: 800, fontSize: 16 }}>🎉 6-Month Free Trial Active</div>
+        <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>After trial: only 5% commission on completed bookings. No monthly fees, ever!</div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        {[["Total Views","24"],["Bookings","0"],["Earnings","$0"],["Rating","--"]].map(([k,v]) => (
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+        {[["Total Views","0"],["Bookings","0"],["Earnings","$0"],["Rating","New ⭐"]].map(([k,v]) => (
           <div key={k} style={{ ...card, textAlign: "center" }}>
             <div style={{ color: C.green, fontWeight: 900, fontSize: 26 }}>{v}</div>
             <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>{k}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ ...card, marginBottom: 14 }}>
+        <div style={{ color: C.text, fontWeight: 800, fontSize: 15, marginBottom: 10 }}>📋 Next Steps</div>
+        <div style={{ color: C.muted, fontSize: 13, marginBottom: 8 }}>✉️ Reply to your welcome email with your documents to activate your listing:</div>
+        <div style={{ background: C.bg, borderRadius: 10, padding: "12px 14px" }}>
+          <div style={{ color: C.muted, fontSize: 13, lineHeight: 2 }}>✓ &nbsp;Business License<br/>✓ &nbsp;Google Business Page link<br/>✓ &nbsp;Google Reviews Page link</div>
+        </div>
+      </div>
+      <div style={{ ...card }}>
+        <div style={{ color: C.text, fontWeight: 800, fontSize: 15, marginBottom: 4 }}>💼 My Business Info</div>
+        <div style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>Contact us at help@mypetdex.app to update your business details.</div>
+        {[["Business", profile?.businessName || "--"], ["Service", profile?.service || "--"], ["Price Range", profile?.priceRange || "--"], ["Location", profile?.city && profile?.state ? `${profile.city}, ${profile.state}` : "--"]].map(([k,v]) => (
+          <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.cardBorder}` }}>
+            <span style={{ color: C.muted, fontSize: 13 }}>{k}</span>
+            <span style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>{v}</span>
           </div>
         ))}
       </div>
