@@ -2529,21 +2529,82 @@ function AdoptionTab({ profile }) {
 }
 
 // ─── Provider Profile ─────────────────────────────────────────────────────────
+// ─── Provider Profile ─────────────────────────────────────────────────────────
 function ProviderProfile({ profile }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [form, setForm] = useState({
+    businessName: profile?.businessName || "",
+    service: profile?.service || "",
+    priceRange: profile?.priceRange || "",
+    city: profile?.city || "",
+    state: profile?.state || "",
+    bio: profile?.bio || "",
+    googleReview: profile?.googleReview || "",
+  });
+  const set = k => v => setForm(f => ({ ...f, [k]: v }));
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, "users", profile.uid), form);
+      setSaved(true);
+      setEditing(false);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      console.error("Save error:", e);
+    }
+    setSaving(false);
+  };
+
   return (
     <div>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 18 }}>My Business Profile 📋</h2>
+      {saved && <div style={{ background: C.green + "22", border: `1px solid ${C.green}`, borderRadius: 10, padding: "10px 14px", color: C.green, fontSize: 13, marginBottom: 14 }}>✅ Profile updated!</div>}
       <div style={{ ...card, marginBottom: 14 }}>
-        <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 16 }}>
-          <Avatar emoji="🛎️" size={56} />
-          <div>
-            <div style={{ color: C.text, fontWeight: 900, fontSize: 18 }}>{profile?.businessName || "Your Business"}</div>
-            <div style={{ color: C.muted, fontSize: 13 }}>📍 {profile?.city}, {profile?.state}</div>
-            <Badge text={profile?.service || "Service"} color={C.green} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+            <Avatar emoji="🛎️" size={56} />
+            <div>
+              <div style={{ color: C.text, fontWeight: 900, fontSize: 18 }}>{profile?.businessName || "Your Business"}</div>
+              <div style={{ color: C.muted, fontSize: 13 }}>📍 {profile?.city || "--"}, {profile?.state || "--"}</div>
+              <Badge text={profile?.service || "Service"} color={C.green} />
+            </div>
           </div>
+          {!editing && <button onClick={() => setEditing(true)} style={{ background: C.green + "22", border: `1.5px solid ${C.green}`, borderRadius: 10, padding: "7px 16px", color: C.green, fontFamily: font, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>✏️ Edit</button>}
         </div>
+
+        {editing ? (
+          <div>
+            <Field label="Business Name" value={form.businessName} onChange={set("businessName")} placeholder="Happy Paws Grooming" />
+            <Field label="Service Type" as="select" value={form.service} onChange={set("service")} options={["Grooming","Dog Walking","Veterinary","Training","Boarding","Daycare","Other"]} />
+            <Field label="Price Range" value={form.priceRange} onChange={set("priceRange")} placeholder="e.g. $40-$80" />
+            <Field label="City" value={form.city} onChange={set("city")} placeholder="Newark" />
+            <Field label="State" as="select" value={form.state} onChange={set("state")} options={US_STATES} />
+            <Field label="Google Review Link" value={form.googleReview} onChange={set("googleReview")} placeholder="https://maps.google.com/..." />
+            <Field label="About Your Business" as="textarea" value={form.bio} onChange={set("bio")} placeholder="Tell pet owners what makes you special..." />
+            <div style={{ display: "flex", gap: 10 }}>
+              <button style={{ ...btn(C.green), flex: 1 }} onClick={save} disabled={saving}>{saving ? "Saving..." : "💾 Save Changes"}</button>
+              <button style={{ ...btn(C.cardBorder, C.muted) }} onClick={() => setEditing(false)}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {[["Service", profile?.service || "--"], ["Price Range", profile?.priceRange || "--"], ["City", profile?.city || "--"], ["State", profile?.state || "--"], ["Google Reviews", profile?.googleReview ? "✅ Added" : "❌ Not added"]].map(([k,v]) => (
+              <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.cardBorder}` }}>
+                <span style={{ color: C.muted, fontSize: 13 }}>{k}</span>
+                <span style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>{v}</span>
+              </div>
+            ))}
+            {profile?.bio && <div style={{ marginTop: 12, color: C.muted, fontSize: 13, fontStyle: "italic" }}>"{profile.bio}"</div>}
+          </div>
+        )}
+      </div>
+
+      <div style={{ ...card, marginBottom: 14 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          {[["Price Range", profile?.priceRange || "--"],["Rating","New ⭐"],["Bookings","0"],["Reviews","0"]].map(([k,v]) => (
+          {[["Bookings","0"],["Reviews","0"],["Rating","New ⭐"],["Earnings","$0"]].map(([k,v]) => (
             <div key={k} style={{ background: C.inputBg, borderRadius: 10, padding: 12 }}>
               <div style={{ color: C.muted, fontSize: 11, fontWeight: 700 }}>{k}</div>
               <div style={{ color: C.text, fontWeight: 800, fontSize: 15 }}>{v}</div>
@@ -2551,14 +2612,14 @@ function ProviderProfile({ profile }) {
           ))}
         </div>
       </div>
+
       <div style={{ ...card }}>
-        <div style={{ color: C.gold, fontWeight: 700, fontSize: 13 }}>30-Day Free Trial Active</div>
-        <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>After your trial, you only pay 10-15% commission on completed bookings. No monthly fees!</div>
+        <div style={{ color: C.gold, fontWeight: 700, fontSize: 13 }}>🎉 6-Month Free Trial Active</div>
+        <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>After your trial, you only pay 5% commission on completed bookings. No monthly fees, ever!</div>
       </div>
     </div>
   );
 }
-
 // ─── Bookings Tab ─────────────────────────────────────────────────────────────
 function BookingsTab() {
   return (
