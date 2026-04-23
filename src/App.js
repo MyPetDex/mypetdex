@@ -723,9 +723,18 @@ function AdminDashboard({ onLogout }) {
                     {p.bio && <div style={{ color: C.muted, fontSize: 12, marginTop: 4, fontStyle: "italic" }}>"{p.bio}"</div>}
                     <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>Joined: {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "N/A"}</div>
                   </div>
-                  {p.suspended && <span style={{ background: C.danger + "22", color: C.danger, borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>🔒 Suspended</span>}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
+                    {statusBadge(p.status)}
+                    {p.suspended && <span style={{ background: C.danger + "22", color: C.danger, borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>🔒 Suspended</span>}
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                  {(!p.status || p.status === "pending") && <>
+                    <button onClick={() => updateStatus(p.uid, "approved")} style={{ ...btn(C.green), padding: "7px 16px", fontSize: 13 }}>✓ Approve</button>
+                    <button onClick={() => updateStatus(p.uid, "rejected")} style={{ ...btn(C.danger), padding: "7px 16px", fontSize: 13 }}>✗ Reject</button>
+                  </>}
+                  {p.status === "approved" && <button onClick={() => updateStatus(p.uid, "rejected")} style={{ ...btn(C.danger), padding: "7px 16px", fontSize: 13 }}>✗ Revoke</button>}
+                  {p.status === "rejected" && <button onClick={() => updateStatus(p.uid, "approved")} style={{ ...btn(C.green), padding: "7px 16px", fontSize: 13 }}>✓ Approve</button>}
                   <button onClick={() => toggleSuspend(p.uid, p.suspended)} style={{ ...btn(p.suspended ? C.gold : C.cardBorder, p.suspended ? "#0F1A14" : C.muted), padding: "7px 16px", fontSize: 13, border: `1px solid ${p.suspended ? C.gold : C.cardBorder}` }}>
                     {p.suspended ? "🔓 Unsuspend" : "🔒 Suspend"}
                   </button>
