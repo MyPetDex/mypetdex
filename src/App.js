@@ -1370,20 +1370,136 @@ function ProviderCard({ p, user, profile }) {
   };
 
   return (
-    <div style={{ ...card, marginBottom: 14 }}>
+    <div style={{ background: "#16251B", border: "1.5px solid #1E3526", borderRadius: 18, padding: 22, marginBottom: 14 }}>
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
         <Avatar emoji="🛎️" size={50} />
         <div style={{ flex: 1 }}>
-          <div style={{ color: C.text, fontWeight: 900, fontSize: 16 }}>{p.businessName || p.name}</div>
-          <div style={{ color: C.muted, fontSize: 13 }}>📍 {p.city}, {p.state}</div>
+          <div style={{ color: "#EFF6F1", fontWeight: 900, fontSize: 16 }}>{p.businessName || p.name}</div>
+          <div style={{ color: "#7A9E89", fontSize: 13 }}>📍 {p.city}, {p.state}</div>
           <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-            {p.service && <Badge text={p.service} color={C.green} />}
-            {p.priceRange && <Badge text={p.priceRange} color={C.gold} />}
+            {p.service && <Badge text={p.service} color="#3DD68C" />}
+            {p.priceRange && <Badge text={p.priceRange} color="#F5C842" />}
           </div>
-          {p.bio && <div style={{ color: C.muted, fontSize: 12, marginTop: 6, fontStyle: "italic" }}>"{p.bio}"</div>}
+          {p.bio && <div style={{ color: "#7A9E89", fontSize: 12, marginTop: 6, fontStyle: "italic" }}>"{p.bio}"</div>}
           {avgRating && (
-{ head -n 1311 src/App.js; cat /tmp/services_tab.js; tail -n +1382 src/App.js; } > /tmp/App_new.js && mv /tmp/App_new.js src/App.js
-sed -n '1311,1320p' src/App.js
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
+              <StarRating rating={Math.round(avgRating)} size={16} />
+              <span style={{ color: "#F5C842", fontSize: 13, fontWeight: 700 }}>{avgRating}</span>
+              <span style={{ color: "#7A9E89", fontSize: 12 }}>({reviews.length} review{reviews.length !== 1 ? "s" : ""})</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+        <button style={{ background: "#3DD68C", color: "#0F1A14", border: "none", borderRadius: 12, padding: "9px 18px", fontFamily: "'Nunito', sans-serif", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>📅 Book Now</button>
+        {p.googleReview && <a href={p.googleReview} target="_blank" rel="noreferrer" style={{ background: "#1E3526", color: "#7A9E89", border: "none", borderRadius: 12, padding: "9px 18px", fontFamily: "'Nunito', sans-serif", fontWeight: 800, fontSize: 13, cursor: "pointer", textDecoration: "none" }}>🌐 Google</a>}
+        <button onClick={() => setShowReviews(!showReviews)} style={{ background: "#1E3526", color: "#7A9E89", border: "1px solid #1E3526", borderRadius: 12, padding: "9px 18px", fontFamily: "'Nunito', sans-serif", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+          ⭐ Reviews {reviews.length > 0 ? "(" + reviews.length + ")" : ""}
+        </button>
+        {user && !myReview && (
+          <button onClick={() => setShowReviewForm(!showReviewForm)} style={{ background: "transparent", color: "#3DD68C", border: "1px solid #3DD68C", borderRadius: 12, padding: "9px 18px", fontFamily: "'Nunito', sans-serif", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+            ✍️ Review
+          </button>
+        )}
+      </div>
+
+      {showReviewForm && !myReview && (
+        <div style={{ marginTop: 14, background: "#0D1710", borderRadius: 12, padding: 16, border: "1px solid #1E3526" }}>
+          <div style={{ color: "#EFF6F1", fontWeight: 800, fontSize: 14, marginBottom: 10 }}>Your Review</div>
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ color: "#7A9E89", fontSize: 12, marginBottom: 6 }}>Rating</div>
+            <StarRating rating={rating} onRate={setRating} size={28} />
+          </div>
+          <textarea value={comment} onChange={e => setComment(e.target.value)}
+            placeholder="Share your experience..."
+            rows={3} style={{ background: "#0D1710", border: "1.5px solid #1E3526", borderRadius: 10, padding: "11px 14px", color: "#EFF6F1", fontFamily: "'Nunito', sans-serif", fontSize: 14, width: "100%", boxSizing: "border-box", outline: "none", resize: "vertical", marginBottom: 10 }} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={submitReview} disabled={!rating || !comment.trim() || submitting}
+              style={{ background: "#3DD68C", color: "#0F1A14", border: "none", borderRadius: 12, padding: "10px 20px", fontFamily: "'Nunito', sans-serif", fontWeight: 800, fontSize: 14, cursor: "pointer", flex: 1, opacity: (!rating || !comment.trim()) ? 0.5 : 1 }}>
+              {submitting ? "Submitting..." : "💾 Submit"}
+            </button>
+            <button onClick={() => setShowReviewForm(false)} style={{ background: "#1E3526", color: "#7A9E89", border: "none", borderRadius: 12, padding: "10px 20px", fontFamily: "'Nunito', sans-serif", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {showReviews && (
+        <div style={{ marginTop: 14 }}>
+          {reviews.length === 0 ? (
+            <div style={{ color: "#7A9E89", fontSize: 13, textAlign: "center", padding: 16 }}>No reviews yet. Be the first!</div>
+          ) : (
+            reviews.map(r => (
+              <div key={r.id} style={{ background: "#0D1710", borderRadius: 12, padding: 14, marginBottom: 10, border: "1px solid #1E3526" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                  <div>
+                    <div style={{ color: "#EFF6F1", fontWeight: 800, fontSize: 14 }}>{r.ownerName}</div>
+                    <StarRating rating={r.rating} size={14} />
+                  </div>
+                  <div style={{ color: "#7A9E89", fontSize: 11 }}>{new Date(r.createdAt).toLocaleDateString()}</div>
+                </div>
+                <div style={{ color: "#EFF6F1", fontSize: 13, marginTop: 6 }}>{r.comment}</div>
+                {r.reply && (
+                  <div style={{ marginTop: 10, background: "#16251B", borderRadius: 10, padding: "10px 12px", border: "1px solid #1E3526" }}>
+                    <div style={{ color: "#3DD68C", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>🛎️ Provider Response:</div>
+                    <div style={{ color: "#EFF6F1", fontSize: 13 }}>{r.reply}</div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ServicesTab({ profile, user }) {
+  const [filterState, setFilterState] = useState(profile?.state || "");
+  const [filterService, setFilterService] = useState("");
+  const [providers, setProviders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, "users"),
+      where("role", "==", "provider"),
+      where("status", "==", "approved")
+    );
+    const unsub = onSnapshot(q, snap => {
+      setProviders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  const filtered = providers.filter(p =>
+    (!filterState || p.state === filterState) &&
+    (!filterService || p.service === filterService)
+  );
+
+  return (
+    <div>
+      <h2 style={{ color: "#EFF6F1", fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Services Near You 🛎️</h2>
+      <p style={{ color: "#7A9E89", fontSize: 13, marginBottom: 18 }}>Verified providers in your area</p>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
+        <div><select value={filterState} onChange={e => setFilterState(e.target.value)} style={{ background: "#0D1710", border: "1.5px solid #1E3526", borderRadius: 10, padding: "11px 14px", color: "#EFF6F1", fontFamily: "'Nunito', sans-serif", fontSize: 14, width: "100%", boxSizing: "border-box", outline: "none" }}><option value="">All States</option>{US_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+        <div><select value={filterService} onChange={e => setFilterService(e.target.value)} style={{ background: "#0D1710", border: "1.5px solid #1E3526", borderRadius: 10, padding: "11px 14px", color: "#EFF6F1", fontFamily: "'Nunito', sans-serif", fontSize: 14, width: "100%", boxSizing: "border-box", outline: "none" }}><option value="">All Services</option>{["Grooming","Dog Walking","Veterinary","Training","Boarding","Daycare","Other"].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+      </div>
+      {loading && <Spinner />}
+      {!loading && filtered.length === 0 && (
+        <div style={{ background: "#16251B", border: "1.5px solid #1E3526", borderRadius: 18, padding: 40, textAlign: "center", color: "#7A9E89" }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🛎️</div>
+          <div style={{ color: "#EFF6F1", fontWeight: 800 }}>No approved providers found</div>
+          <div style={{ fontSize: 13, marginTop: 6 }}>Try a different state or service type</div>
+        </div>
+      )}
+      {filtered.map(p => (
+        <ProviderCard key={p.id} p={p} user={user} profile={profile} />
+      ))}
+    </div>
+  );
+}
 
 // ─── Smart Recipe Builder Tab ─────────────────────────────────────────────────
 // Replaces RecipesTab in App.js
