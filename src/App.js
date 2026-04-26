@@ -779,7 +779,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       <div style={{ padding: "20px 16px", maxWidth: 540, margin: "0 auto" }}>
         {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} />}
 {tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} />}
-        {tab === "services" && isOwner && <ServicesTab profile={currentProfile} />}
+        {tab === "services" && isOwner && <ServicesTab profile={currentProfile} user={user} />}
         {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} user={user} />}
         {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} />}
         {tab === "adoption" && isOwner && <AdoptionTab profile={currentProfile} />}
@@ -1310,69 +1310,81 @@ function EditPetInfo({ pet, onDelete, onSaved }) {
 }
 
 // ─── Services Tab ─────────────────────────────────────────────────────────────
-function ServicesTab({ profile }) {
-  const [filterState, setFilterState] = useState(profile?.state || "");
-  const [filterService, setFilterService] = useState("");
-  const [providers, setProviders] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const q = query(
-      collection(db, "users"),
-      where("role", "==", "provider"),
-      where("status", "==", "approved")
-    );
-    const unsub = onSnapshot(q, snap => {
-      setProviders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
-    return unsub;
-  }, []);
-
-  const filtered = providers.filter(p =>
-    (!filterState || p.state === filterState) &&
-    (!filterService || p.service === filterService)
-  );
-
+function StarRating({ rating, onRate, size = 22 }) {
+  const [hover, setHover] = useState(0);
   return (
-    <div>
-      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Services Near You 🛎️</h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Verified providers in your area</p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
-        <div><span style={label}>State</span><select value={filterState} onChange={e => setFilterState(e.target.value)} style={{ ...input, appearance: "none" }}><option value="">All States</option>{US_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-        <div><span style={label}>Service</span><select value={filterService} onChange={e => setFilterService(e.target.value)} style={{ ...input, appearance: "none" }}><option value="">All</option>{["Grooming","Dog Walking","Veterinary","Training","Boarding","Daycare","Other"].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-      </div>
-      {loading && <Spinner />}
-      {!loading && filtered.length === 0 && (
-        <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🛎️</div>
-          <div style={{ color: C.text, fontWeight: 800 }}>No approved providers found</div>
-          <div style={{ fontSize: 13, marginTop: 6 }}>Try a different state or service type</div>
-        </div>
-      )}
-      {filtered.map(p => (
-        <div key={p.id} style={{ ...card, marginBottom: 14 }}>
-          <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-            <Avatar emoji="🛎️" size={50} />
-            <div style={{ flex: 1 }}>
-              <div style={{ color: C.text, fontWeight: 900, fontSize: 16 }}>{p.businessName || p.name}</div>
-              <div style={{ color: C.muted, fontSize: 13 }}>📍 {p.city}, {p.state}</div>
-              <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-                {p.service && <Badge text={p.service} color={C.green} />}
-                {p.priceRange && <Badge text={p.priceRange} color={C.gold} />}
-              </div>
-              {p.bio && <div style={{ color: C.muted, fontSize: 12, marginTop: 6, fontStyle: "italic" }}>"{p.bio}"</div>}
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-            <button style={{ ...btn(C.green), fontSize: 13, padding: "9px 18px" }}>📅 Book Now</button>
-            {p.googleReview && <a href={p.googleReview} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.muted), fontSize: 13, padding: "9px 18px", textDecoration: "none" }}>⭐ Reviews</a>}
-          </div>
-        </div>
+    <div style={{ display: "flex", gap: 4 }}>
+      {[1,2,3,4,5].map(star => (
+        <span key={star} onClick={() => onRate && onRate(star)}
+          onMouseEnter={() => onRate && setHover(star)}
+          onMouseLeave={() => onRate && setHover(0)}
+          style={{ fontSize: size, cursor: onRate ? "pointer" : "default", color: star <= (hover || rating) ? "#F5C842" : "#1E3526" }}>★</span>
       ))}
     </div>
   );
 }
+
+function ProviderCard({ p, user, profile }) {
+  const [reviews, setReviews] = useState([]);
+  const [showReviews, setShowReviews] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [myReview, setMyReview] = useState(null);
+
+  useEffect(() => {
+    const q = query(collection(db, "reviews"), where("providerId", "==", p.uid), where("status", "==", "visible"));
+    const unsub = onSnapshot(q, snap => {
+      const revs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setReviews(revs);
+      if (user) setMyReview(revs.find(r => r.ownerId === user.uid) || null);
+    });
+    return unsub;
+  }, [p.uid, user]);
+
+  const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : null;
+
+  const submitReview = async () => {
+    if (!rating || !comment.trim()) return;
+    setSubmitting(true);
+    try {
+      await addDoc(collection(db, "reviews"), {
+        providerId: p.uid,
+        providerName: p.businessName || p.name,
+        ownerId: user.uid,
+        ownerName: profile?.name || user.email,
+        rating,
+        comment: comment.trim(),
+        reply: "",
+        status: "visible",
+        createdAt: new Date().toISOString(),
+      });
+      setShowReviewForm(false);
+      setRating(0);
+      setComment("");
+    } catch (e) {
+      console.error("Review error:", e);
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <div style={{ ...card, marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+        <Avatar emoji="🛎️" size={50} />
+        <div style={{ flex: 1 }}>
+          <div style={{ color: C.text, fontWeight: 900, fontSize: 16 }}>{p.businessName || p.name}</div>
+          <div style={{ color: C.muted, fontSize: 13 }}>📍 {p.city}, {p.state}</div>
+          <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+            {p.service && <Badge text={p.service} color={C.green} />}
+            {p.priceRange && <Badge text={p.priceRange} color={C.gold} />}
+          </div>
+          {p.bio && <div style={{ color: C.muted, fontSize: 12, marginTop: 6, fontStyle: "italic" }}>"{p.bio}"</div>}
+          {avgRating && (
+{ head -n 1311 src/App.js; cat /tmp/services_tab.js; tail -n +1382 src/App.js; } > /tmp/App_new.js && mv /tmp/App_new.js src/App.js
+sed -n '1311,1320p' src/App.js
+
 // ─── Smart Recipe Builder Tab ─────────────────────────────────────────────────
 // Replaces RecipesTab in App.js
 // Paste this after AITab function and before AdoptionTab
