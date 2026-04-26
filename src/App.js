@@ -71,6 +71,7 @@ const US_STATES = [
 ];
 const VACCINES_DOG = ["Rabies","DHPP","Bordetella","Leptospirosis","Lyme Disease","Canine Influenza","Other"];
 const VACCINES_CAT = ["Rabies","FVRCP","FeLV","FIV","Bordetella","Other"];
+// eslint-disable-next-line no-unused-vars
 const SEED_PROVIDERS = [
   { id:1, name:"Happy Paws Grooming", state:"New Jersey", city:"Princeton", service:"Grooming", price:"$40-$80", rating:4.8, reviews:127, googleReview:"https://maps.google.com", logo:"🐩" },
   { id:2, name:"Garden State Dog Walking", state:"New Jersey", city:"Newark", service:"Dog Walking", price:"$20-$35/hr", rating:4.9, reviews:89, googleReview:"https://maps.google.com", logo:"🦮" },
