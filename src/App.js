@@ -1312,60 +1312,33 @@ function EditPetInfo({ pet, onDelete, onSaved }) {
 function ServicesTab({ profile }) {
   const [filterState, setFilterState] = useState(profile?.state || "");
   const [filterService, setFilterService] = useState("");
-  const [providers, setProviders] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const q = query(
-      collection(db, "users"),
-      where("role", "==", "provider"),
-      where("status", "==", "approved")
-    );
-    const unsub = onSnapshot(q, snap => {
-      setProviders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
-    return unsub;
-  }, []);
-
-  const filtered = providers.filter(p =>
-    (!filterState || p.state === filterState) &&
-    (!filterService || p.service === filterService)
-  );
-
+  const filtered = SEED_PROVIDERS.filter(p => (!filterState || p.state === filterState) && (!filterService || p.service === filterService));
   return (
     <div>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Services Near You 🛎️</h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Verified providers in your area</p>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Showing providers based on your location</p>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
         <div><span style={label}>State</span><select value={filterState} onChange={e => setFilterState(e.target.value)} style={{ ...input, appearance: "none" }}><option value="">All States</option>{US_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-        <div><span style={label}>Service</span><select value={filterService} onChange={e => setFilterService(e.target.value)} style={{ ...input, appearance: "none" }}><option value="">All</option>{["Grooming","Dog Walking","Veterinary","Training","Boarding","Daycare","Other"].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+        <div><span style={label}>Service</span><select value={filterService} onChange={e => setFilterService(e.target.value)} style={{ ...input, appearance: "none" }}><option value="">All</option>{["Grooming","Dog Walking","Veterinary","Training","Boarding"].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
       </div>
-      {loading && <Spinner />}
-      {!loading && filtered.length === 0 && (
-        <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🛎️</div>
-          <div style={{ color: C.text, fontWeight: 800 }}>No providers found</div>
-          <div style={{ fontSize: 13, marginTop: 6 }}>Try a different state or service type</div>
-        </div>
-      )}
+      {filtered.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>No providers found. Try a different state!</div>}
       {filtered.map(p => (
         <div key={p.id} style={{ ...card, marginBottom: 14 }}>
           <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-            <Avatar emoji="🛎️" size={50} />
+            <Avatar emoji={p.logo} size={50} />
             <div style={{ flex: 1 }}>
-              <div style={{ color: C.text, fontWeight: 900, fontSize: 16 }}>{p.businessName || p.name}</div>
+              <div style={{ color: C.text, fontWeight: 900, fontSize: 16 }}>{p.name}</div>
               <div style={{ color: C.muted, fontSize: 13 }}>📍 {p.city}, {p.state}</div>
               <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-                {p.service && <Badge text={p.service} color={C.green} />}
-                {p.priceRange && <Badge text={p.priceRange} color={C.gold} />}
+                <Badge text={p.service} color={C.green} />
+                <Badge text={p.price} color={C.gold} />
+                <Badge text={"⭐ " + p.rating + " (" + p.reviews + ")"} color={C.muted} />
               </div>
-              {p.bio && <div style={{ color: C.muted, fontSize: 12, marginTop: 6, fontStyle: "italic" }}>"{p.bio}"</div>}
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-            <button style={{ ...btn(C.green), fontSize: 13, padding: "9px 18px" }}>📅 Book Now</button>
-            {p.googleReview && <a href={p.googleReview} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.muted), fontSize: 13, padding: "9px 18px", textDecoration: "none" }}>⭐ Reviews</a>}
+            <button style={{ ...btn(C.green), fontSize: 13, padding: "9px 18px" }}>Book Now</button>
+            <a href={p.googleReview} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.muted), fontSize: 13, padding: "9px 18px", textDecoration: "none" }}>⭐ Reviews</a>
           </div>
         </div>
       ))}
@@ -1565,20 +1538,7 @@ Create a single balanced recipe using ONLY the selected ingredients. Return your
     try {
       const response = await fetch(
         "https://us-central1-mypetdex-c4315.cloudfunctions.net/aiProxy",
-        {unction ServicesTab({ profile }) {
-  const [filterState, setFilterState] = useState(profile?.state || "");
-  const [filterService, setFilterService] = useState("");
-  const filtered = SEED_PROVIDERS.filter(p => (!filterState || p.state === filterState) && (!filterService || p.service === filterService));
-  return (
-    <div>
-      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Services Near You 🛎️</h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Showing providers based on your location</p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
-        <div><span style={label}>State</span><select value={filterState} onChange={e => setFilterState(e.target.value)} style={{ ...input, appearance: "none" }}><option value="">All States</option>{US_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-        <div><span style={label}>Service</span><select value={filterService} onChange={e => setFilterService(e.target.value)} style={{ ...input, appearance: "none" }}><option value="">All</option>{["Grooming","Dog Walking","Veterinary","Training","Boarding"].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-      </div>
-      {filtered.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>No providers found. Try a different state!</div>}
-      {filtered.map(p 
+        {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
