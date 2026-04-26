@@ -2781,6 +2781,72 @@ function ProviderProfile({ profile }) {
         <div style={{ color: C.gold, fontWeight: 700, fontSize: 13 }}>🎉 6-Month Free Trial Active</div>
         <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>After your trial, you only pay 5% commission on completed bookings. No monthly fees, ever!</div>
       </div>
+      <ProviderReviews profile={profile} />
+    </div>
+  );
+}
+
+function ProviderReviews({ profile }) {
+  const [reviews, setReviews] = useState([]);
+  const [replyText, setReplyText] = useState({});
+  const [replying, setReplying] = useState({});
+
+  useEffect(() => {
+    if (!profile?.uid) return;
+    const q = query(collection(db, "reviews"), where("providerId", "==", profile.uid));
+    const unsub = onSnapshot(q, snap => {
+      setReviews(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [profile?.uid]);
+
+  const submitReply = async (reviewId) => {
+    const reply = replyText[reviewId]?.trim();
+    if (!reply) return;
+    setReplying(r => ({ ...r, [reviewId]: true }));
+    try {
+      await updateDoc(doc(db, "reviews", reviewId), { reply });
+      setReplyText(r => ({ ...r, [reviewId]: "" }));
+    } catch (e) {
+      console.error("Reply error:", e);
+    }
+    setReplying(r => ({ ...r, [reviewId]: false }));
+  };
+
+  const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : null;
+
+  return (
+    <div style={{ ...card, marginTop: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ color: C.text, fontWeight: 800, fontSize: 15 }}>⭐ My Reviews</div>
+        {avgRating && <div style={{ color: C.gold, fontWeight: 800 }}>{avgRating} ★ ({reviews.length})</div>}
+      </div>
+      {reviews.length === 0 && <div style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: 16 }}>No reviews yet</div>}
+      {reviews.map(r => (
+        <div key={r.id} style={{ background: C.inputBg, borderRadius: 12, padding: 14, marginBottom: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+            <div style={{ color: C.text, fontWeight: 800 }}>{r.ownerName}</div>
+            <div style={{ color: C.gold }}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</div>
+          </div>
+          <div style={{ color: C.text, fontSize: 13, marginBottom: 8 }}>{r.comment}</div>
+          {r.reply ? (
+            <div style={{ background: C.card, borderRadius: 10, padding: "10px 12px", border: `1px solid ${C.cardBorder}` }}>
+              <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginBottom: 4 }}>🛎️ Your Response:</div>
+              <div style={{ color: C.text, fontSize: 13 }}>{r.reply}</div>
+            </div>
+          ) : (
+            <div>
+              <textarea value={replyText[r.id] || ""} onChange={e => setReplyText(t => ({ ...t, [r.id]: e.target.value }))}
+                placeholder="Reply to this review..."
+                rows={2} style={{ background: C.inputBg, border: `1.5px solid ${C.cardBorder}`, borderRadius: 10, padding: "8px 12px", color: C.text, fontFamily: font, fontSize: 13, width: "100%", boxSizing: "border-box", outline: "none", resize: "vertical", marginBottom: 8 }} />
+              <button onClick={() => submitReply(r.id)} disabled={replying[r.id] || !replyText[r.id]?.trim()}
+                style={{ ...btn(C.green), fontSize: 13, padding: "8px 16px", opacity: !replyText[r.id]?.trim() ? 0.5 : 1 }}>
+                {replying[r.id] ? "Replying..." : "💬 Reply"}
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
