@@ -220,7 +220,7 @@ export default function App() {
         } else {
           try {
             const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-            const userData = snap.exists() ? snap.data() : { email: firebaseUser.email, role: "owner", uid: firebaseUser.uid };
+            const userData = snap.exists() ? { uid: firebaseUser.uid, ...snap.data() } : { email: firebaseUser.email, role: "owner", uid: firebaseUser.uid };
             setProfile(userData);
             // Send welcome email only once after first verification
             if (snap.exists() && !userData.welcomeEmailSent) {
