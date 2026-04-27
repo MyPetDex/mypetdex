@@ -744,8 +744,8 @@ function AdminDashboard({ onLogout }) {
             ))
         )}
       </div>
+      {!loading && adminTab === "reviews" && <AdminReviews />}
     </div>
-    {!loading && adminTab === "reviews" && <AdminReviews />}
   );
 }
 function AdminReviews() {
