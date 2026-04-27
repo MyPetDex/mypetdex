@@ -661,9 +661,9 @@ function AdminDashboard({ onLogout }) {
         </div>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-          {["shelters", "providers"].map(t => (
+          {["shelters", "providers", "reviews"].map(t => (
             <button key={t} onClick={() => setAdminTab(t)} style={{ ...btn(adminTab === t ? C.green : C.card, adminTab === t ? "#0F1A14" : C.muted), border: `1px solid ${adminTab === t ? C.green : C.cardBorder}`, flex: 1, padding: "10px", fontSize: 14 }}>
-              {t === "shelters" ? "🏠 Shelters" : "🛎️ Service Providers"}
+              {t === "shelters" ? "🏠 Shelters" : t === "providers" ? "🛎️ Providers" : "⭐ Reviews"}
             </button>
           ))}
         </div>
@@ -744,6 +744,35 @@ function AdminDashboard({ onLogout }) {
             ))
         )}
       </div>
+    </div>
+  );
+  {!loading && adminTab === "reviews" && <AdminReviews />}
+}
+function AdminReviews() {
+  const [reviews, setReviews] = useState([]);
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "reviews"), snap => {
+      setReviews(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, []);
+  return (
+    <div>
+      {reviews.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>No reviews yet.</div>}
+      {reviews.map(r => (
+        <div key={r.id} style={{ ...card, marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <div style={{ color: C.text, fontWeight: 800 }}>{r.ownerName} → {r.providerName}</div>
+              <div style={{ color: C.gold }}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</div>
+              <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>{r.comment}</div>
+              {r.reply && <div style={{ color: C.green, fontSize: 12, marginTop: 4 }}>Reply: {r.reply}</div>}
+            </div>
+            <button onClick={async () => { if (window.confirm("Delete this review?")) await deleteDoc(doc(db, "reviews", r.id)); }}
+              style={{ ...btn(C.danger), padding: "6px 12px", fontSize: 12 }}>🗑️ Delete</button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
