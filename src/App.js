@@ -745,8 +745,8 @@ function AdminDashboard({ onLogout }) {
         )}
       </div>
     </div>
+    {!loading && adminTab === "reviews" && <AdminReviews />}
   );
-  {!loading && adminTab === "reviews" && <AdminReviews />}
 }
 function AdminReviews() {
   const [reviews, setReviews] = useState([]);
