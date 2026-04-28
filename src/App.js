@@ -2668,6 +2668,182 @@ function CalcTab({ pet, profile }) {
 
 // ─── Adoption Tab ─────────────────────────────────────────────────────────────
 function AdoptionTab({ profile }) {
+  const [pets, setPets] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [filterType, setFilterType] = useState("Dog");
+  const [zipCode, setZipCode] = useState(profile?.zip || "");
+  const [radius, setRadius] = useState("25");
+  const [searched, setSearched] = useState(false);
+
+  const API_KEY = process.env.REACT_APP_RESCUEGROUPS_KEY;
+
+  const searchPets = async () => {
+    if (!zipCode || zipCode.length < 5) {
+      setError("Please enter a valid 5-digit zip code.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setPets([]);
+
+    try {
+      const response = await fetch("https://api.rescuegroups.org/v5/public/animals/search/available/hasphotos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": API_KEY,
+        },
+        body: JSON.stringify({
+          data: {
+            filterRadius: {
+              miles: parseInt(radius),
+              postalCode: zipCode,
+            },
+            filters: [
+              { fieldName: "species", operation: "equals", criteria: filterType }
+            ],
+            fields: [
+              "name","breedPrimary","ageGroup","sex","description",
+              "rescueGroupsId","pictureThumbnailUrl","citytown","stateProvince",
+              "orgName","orgEmail","orgWebsite","orgPhone"
+            ],
+            sort: [{ fieldName: "distance", order: "asc" }],
+            limit: 20,
+          }
+        }),
+      });
+
+      const data = await response.json();
+      const animals = data?.data || [];
+      setPets(animals);
+      setSearched(true);
+
+      if (animals.length === 0) setError("No adoptable pets found in this area. Try a larger radius!");
+    } catch (err) {
+      setError("Could not connect to the adoption database. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Adopt a Pet ❤️</h2>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Real adoptable pets near you — powered by RescueGroups</p>
+
+      {/* Search filters */}
+      <div style={{ ...card, marginBottom: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+          <div>
+            <span style={label}>Pet Type</span>
+            <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{ ...input, appearance: "none" }}>
+              <option value="Dog">🐶 Dogs</option>
+              <option value="Cat">🐱 Cats</option>
+              <option value="Rabbit">🐰 Rabbits</option>
+              <option value="Bird">🐦 Birds</option>
+            </select>
+          </div>
+          <div>
+            <span style={label}>Radius</span>
+            <select value={radius} onChange={e => setRadius(e.target.value)} style={{ ...input, appearance: "none" }}>
+              <option value="10">10 miles</option>
+              <option value="25">25 miles</option>
+              <option value="50">50 miles</option>
+              <option value="100">100 miles</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <span style={label}>Your Zip Code</span>
+          <input
+            type="text"
+            value={zipCode}
+            onChange={e => setZipCode(e.target.value)}
+            placeholder="e.g. 08701"
+            maxLength={5}
+            style={input}
+          />
+        </div>
+        <button onClick={searchPets} disabled={loading} style={{ ...btn(C.green), width: "100%" }}>
+          {loading ? "Searching... 🐾" : "🔍 Find Adoptable Pets"}
+        </button>
+      </div>
+
+      {error && (
+        <div style={{ ...card, background: C.danger + "11", border: `1px solid ${C.danger}33`, marginBottom: 16 }}>
+          <div style={{ color: C.danger, fontSize: 13 }}>{error}</div>
+        </div>
+      )}
+
+      {loading && <Spinner />}
+
+      {/* Results */}
+      {!loading && pets.map((pet, i) => {
+        const attrs = pet.attributes || {};
+        const photo = attrs.pictureThumbnailUrl;
+        return (
+          <div key={pet.id || i} style={{ ...card, marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+              {photo ? (
+                <img src={photo} alt={attrs.name} style={{ width: 80, height: 80, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
+              ) : (
+                <div style={{ width: 80, height: 80, borderRadius: 12, background: C.cardBorder, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, flexShrink: 0 }}>
+                  {filterType === "Cat" ? "🐱" : "🐶"}
+                </div>
+              )}
+              <div style={{ flex: 1 }}>
+                <div style={{ color: C.text, fontWeight: 900, fontSize: 17 }}>{attrs.name || "Unknown"}</div>
+                <div style={{ color: C.muted, fontSize: 13 }}>{attrs.breedPrimary || "Mixed"} · {attrs.ageGroup || "Unknown age"} · {attrs.sex || ""}</div>
+                {(attrs.citytown || attrs.stateProvince) && (
+                  <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>📍 {attrs.citytown}{attrs.citytown && attrs.stateProvince ? ", " : ""}{attrs.stateProvince}</div>
+                )}
+                {attrs.orgName && <div style={{ color: C.green, fontSize: 12, marginTop: 2, fontWeight: 700 }}>🏠 {attrs.orgName}</div>}
+              </div>
+            </div>
+            {attrs.description && (
+              <div style={{ color: C.muted, fontSize: 12, marginTop: 10, lineHeight: 1.5 }}>
+                {attrs.description.replace(/<[^>]*>/g, "").slice(0, 120)}...
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+              {attrs.orgEmail && (
+                <a href={`mailto:${attrs.orgEmail}`} style={{ ...btn(C.green), padding: "8px 16px", fontSize: 13, textDecoration: "none" }}>
+                  📧 Email Shelter
+                </a>
+              )}
+              {attrs.orgWebsite && (
+                <a href={attrs.orgWebsite} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.muted), padding: "8px 16px", fontSize: 13, textDecoration: "none", border: `1px solid ${C.cardBorder}` }}>
+                  🌐 Website
+                </a>
+              )}
+              {attrs.orgPhone && (
+                <a href={`tel:${attrs.orgPhone}`} style={{ ...btn(C.cardBorder, C.muted), padding: "8px 16px", fontSize: 13, textDecoration: "none", border: `1px solid ${C.cardBorder}` }}>
+                  📞 Call
+                </a>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {!loading && searched && pets.length === 0 && !error && (
+        <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🐾</div>
+          <div style={{ color: C.text, fontWeight: 800 }}>No pets found</div>
+          <div style={{ fontSize: 13, marginTop: 6 }}>Try a larger radius or different pet type</div>
+        </div>
+      )}
+
+      {!searched && !loading && (
+        <div style={{ ...card, textAlign: "center", padding: 40 }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>❤️</div>
+          <div style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>Find your next best friend</div>
+          <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>Enter your zip code and search for adoptable pets near you</div>
+        </div>
+      )}
+    </div>
+  );
+}
   const [filterState, setFilterState] = useState(profile?.state || "");
   const [shelters, setShelters] = useState([]);
   const [shelterPets, setShelterPets] = useState({});
