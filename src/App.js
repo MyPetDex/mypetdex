@@ -2688,7 +2688,7 @@ function AdoptionTab({ profile }) {
     setPets([]);
 
     try {
-      const response = await fetch("https://api.rescuegroups.org/v5/public/animals/search/available/hasphotos", {
+      const response = await fetch(`https://api.rescuegroups.org/v5/public/animals/search/available/hasphotos?species=${filterType}`, {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -2700,13 +2700,6 @@ function AdoptionTab({ profile }) {
         miles: parseInt(radius),
         postalCode: zipCode,
       },
-      filters: [
-        {
-          fieldName: "species",
-          operation: "equals",
-          criteria: filterType === "Dog" ? "Dog" : filterType === "Cat" ? "Cat" : filterType
-        }
-      ],
       fields: [
         "name","breedPrimary","ageGroup","sex","description",
         "pictureThumbnailUrl","citytown","stateProvince",
