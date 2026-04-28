@@ -781,6 +781,7 @@ function AdminReviews() {
 // eslint-disable-next-line no-unused-vars
 function MainApp({ user, profile, tab, setTab, onLogout }) {
   const [currentProfile, setCurrentProfile] = useState(profile);
+  const isDemo = user?.email === 'demo@mypetdex.app';
   const role = currentProfile?.role || "owner";
   const isOwner = role === "owner";
   const isProvider = role === "provider";
@@ -805,17 +806,18 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
           <button onClick={onLogout} style={{ background: "none", border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: "5px 12px", color: C.muted, fontFamily: font, fontSize: 12, cursor: "pointer" }}>Sign out</button>
         </div>
       </div>
-      <div style={{ padding: "20px 16px", maxWidth: 540, margin: "0 auto" }}>
+      {isDemo && <div style={{ background: C.gold+"22", borderBottom: `1px solid ${C.gold}`, padding: "8px 16px", textAlign: "center", fontSize: 12, color: C.gold, fontWeight: 700 }}>👀 Demo Mode — browse only, editing disabled</div>}
+<div style={{ padding: "20px 16px", maxWidth: 540, margin: "0 auto" }}>
         {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} />}
-{tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} />}
+{tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} isDemo={isDemo} />}
         {tab === "services" && isOwner && <ServicesTab profile={currentProfile} user={user} />}
         {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} user={user} />}
         {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} />}
         {tab === "adoption" && isOwner && <AdoptionTab profile={currentProfile} />}
         {tab === "profile" && isProvider && <ProviderProfile profile={currentProfile} />}
         {tab === "bookings" && isProvider && <BookingsTab />}
-        {tab === "listings" && isShelter && <ShelterListings user={user} />}
-        {tab === "settings" && <SettingsTab user={user} profile={currentProfile} onProfileUpdate={setCurrentProfile} onLogout={onLogout} />}
+        {tab === "listings" && isShelter && <ShelterListings user={user} isDemo={isDemo} />}
+        {tab === "settings" && <SettingsTab user={user} profile={currentProfile} onProfileUpdate={setCurrentProfile} onLogout={onLogout} isDemo={isDemo} />}
       </div>
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.card, borderTop: `1px solid ${C.cardBorder}`, display: "flex", justifyContent: "space-around", padding: "10px 0 6px" }}>
         {tabs.map(t => (
@@ -944,7 +946,7 @@ if (isProvider) return (
 }
 
 // ─── Pets Tab ─────────────────────────────────────────────────────────────────
-function PetsTab({ user, profile }) {
+function PetsTab({ user, profile, isDemo }) {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -998,7 +1000,7 @@ function PetsTab({ user, profile }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets 🐾</h2>
-        <button style={btn(C.green)} onClick={() => setAdding(true)}>+ Add Pet</button>
+        {!isDemo && <button style={btn(C.green)} onClick={() => setAdding(true)}>+ Add Pet</button>}
       </div>
       {loading && <Spinner />}
       {!loading && pets.length === 0 && !adding && (
@@ -1024,7 +1026,7 @@ function PetsTab({ user, profile }) {
           {pet.nextVet && <div style={{ marginTop: 10, padding: "8px 12px", background: C.gold + "18", borderRadius: 10, color: C.gold, fontSize: 12, fontWeight: 700 }}>🗓️ Next vet: {pet.nextVet}</div>}
         </div>
       ))}
-      {adding && (
+      {adding && !isDemo && (
         <div style={{ ...card }}>
           <h3 style={{ color: C.text, margin: "0 0 16px" }}>Add New Pet</h3>
           <div style={{ marginBottom: 20 }}>
@@ -2941,7 +2943,7 @@ function DeleteAccountButton({ user, onLogout }) {
 }
 
 // ─── Settings Tab ─────────────────────────────────────────────────────────────
-function SettingsTab({ user, profile, onProfileUpdate, onLogout }) {
+function SettingsTab({ user, profile, onProfileUpdate, onLogout, isDemo }) {
   const [section, setSection] = useState("main");
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: profile?.name || "", city: profile?.city || "", state: profile?.state || "" });
@@ -3004,7 +3006,7 @@ function SettingsTab({ user, profile, onProfileUpdate, onLogout }) {
       <div style={{ ...card, marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div style={{ color: C.text, fontWeight: 800, fontSize: 15 }}>My Profile</div>
-          {!editing && (
+          {!editing && !isDemo && (
             <button onClick={() => setEditing(true)} style={{ background: C.green + "22", border: `1.5px solid ${C.green}`, borderRadius: 10, padding: "7px 16px", color: C.green, fontFamily: font, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
               ✏️ Edit Profile
             </button>
@@ -3056,14 +3058,14 @@ function SettingsTab({ user, profile, onProfileUpdate, onLogout }) {
         <div style={{ color: C.muted, fontSize: 13 }}>📧 help@mypetdex.app</div>
         <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>🌐 mypetdex.app</div>
       </div>
-      <DeleteAccountButton user={user} onLogout={onLogout} />
+      {!isDemo && <DeleteAccountButton user={user} onLogout={onLogout} />}
       <button onClick={onLogout} style={{ ...btn(C.danger + "22", C.danger), border: `1px solid ${C.danger}`, width: "100%", marginTop: 10 }}>Sign Out</button>
     </div>
   );
 }
 
 // ─── Shelter Listings ─────────────────────────────────────────────────────────
-function ShelterListings({ user }) {
+function ShelterListings({ user, isDemo }) {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -3090,7 +3092,7 @@ function ShelterListings({ user }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>Our Pets 🐶</h2>
-        <button style={btn(C.green)} onClick={() => setAdding(true)}>+ Add Pet</button>
+        {!isDemo && <button style={btn(C.green)} onClick={() => setAdding(true)}>+ Add Pet</button>}
       </div>
       {loading && <Spinner />}
       {!loading && pets.length === 0 && !adding && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>No pets listed yet. Add your first pet!</div>}
@@ -3109,7 +3111,7 @@ function ShelterListings({ user }) {
           </div>
         </div>
       ))}
-      {adding && (
+      {adding && !isDemo && (
         <div style={{ ...card, marginTop: 14 }}>
           <h3 style={{ color: C.text, margin: "0 0 16px" }}>Add Available Pet</h3>
           <Field label="Name" value={form.name} onChange={set("name")} placeholder="Charlie" required />
