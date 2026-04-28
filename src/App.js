@@ -2688,7 +2688,7 @@ function AdoptionTab({ profile }) {
     setPets([]);
 
     try {
-      `https://api.rescuegroups.org/v5/public/animals/search/available?species=${filterType}`
+      const response = await fetch(`https://api.rescuegroups.org/v5/public/animals/search/available?species=${filterType}`, {
   method: "POST",
   headers: {
   "Content-Type": "application/vnd.api+json",
