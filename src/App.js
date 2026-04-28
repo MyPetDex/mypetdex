@@ -2689,33 +2689,38 @@ function AdoptionTab({ profile }) {
 
     try {
       const response = await fetch("https://api.rescuegroups.org/v5/public/animals/search/available/hasphotos", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": API_KEY,
-        },
-        body: JSON.stringify({
-          data: {
-            filterRadius: {
-              miles: parseInt(radius),
-              postalCode: zipCode,
-            },
-            filters: [
-              { fieldName: "species", operation: "equals", criteria: filterType }
-            ],
-            fields: [
-              "name","breedPrimary","ageGroup","sex","description",
-              "rescueGroupsId","pictureThumbnailUrl","citytown","stateProvince",
-              "orgName","orgEmail","orgWebsite","orgPhone"
-            ],
-            sort: [{ fieldName: "distance", order: "asc" }],
-            limit: 20,
-          }
-        }),
-      });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": API_KEY,
+  },
+  body: JSON.stringify({
+    data: {
+      filterRadius: {
+        miles: parseInt(radius),
+        postalCode: zipCode,
+      },
+      filters: [
+        {
+          fieldName: "species",
+          operation: "equals",
+          criteria: filterType === "Dog" ? "Dog" : filterType === "Cat" ? "Cat" : filterType
+        }
+      ],
+      fields: [
+        "name","breedPrimary","ageGroup","sex","description",
+        "pictureThumbnailUrl","citytown","stateProvince",
+        "orgName","orgEmail","orgWebsite","orgPhone"
+      ],
+      sort: [{ fieldName: "name", order: "asc" }],
+      limit: 25,
+    }
+  }),
+});
 
-      const data = await response.json();
-      const animals = data?.data || [];
+const data = await response.json();
+console.log("RescueGroups response:", data);
+const animals = data?.data || [];
       setPets(animals);
       setSearched(true);
 
