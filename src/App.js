@@ -2844,62 +2844,7 @@ function AdoptionTab({ profile }) {
     </div>
   );
 }
-  const [filterState, setFilterState] = useState(profile?.state || "");
-  const [shelters, setShelters] = useState([]);
-  const [shelterPets, setShelterPets] = useState({});
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const q = query(collection(db, "users"), where("role", "==", "shelter"), where("status", "==", "approved"));
-    const unsub1 = onSnapshot(q, snap => setShelters(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-    const unsub2 = onSnapshot(collection(db, "shelterPets"), snap => {
-      const petsMap = {};
-      snap.docs.forEach(d => {
-        const pet = { id: d.id, ...d.data() };
-        if (!petsMap[pet.uid]) petsMap[pet.uid] = [];
-        petsMap[pet.uid].push(pet);
-      });
-      setShelterPets(petsMap);
-      setLoading(false);
-    });
-    return () => { unsub1(); unsub2(); };
-  }, []);
-
-  const filtered = shelters.filter(s => !filterState || s.state === filterState);
-
-  return (
-    <div>
-      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Adopt a Pet ❤️</h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Verified shelters — free access for all shelters</p>
-      <div style={{ marginBottom: 18 }}><span style={label}>Filter by State</span><select value={filterState} onChange={e => setFilterState(e.target.value)} style={{ ...input, appearance: "none" }}><option value="">All States</option>{US_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-      {loading && <Spinner />}
-      {!loading && filtered.map(shelter => {
-        const pets = shelterPets[shelter.uid] || [];
-        return (
-          <div key={shelter.id} style={{ ...card, marginBottom: 16 }}>
-            <div style={{ color: C.text, fontWeight: 900, fontSize: 16, marginBottom: 2 }}>🏠 {shelter.shelterName || shelter.name}</div>
-            <div style={{ color: C.muted, fontSize: 13, marginBottom: 14 }}>📍 {shelter.city}, {shelter.state} <Badge text="Verified" color={C.green} /></div>
-            {pets.length === 0 && <div style={{ color: C.muted, fontSize: 13, marginBottom: 8 }}>No pets listed yet.</div>}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {pets.map(pet => (
-                <div key={pet.id} style={{ background: C.inputBg, borderRadius: 12, padding: 14, border: `1px solid ${C.cardBorder}` }}>
-                  <div style={{ fontSize: 32, textAlign: "center" }}>{pet.type === "Cat" ? "🐈" : "🐕"}</div>
-                  <div style={{ color: C.text, fontWeight: 800, fontSize: 15, textAlign: "center" }}>{pet.name}</div>
-                  <div style={{ color: C.muted, fontSize: 12, textAlign: "center" }}>{pet.breed}</div>
-                  <div style={{ color: C.muted, fontSize: 12, textAlign: "center", marginBottom: 10 }}>Age: {pet.age}</div>
-                  <button style={{ ...btn(C.green), width: "100%", padding: "8px 0", fontSize: 12 }}>Inquire 🐾</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-      {!loading && filtered.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>No approved shelters found in this state yet. Check back soon!</div>}
-    </div>
-  );
-}
-
-// ─── Provider Profile ─────────────────────────────────────────────────────────
+  
 // ─── Provider Profile ─────────────────────────────────────────────────────────
 function ProviderProfile({ profile }) {
   const [editing, setEditing] = useState(false);
