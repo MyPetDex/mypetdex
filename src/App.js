@@ -2691,24 +2691,17 @@ function AdoptionTab({ profile }) {
       const response = await fetch(`https://api.rescuegroups.org/v5/public/animals/search/available/hasphotos?species=${filterType}`, {
   method: "POST",
   headers: {
-    "Content-Type": "application/json",
-    "Authorization": API_KEY,
-  },
-  body: JSON.stringify({
-    data: {
-      filterRadius: {
-        miles: parseInt(radius),
-        postalCode: zipCode,
-      },
-      fields: [
-        "name","breedPrimary","ageGroup","sex","description",
-        "pictureThumbnailUrl","citytown","stateProvince",
-        "orgName","orgEmail","orgWebsite","orgPhone"
-      ],
-      sort: [{ fieldName: "name", order: "asc" }],
-      limit: 25,
-    }
-  }),
+  "Content-Type": "application/vnd.api+json",
+  "Authorization": API_KEY,
+},
+body: JSON.stringify({
+  data: {
+    filterRadius: {
+      miles: parseInt(radius),
+      postalCode: zipCode,
+    },
+  }
+}),
 });
 
 const data = await response.json();
