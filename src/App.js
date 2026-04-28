@@ -993,7 +993,7 @@ function PetsTab({ user, profile, isDemo }) {
   };
 
   if (selectedPet) return (
-   <PetDetail pet={selectedPet} user={user} profile={profile} onBack={() => setSelectedPetId(null)} onDelete={() => deletePet(selectedPet.id)} />
+   <PetDetail pet={selectedPet} user={user} profile={profile} isDemo={isDemo} onBack={() => setSelectedPetId(null)} onDelete={() => deletePet(selectedPet.id)} />
   );
 
   return (
@@ -1067,7 +1067,7 @@ function PetsTab({ user, profile, isDemo }) {
 }
 
 // ─── Pet Detail ───────────────────────────────────────────────────────────────
-function PetDetail({ pet, user, profile, onBack, onDelete }) {
+function PetDetail({ pet, user, profile, onBack, onDelete, isDemo }) {
   const [activeTab, setActiveTab] = useState("info");
   const [vaccines, setVaccines] = useState(pet.vaccines || []);
   const [reminders, setReminders] = useState(pet.reminders || []);
@@ -1157,10 +1157,10 @@ function PetDetail({ pet, user, profile, onBack, onDelete }) {
         <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
             <Avatar emoji={pet.type === "Cat" ? "🐱" : "🐶"} size={80} img={pendingPhoto || pet.photoURL} />
-            <label style={{ background: C.cardBorder, border: `1px solid ${C.cardBorder}`, borderRadius: 8, cursor: "pointer", fontSize: 11, padding: "6px 10px", display: "inline-block", textAlign: "center", color: C.muted, fontFamily: font, fontWeight: 700 }}>
-              📷 Change Photo
-              <input type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: "none" }} />
-            </label>
+            <{!isDemo && <label style={{ background: C.cardBorder, border: `1px solid ${C.cardBorder}`, borderRadius: 8, cursor: "pointer", fontSize: 11, padding: "6px 10px", display: "inline-block", textAlign: "center", color: C.muted, fontFamily: font, fontWeight: 700 }}>
+  📷 Change Photo
+  <input type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: "none" }} />
+</label>}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ color: C.text, fontWeight: 900, fontSize: 22 }}>{pet.name}</div>
@@ -1186,7 +1186,7 @@ function PetDetail({ pet, user, profile, onBack, onDelete }) {
         <button style={tabStyle("reminders")} onClick={() => setActiveTab("reminders")}>⏰ Reminders ({reminders.length})</button>
         <button style={tabStyle("calories")} onClick={() => setActiveTab("calories")}>🔢 Calories</button>
       </div>
-      {activeTab === "info" && <EditPetInfo pet={pet} onDelete={onDelete} onSaved={() => showToast("✅ Pet info updated!")} />}
+      {activeTab === "info" && <EditPetInfo pet={pet} onDelete={onDelete} isDemo={isDemo} onSaved={() => showToast("✅ Pet info updated!")} />}
       {activeTab === "vaccines" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
@@ -1272,7 +1272,7 @@ function PetDetail({ pet, user, profile, onBack, onDelete }) {
 }
 
 // ─── Edit Pet Info ────────────────────────────────────────────────────────────
-function EditPetInfo({ pet, onDelete, onSaved }) {
+function EditPetInfo({ pet, onDelete, onSaved, isDemo }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     name: pet.name || "", type: pet.type || "Dog", breed: pet.breed || "",
@@ -1320,9 +1320,9 @@ function EditPetInfo({ pet, onDelete, onSaved }) {
       <div style={{ ...card, marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ color: C.text, fontWeight: 800, fontSize: 15 }}>Pet Information</div>
-          <button onClick={() => setEditing(true)} style={{ background: C.green + "22", border: `1.5px solid ${C.green}`, borderRadius: 10, padding: "7px 16px", color: C.green, fontFamily: font, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
-            ✏️ Edit Info
-          </button>
+          {!isDemo && <button onClick={() => setEditing(true)} style={{ background: C.green + "22", border: `1.5px solid ${C.green}`, borderRadius: 10, padding: "7px 16px", color: C.green, fontFamily: font, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+  ✏️ Edit Info
+</button>}
         </div>
         {[["Type",pet.type],["Breed",pet.breed],["Age",pet.age],["Weight",pet.weight],["Next Vet",pet.nextVet],["Feeding",pet.feeding]].filter(([,v])=>v).map(([k,v]) => (
           <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.cardBorder}` }}>
@@ -1335,7 +1335,7 @@ function EditPetInfo({ pet, onDelete, onSaved }) {
         )}
       </div>
       {pet.notes && <div style={{ ...card, marginBottom: 12 }}><div style={{ color: C.muted, fontSize: 12, fontWeight: 700, marginBottom: 4 }}>NOTES</div><div style={{ color: C.text, fontSize: 13 }}>{pet.notes}</div></div>}
-      <button onClick={onDelete} style={{ ...btn(C.danger + "22", C.danger), border: `1px solid ${C.danger}`, width: "100%" }}>🗑️ Delete Pet</button>
+{!isDemo && <button onClick={onDelete} style={{ ...btn(C.danger + "22", C.danger), border: `1px solid ${C.danger}`, width: "100%" }}>🗑️ Delete Pet</button>}
     </div>
   );
 }
