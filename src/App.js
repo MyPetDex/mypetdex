@@ -2698,7 +2698,7 @@ body: JSON.stringify({
   data: {
     filterRadius: {
       miles: parseInt(radius),
-      postalCode: zipCode,
+      postalcode: zipCode,
     },
   }
 }),
