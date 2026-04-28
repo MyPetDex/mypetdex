@@ -1157,7 +1157,7 @@ function PetDetail({ pet, user, profile, onBack, onDelete, isDemo }) {
         <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
             <Avatar emoji={pet.type === "Cat" ? "🐱" : "🐶"} size={80} img={pendingPhoto || pet.photoURL} />
-            <{!isDemo && <label style={{ background: C.cardBorder, border: `1px solid ${C.cardBorder}`, borderRadius: 8, cursor: "pointer", fontSize: 11, padding: "6px 10px", display: "inline-block", textAlign: "center", color: C.muted, fontFamily: font, fontWeight: 700 }}>
+            {!isDemo && <label style={{ background: C.cardBorder, border: `1px solid ${C.cardBorder}`, borderRadius: 8, cursor: "pointer", fontSize: 11, padding: "6px 10px", display: "inline-block", textAlign: "center", color: C.muted, fontFamily: font, fontWeight: 700 }}>
   📷 Change Photo
   <input type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: "none" }} />
 </label>}
