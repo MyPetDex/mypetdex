@@ -2770,7 +2770,58 @@ const animals = data?.data || [];
 
       {/* Results */}
       {!loading && pets.map((pet, i) => {
-        const attrs = pet.attributes || {};
+  const attrs = pet.attributes || {};
+  const photo = attrs.pictureThumbnailUrl;
+  return (
+    <div key={pet.id || i} style={{ ...card, marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+        {photo ? (
+          <img src={photo} alt={attrs.name} style={{ width: 80, height: 80, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
+        ) : (
+          <div style={{ width: 80, height: 80, borderRadius: 12, background: C.cardBorder, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, flexShrink: 0 }}>
+            {filterType === "Cat" ? "🐱" : "🐶"}
+          </div>
+        )}
+        <div style={{ flex: 1 }}>
+          <div style={{ color: C.text, fontWeight: 900, fontSize: 17 }}>{attrs.name || "Unknown"}</div>
+          <div style={{ color: C.muted, fontSize: 13 }}>{attrs.breedPrimary || "Mixed"} · {attrs.ageGroup || "Unknown age"} · {attrs.sex || ""}</div>
+          {(attrs.citytown || attrs.stateProvince) && (
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>📍 {attrs.citytown}{attrs.citytown && attrs.stateProvince ? ", " : ""}{attrs.stateProvince}</div>
+          )}
+          {attrs.orgName && <div style={{ color: C.green, fontSize: 12, marginTop: 2, fontWeight: 700 }}>🏠 {attrs.orgName}</div>}
+        </div>
+      </div>
+      {attrs.description && (
+        <div style={{ color: C.muted, fontSize: 12, marginTop: 10, lineHeight: 1.5 }}>
+          {attrs.description.replace(/<[^>]*>/g, "").slice(0, 180)}...
+        </div>
+      )}
+      <div style={{ marginTop: 12, padding: "12px", background: C.inputBg, borderRadius: 12 }}>
+        <div style={{ color: C.muted, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>CONTACT SHELTER</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {attrs.orgEmail && (
+            <a href={`mailto:${attrs.orgEmail}`} style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none" }}>
+              📧 Email
+            </a>
+          )}
+          {attrs.orgPhone && (
+            <a href={`tel:${attrs.orgPhone}`} style={{ ...btn(C.cardBorder, C.text), padding: "8px 14px", fontSize: 12, textDecoration: "none", border: `1px solid ${C.cardBorder}` }}>
+              📞 {attrs.orgPhone}
+            </a>
+          )}
+          {attrs.orgWebsite && (
+            <a href={attrs.orgWebsite} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.text), padding: "8px 14px", fontSize: 12, textDecoration: "none", border: `1px solid ${C.cardBorder}` }}>
+              🌐 Website
+            </a>
+          )}
+        </div>
+        {!attrs.orgEmail && !attrs.orgPhone && !attrs.orgWebsite && (
+          <div style={{ color: C.muted, fontSize: 12 }}>Search for "{attrs.orgName}" online to contact them.</div>
+        )}
+      </div>
+    </div>
+  );
+})}
         const photo = attrs.pictureThumbnailUrl;
         return (
           <div key={pet.id || i} style={{ ...card, marginBottom: 14 }}>
