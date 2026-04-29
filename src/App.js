@@ -2821,7 +2821,8 @@ const animals = data?.data || [];
       </div>
     </div>
   );
-})}
+}
+
 function ProviderProfile({ profile }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
