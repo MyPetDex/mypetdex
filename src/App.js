@@ -2822,7 +2822,6 @@ const animals = data?.data || [];
     </div>
   );
 })}
-// Provider Profile
 function ProviderProfile({ profile }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
