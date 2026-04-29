@@ -2829,8 +2829,8 @@ setPets(filtered.length > 0 ? filtered : animals);
         </div>
         {!attrs.orgEmail && !attrs.orgPhone && !attrs.orgWebsite && (
   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-    <a href={`https://rescuegroups.org/adopt/results/?species=${filterType}&postalcode=${zipCode}&radius=${radius}`} target="_blank" rel="noreferrer" style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none" }}>
-      🐾 Find on RescueGroups
+    <a href={`https://www.petfinder.com/search/?pet_type=${filterType === "Dog" ? "dogs" : filterType === "Cat" ? "cats" : "rabbits"}&location=${zipCode}&distance=${radius}`} target="_blank" rel="noreferrer" style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none" }}>
+  🐾 Find Adoptable Pets
     </a>
   </div>
 )}
