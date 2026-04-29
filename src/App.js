@@ -2707,7 +2707,11 @@ body: JSON.stringify({
 const data = await response.json();
 console.log("RescueGroups response:", data);
 const animals = data?.data || [];
-if (animals.length > 0) console.log("Sample animal attrs:", JSON.stringify(animals[0].attributes));
+if (animals.length > 0) {
+  console.log("Sample animal attrs:", JSON.stringify(animals[0].attributes));
+  console.log("Full response keys:", Object.keys(data));
+  if (data.included && data.included.length > 0) console.log("Sample included:", JSON.stringify(data.included[0]));
+}
 const filtered = animals.filter(a => {
   const searchStr = (a.attributes?.searchString || "").toLowerCase();
   const breedStr = (a.attributes?.breedString || "").toLowerCase();
