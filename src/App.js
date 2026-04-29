@@ -2829,16 +2829,9 @@ setPets(filtered.length > 0 ? filtered : animals);
         </div>
         {!attrs.orgEmail && !attrs.orgPhone && !attrs.orgWebsite && (
   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-    {attrs.url && (
-      <a href={attrs.url} target="_blank" rel="noreferrer" style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none" }}>
-        🐾 View Listing
-      </a>
-    )}
-    {attrs.orgName && (
-      <a href={`https://www.google.com/search?q=${encodeURIComponent(attrs.orgName + " pet adoption")}`} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.muted), padding: "8px 14px", fontSize: 12, textDecoration: "none", border: `1px solid ${C.cardBorder}` }}>
-        🔍 Search Online
-      </a>
-    )}
+    <a href={`https://rescuegroups.org/adopt/results/?species=${filterType}&postalcode=${zipCode}&radius=${radius}`} target="_blank" rel="noreferrer" style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none" }}>
+      🐾 Find on RescueGroups
+    </a>
   </div>
 )}
         )}
