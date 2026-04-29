@@ -2822,70 +2822,7 @@ const animals = data?.data || [];
     </div>
   );
 })}
-        const photo = attrs.pictureThumbnailUrl;
-        return (
-          <div key={pet.id || i} style={{ ...card, marginBottom: 14 }}>
-            <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-              {photo ? (
-                <img src={photo} alt={attrs.name} style={{ width: 80, height: 80, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
-              ) : (
-                <div style={{ width: 80, height: 80, borderRadius: 12, background: C.cardBorder, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, flexShrink: 0 }}>
-                  {filterType === "Cat" ? "🐱" : "🐶"}
-                </div>
-              )}
-              <div style={{ flex: 1 }}>
-                <div style={{ color: C.text, fontWeight: 900, fontSize: 17 }}>{attrs.name || "Unknown"}</div>
-                <div style={{ color: C.muted, fontSize: 13 }}>{attrs.breedPrimary || "Mixed"} · {attrs.ageGroup || "Unknown age"} · {attrs.sex || ""}</div>
-                {(attrs.citytown || attrs.stateProvince) && (
-                  <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>📍 {attrs.citytown}{attrs.citytown && attrs.stateProvince ? ", " : ""}{attrs.stateProvince}</div>
-                )}
-                {attrs.orgName && <div style={{ color: C.green, fontSize: 12, marginTop: 2, fontWeight: 700 }}>🏠 {attrs.orgName}</div>}
-              </div>
-            </div>
-            {attrs.description && (
-              <div style={{ color: C.muted, fontSize: 12, marginTop: 10, lineHeight: 1.5 }}>
-                {attrs.description.replace(/<[^>]*>/g, "").slice(0, 120)}...
-              </div>
-            )}
-            <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-              {attrs.orgEmail && (
-                <a href={`mailto:${attrs.orgEmail}`} style={{ ...btn(C.green), padding: "8px 16px", fontSize: 13, textDecoration: "none" }}>
-                  📧 Email Shelter
-                </a>
-              )}
-              {attrs.orgWebsite && (
-                <a href={attrs.orgWebsite} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.muted), padding: "8px 16px", fontSize: 13, textDecoration: "none", border: `1px solid ${C.cardBorder}` }}>
-                  🌐 Website
-                </a>
-              )}
-              {attrs.orgPhone && (
-                <a href={`tel:${attrs.orgPhone}`} style={{ ...btn(C.cardBorder, C.muted), padding: "8px 16px", fontSize: 13, textDecoration: "none", border: `1px solid ${C.cardBorder}` }}>
-                  📞 Call
-                </a>
-              )}
-            </div>
-          </div>
-        );
-      })}
-
-      {!loading && searched && pets.length === 0 && !error && (
-        <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🐾</div>
-          <div style={{ color: C.text, fontWeight: 800 }}>No pets found</div>
-          <div style={{ fontSize: 13, marginTop: 6 }}>Try a larger radius or different pet type</div>
-        </div>
-      )}
-
-      {!searched && !loading && (
-        <div style={{ ...card, textAlign: "center", padding: 40 }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>❤️</div>
-          <div style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>Find your next best friend</div>
-          <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>Enter your zip code and search for adoptable pets near you</div>
-        </div>
-      )}
-    </div>
-  );
-}
+       
   
 // ─── Provider Profile ─────────────────────────────────────────────────────────
 function ProviderProfile({ profile }) {
