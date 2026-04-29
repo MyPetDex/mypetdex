@@ -2707,6 +2707,7 @@ body: JSON.stringify({
 const data = await response.json();
 console.log("RescueGroups response:", data);
 const animals = data?.data || [];
+if (animals.length > 0) console.log("Sample animal attrs:", JSON.stringify(animals[0].attributes));
 const filtered = animals.filter(a => {
   const species = (a.attributes?.species || "").toLowerCase();
   return species.includes(filterType.toLowerCase());
