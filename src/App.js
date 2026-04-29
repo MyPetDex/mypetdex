@@ -2707,7 +2707,11 @@ body: JSON.stringify({
 const data = await response.json();
 console.log("RescueGroups response:", data);
 const animals = data?.data || [];
-      setPets(animals);
+const filtered = animals.filter(a => {
+  const species = (a.attributes?.species || "").toLowerCase();
+  return species.includes(filterType.toLowerCase());
+});
+setPets(filtered.length > 0 ? filtered : animals);
       setSearched(true);
 
       if (animals.length === 0) setError("No adoptable pets found in this area. Try a larger radius!");
