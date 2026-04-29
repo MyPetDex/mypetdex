@@ -2709,8 +2709,11 @@ console.log("RescueGroups response:", data);
 const animals = data?.data || [];
 if (animals.length > 0) console.log("Sample animal attrs:", JSON.stringify(animals[0].attributes));
 const filtered = animals.filter(a => {
-  const species = (a.attributes?.species || "").toLowerCase();
-  return species.includes(filterType.toLowerCase());
+  const searchStr = (a.attributes?.searchString || "").toLowerCase();
+  const breedStr = (a.attributes?.breedString || "").toLowerCase();
+  if (filterType === "Dog") return searchStr.includes("dog") || breedStr.includes("dog");
+  if (filterType === "Cat") return searchStr.includes("cat") || breedStr.includes("cat");
+  return searchStr.includes(filterType.toLowerCase());
 });
 setPets(filtered.length > 0 ? filtered : animals);
       setSearched(true);
