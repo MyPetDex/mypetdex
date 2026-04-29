@@ -2829,7 +2829,7 @@ setPets(filtered.length > 0 ? filtered : animals);
         </div>
         {!attrs.orgEmail && !attrs.orgPhone && !attrs.orgWebsite && (
   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-    https://rescuegroups.org/adopt/?results=1&animalSpecies=${filterType}&animalLocation=${zipCode}&animalLocationDistance=${radius}
+    <a href={`https://rescuegroups.org/adopt/?results=1&animalSpecies=${filterType}&animalLocation=${zipCode}&animalLocationDistance=${radius}
   🐾 View on RescueGroups
     </a>
   </div>
