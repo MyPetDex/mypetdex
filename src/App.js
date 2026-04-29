@@ -2821,6 +2821,25 @@ const animals = data?.data || [];
       </div>
     </div>
   );
+})}
+
+      {!loading && searched && pets.length === 0 && !error && (
+        <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🐾</div>
+          <div style={{ color: C.text, fontWeight: 800 }}>No pets found</div>
+          <div style={{ fontSize: 13, marginTop: 6 }}>Try a larger radius or different pet type</div>
+        </div>
+      )}
+
+      {!searched && !loading && (
+        <div style={{ ...card, textAlign: "center", padding: 40 }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>❤️</div>
+          <div style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>Find your next best friend</div>
+          <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>Enter your zip code and search for adoptable pets near you</div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ProviderProfile({ profile }) {
