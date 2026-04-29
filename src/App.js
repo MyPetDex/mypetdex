@@ -2666,7 +2666,7 @@ function CalcTab({ pet, profile }) {
   );
 }
 
-// ─── Adoption Tab ─────────────────────────────────────────────────────────────
+// Provider Profile
 function AdoptionTab({ profile }) {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(false);
