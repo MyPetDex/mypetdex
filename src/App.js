@@ -926,6 +926,7 @@ function PetDetail({ pet, user, profile, onBack, onDelete }) {
   const [rForm, setRForm] = useState({ title:"", date:"", time:"", repeat:"None", notes:"" });
   const [addingV, setAddingV] = useState(false);
   const [addingR, setAddingR] = useState(false);
+  const [editingReminderId, setEditingReminderId] = useState(null);
   const [savingPhoto, setSavingPhoto] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState(null);
   const [toast, setToast] = useState("");
@@ -973,10 +974,16 @@ function PetDetail({ pet, user, profile, onBack, onDelete }) {
     await updateDoc(doc(db, "pets", pet.id), { vaccines: updated });
   };
 
-  const saveReminder = async () => {
+ const saveReminder = async () => {
     if (!rForm.title) return;
-    const newR = { ...rForm, id: Date.now().toString() };
-    const updated = [...reminders, newR];
+    let updated;
+    if (editingReminderId) {
+      updated = reminders.map(r => r.id === editingReminderId ? { ...rForm, id: editingReminderId } : r);
+      setEditingReminderId(null);
+    } else {
+      const newR = { ...rForm, id: Date.now().toString() };
+      updated = [...reminders, newR];
+    }
     setReminders(updated);
     await updateDoc(doc(db, "pets", pet.id), { reminders: updated });
     setRForm({ title:"", date:"", time:"", repeat:"None", notes:"" });
@@ -1087,7 +1094,10 @@ function PetDetail({ pet, user, profile, onBack, onDelete }) {
                   {r.repeat !== "None" && <Badge text={"🔁 " + r.repeat} color={C.gold} />}
                   {r.notes && <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>{r.notes}</div>}
                 </div>
-                <button onClick={() => deleteReminder(r.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 18 }}>🗑️</button>
+              <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => { setRForm({ title: r.title, date: r.date, time: r.time, repeat: r.repeat, notes: r.notes || "" }); setEditingReminderId(r.id); setAddingR(true); }} style={{ background: "none", border: "none", color: C.green, cursor: "pointer", fontSize: 16 }}>✏️</button>
+                  <button onClick={() => deleteReminder(r.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 16 }}>🗑️</button>
+                </div>
               </div>
             </div>
           ))}
