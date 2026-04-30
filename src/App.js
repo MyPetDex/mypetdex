@@ -820,7 +820,7 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
 }
 
 // ─── Pets Tab ─────────────────────────────────────────────────────────────────
-function PetsTab({ user, profile }) {
+function PetsTab({ user, profile, isDemo }) {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -866,7 +866,7 @@ function PetsTab({ user, profile }) {
   };
 
   if (selectedPet) return (
-    <PetDetail pet={selectedPet} user={user} profile={profile} onBack={() => setSelectedPetId(null)} onDelete={() => deletePet(selectedPet.id)} />
+    <PetDetail pet={selectedPet} user={user} profile={profile} isDemo={isDemo} onBack={() => setSelectedPetId(null)} onDelete={() => deletePet(selectedPet.id)} />
   );
 
   return (
@@ -945,7 +945,7 @@ function PetsTab({ user, profile }) {
 }
 
 // ─── Pet Detail ───────────────────────────────────────────────────────────────
-function PetDetail({ pet, user, profile, onBack, onDelete }) {
+function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
   const [activeTab, setActiveTab] = useState("info");
   const [vaccines, setVaccines] = useState(pet.vaccines || []);
   const [reminders, setReminders] = useState(pet.reminders || []);
