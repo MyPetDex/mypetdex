@@ -5,6 +5,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  deleteUser,
 } from "firebase/auth";
 import {
   doc, setDoc, getDoc, collection, addDoc,
@@ -158,27 +161,57 @@ function compressImage(file, callback) {
   reader.readAsDataURL(file);
 }
 
-// ─── Main Export ──────────────────────────────────────────────────────────────
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null); // eslint-disable-line no-unused-vars
   const [profile, setProfile] = useState(null);
   const [screen, setScreen] = useState("landing");
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (u) {
-        setUser(u);
-        const snap = await getDoc(doc(db, "users", u.uid));
-        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
-        else setScreen("app");
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        if (firebaseUser.email === 'mypetdexapp@gmail.com') {
+          setScreen('admin');
+          setLoading(false);
+        } else if (!firebaseUser.emailVerified && firebaseUser.email !== 'demo@mypetdex.app') {
+          setScreen('verify');
+          setLoading(false);
+        } else {
+          try {
+            const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+            const userData = snap.exists() ? { uid: firebaseUser.uid, ...snap.data() } : { email: firebaseUser.email, role: "owner", uid: firebaseUser.uid };
+            setProfile(userData);
+          } catch (e) {
+            console.error("Error loading profile:", e);
+          }
+          setScreen('app');
+          setLoading(false);
+        }
       } else {
-        setUser(null); setProfile(null); setScreen("landing");
+        setUser(null);
+        setProfile(null);
+        setScreen('landing');
+        setLoading(false);
       }
-      setLoading(false);
     });
     return unsub;
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('demo') === 'true') {
+      setLoading(true);
+      signInWithEmailAndPassword(auth, 'demo@mypetdex.app', 'Demo2026!')
+        .then(() => {
+          window.history.replaceState({}, '', window.location.pathname);
+        })
+        .catch(err => {
+          console.log('Demo login failed:', err);
+          setLoading(false);
+        });
+    }
   }, []);
 
   if (loading) return (
@@ -192,12 +225,86 @@ export default function App() {
     </div>
   );
 
+  if (screen === "admin") return <AdminDashboard onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "landing") return <Landing onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} />;
   if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} />;
   if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} />;
-  return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
+  if (screen === "verify") return <VerifyEmail onVerified={async () => { const u = auth.currentUser; if (!u) return; const snap = await getDoc(doc(db, "users", u.uid)); const userData = snap.exists() ? snap.data() : { email: u.email, role: "owner", uid: u.uid }; setProfile(userData); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
+  if (screen === "app") return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
 }
+function AdminDashboard({ onLogout }) {
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24 }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <div style={{ color: C.green, fontWeight: 900, fontSize: 24 }}>🛡️ Admin Dashboard</div>
+        <button onClick={onLogout} style={{ ...btn(C.cardBorder, C.muted), border: "1px solid " + C.cardBorder }}>Sign out</button>
+      </div>
+      <div style={{ ...card, textAlign: "center", padding: 40 }}>
+        <div style={{ fontSize: 40 }}>🛡️</div>
+        <div style={{ color: C.text, fontWeight: 800, marginTop: 12 }}>Admin Panel</div>
+        <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>Full admin dashboard coming soon.</div>
+      </div>
+    </div>
+  );
+}
+function VerifyEmail({ onVerified, onLogout }) {
+  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState("");
+  const user = auth.currentUser;
 
+  const resend = async () => {
+    if (!user) { setMessage("No signed-in user."); return; }
+    setSending(true); setMessage("");
+    try {
+      await sendEmailVerification(user, { url: window.location.origin });
+      setMessage("Verification email sent. Check your inbox.");
+    } catch (e) {
+      setMessage("Could not send verification email. Try again later.");
+    }
+    setSending(false);
+  };
+
+  const check = async () => {
+    if (!user) { setMessage("No signed-in user."); return; }
+    setSending(true); setMessage("");
+    try {
+      let verified = false;
+      for (let i = 0; i < 5; i++) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await user.reload();
+        if (user.emailVerified) { verified = true; break; }
+      }
+      if (verified) {
+        await onVerified();
+      } else {
+        setMessage("Email still not verified. Please check your inbox and follow the link.");
+      }
+    } catch (e) {
+      setMessage("Error checking verification. Try again.");
+    }
+    setSending(false);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: "100%", maxWidth: 520 }}>
+        <div style={{ ...card, textAlign: "center" }}>
+          <div style={{ fontSize: 40 }}>📧</div>
+          <h2 style={{ color: C.text, fontWeight: 900 }}>Verify Your Email</h2>
+          <p style={{ color: C.muted }}>We sent a verification link to <strong style={{ color: C.text }}>{user?.email}</strong>. Click the link to verify.</p>
+          <p style={{ color: C.muted, fontSize: 13 }}>📬 Can't find it? Check your spam folder.</p>
+          {message && <div style={{ background: C.green + "22", border: "1px solid " + C.green, borderRadius: 10, padding: "10px 14px", color: C.green, fontSize: 13, margin: "12px 0" }}>{message}</div>}
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 12 }}>
+            <button onClick={resend} disabled={sending} style={{ ...btn(C.green), minWidth: 160 }}>{sending ? "Sending..." : "Resend Email"}</button>
+            <button onClick={check} disabled={sending} style={{ ...btn(C.cardBorder, C.green), minWidth: 160, border: "1px solid " + C.green }}>{sending ? "Checking..." : "I've Verified"}</button>
+          </div>
+          <button onClick={onLogout} style={{ marginTop: 16, background: "none", border: "none", color: C.muted, cursor: "pointer" }}>Sign out</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 // ─── Landing ─────────────────────────────────────────────────────────────────
 function Landing({ onRegister, onLogin }) {
   return (
