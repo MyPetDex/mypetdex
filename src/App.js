@@ -630,7 +630,7 @@ function RegisterScreen({ onBack, onSuccess }) {
           <Field label="Google Review Link" value={form.googleReview} onChange={set("googleReview")} placeholder="https://maps.google.com/..." />
           <Field label="About Your Business" as="textarea" value={form.bio} onChange={set("bio")} placeholder="Tell pet owners what makes you special..." />
           <div style={{ ...card, background: "#1a2e1e", marginBottom: 16 }}>
-            <p style={{ color: C.gold, fontSize: 12, fontWeight: 700, margin: 0 }}>30 Days FREE then only 10-15% commission on bookings. No monthly fees!</p>
+            <p style={{ color: C.gold, fontSize: 12, fontWeight: 700, margin: 0 }}>🎉 6-Month Free Trial — then only 5% commission on bookings. No monthly fees!</p>
           </div>
           <button style={{ ...btn(), width: "100%" }} onClick={submit} disabled={loading}>{loading ? "Creating Account..." : "Create Provider Account"}</button>
         </>}
@@ -756,8 +756,8 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
     <div>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22 }}>Provider Dashboard 🛎️</h2>
       <div style={{ ...card, marginBottom: 14 }}>
-        <div style={{ color: C.gold, fontWeight: 800, fontSize: 16 }}>30-Day Free Trial Active</div>
-        <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>After trial: 10-15% commission only on bookings. No monthly fees!</div>
+        <div style={{ color: C.gold, fontWeight: 800, fontSize: 16 }}>🎉 6-Month Free Trial Active</div>
+        <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>After trial: only 5% commission on completed bookings. No monthly fees, ever!</div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         {[["Total Views","24"],["Bookings","0"],["Earnings","$0"],["Rating","--"]].map(([k,v]) => (
