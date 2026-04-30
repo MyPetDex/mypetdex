@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { auth, db } from "./firebase";
 import {
   createUserWithEmailAndPassword,
@@ -478,12 +478,13 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
   const isOwner = role === "owner";
   const isProvider = role === "provider";
   const isShelter = role === "shelter";
-  const ownerTabs = ["home","pets","services","recipes","adoption","settings"];
+  const isDemo = user?.email === 'demo@mypetdex.app';
+  const ownerTabs = ["home","pets","services","ai","recipes","adoption","settings"];
   const providerTabs = ["home","profile","bookings","settings"];
   const shelterTabs = ["home","listings","settings"];
   const tabs = isOwner ? ownerTabs : isProvider ? providerTabs : shelterTabs;
-  const tabIcon = { home:"🏠", pets:"🐾", services:"🛎️", recipes:"🍽️", adoption:"❤️", profile:"📋", bookings:"📅", listings:"🐶", settings:"⚙️" };
-  const tabLabel = { home:"Home", pets:"My Pets", services:"Services", recipes:"Recipes", adoption:"Adopt", profile:"My Business", bookings:"Bookings", listings:"Listings", settings:"Settings" };
+  const tabIcon = { home:"🏠", pets:"🐾", services:"🛎️", ai:"🤖", recipes:"🍽️", adoption:"❤️", profile:"📋", bookings:"📅", listings:"🐶", settings:"⚙️" };
+  const tabLabel = { home:"Home", pets:"My Pets", services:"Services", ai:"AI Chat", recipes:"Recipes", adoption:"Adopt", profile:"My Business", bookings:"Bookings", listings:"Listings", settings:"Settings" };
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, paddingBottom: 80 }}>
@@ -502,6 +503,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} />}
         {tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} />}
         {tab === "services" && isOwner && <ServicesTab profile={currentProfile} />}
+        {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} />}
         {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} />}
         {tab === "adoption" && isOwner && <AdoptionTab profile={currentProfile} />}
         {tab === "profile" && isProvider && <ProviderProfile profile={currentProfile} />}
@@ -1050,6 +1052,108 @@ function ServicesTab({ profile }) {
   );
 }
 
+function AITab({ profile, user }) {
+  const [pets, setPets] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [petsLoaded, setPetsLoaded] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, "pets"), where("uid", "==", user.uid));
+    const unsub = onSnapshot(q, snap => {
+      const petList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setPets(petList);
+      setPetsLoaded(true);
+    });
+    return unsub;
+  }, [user]);
+
+  useEffect(() => {
+    if (!petsLoaded) return;
+    const firstName = profile?.name?.split(" ")[0] || "there";
+    let greeting = "";
+    if (pets.length === 0) {
+      greeting = "Hi " + firstName + "! 🐾 I'm your MyPetDex AI assistant. Add a pet to your profile and I can give you personalized advice!";
+    } else if (pets.length === 1) {
+      const pet = pets[0];
+      greeting = "Hi " + firstName + "! 🐾 How can I help you and " + pet.name + " today?";
+    } else {
+      const petNames = pets.map(p => p.name).join(", ");
+      greeting = "Hi " + firstName + "! 🐾 How can I help you and your pets (" + petNames + ") today?";
+    }
+    setMessages([{ role: "assistant", content: greeting }]);
+  }, [petsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const buildSystemPrompt = () => {
+    const firstName = profile?.name?.split(" ")[0] || "the user";
+    let petContext = pets.length === 0 ? "The user has not added any pets yet." : pets.map(p =>
+      "- " + p.name + ": " + p.type + (p.breed ? ", " + p.breed : "") + (p.age ? ", age " + p.age : "") + (p.weight ? ", " + p.weight : "")
+    ).join("\n");
+    return "You are a warm, knowledgeable pet care assistant for MyPetDex. You are talking to " + firstName + ".\n\nTheir pets:\n" + petContext + "\n\nGuidelines:\n- Always reference the user's actual pets by name when relevant\n- Give breed-specific advice when you know the breed\n- Be warm, friendly, and concise\n- Use relevant emojis sparingly\n- If asked about medical emergencies, always recommend seeing a vet immediately\n- Keep responses under 150 words unless truly needed";
+  };
+
+  const sendMessage = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+    setInput("");
+    const newMessages = [...messages, { role: "user", content: text }];
+    setMessages(newMessages);
+    setLoading(true);
+    try {
+      const response = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/aiProxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ system: buildSystemPrompt(), messages: newMessages.map(m => ({ role: m.role, content: m.content })) }),
+      });
+      const data = await response.json();
+      const reply = data?.content?.[0]?.text || "Sorry, I couldn't get a response. Please try again.";
+      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: "assistant", content: "Could not connect. Please check your connection and try again." }]);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 160px)" }}>
+      <div style={{ marginBottom: 16 }}>
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>AI Assistant 🤖</h2>
+        <p style={{ color: C.muted, fontSize: 13, margin: "4px 0 0" }}>Personalized advice for {pets.length > 0 ? pets.map(p => p.name).join(" & ") : "your pets"}</p>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 12 }}>
+        {messages.map((msg, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
+            <div style={{ maxWidth: "82%", padding: "12px 16px", borderRadius: msg.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px", background: msg.role === "user" ? C.green : C.card, border: msg.role === "assistant" ? "1px solid " + C.cardBorder : "none", color: msg.role === "user" ? "#0F1A14" : C.text, fontFamily: font, fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+              {msg.content}
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div style={{ display: "flex", justifyContent: "flex-start" }}>
+            <div style={{ padding: "12px 16px", borderRadius: "18px 18px 18px 4px", background: C.card, border: "1px solid " + C.cardBorder, color: C.muted, fontFamily: font, fontSize: 14 }}>
+              <style>{`@keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }`}</style>
+              <span style={{ animation: "blink 1.4s infinite", animationDelay: "0s" }}>●</span>
+              <span style={{ animation: "blink 1.4s infinite", animationDelay: "0.2s" }}>●</span>
+              <span style={{ animation: "blink 1.4s infinite", animationDelay: "0.4s" }}>●</span>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+      <div style={{ display: "flex", gap: 10, paddingTop: 12, borderTop: "1px solid " + C.cardBorder }}>
+        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder={"Ask about " + (pets[0]?.name || "your pet") + "..."} style={{ background: C.inputBg, border: "1.5px solid " + C.cardBorder, borderRadius: 24, padding: "12px 18px", color: C.text, fontFamily: font, fontSize: 14, flex: 1, boxSizing: "border-box", outline: "none" }} />
+        <button onClick={sendMessage} disabled={loading || !input.trim()} style={{ ...btn(C.green), borderRadius: "50%", width: 46, height: 46, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, opacity: loading || !input.trim() ? 0.5 : 1, flexShrink: 0 }}>↑</button>
+      </div>
+    </div>
+  );
+}
 // ─── Recipes Tab ──────────────────────────────────────────────────────────────
 function RecipesTab({ profile }) {
   const petType = profile?.petType || "Dog";
