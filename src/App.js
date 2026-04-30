@@ -472,7 +472,7 @@ function VerifyEmail({ onVerified, onLogout }) {
     if (!user) { setMessage("No signed-in user."); return; }
     setSending(true); setMessage("");
     try {
-      await sendEmailVerification(user, { url: window.location.origin });
+      await sendEmailVerification(user, { url: "https://app.mypetdex.app" });
       setMessage("Verification email sent. Check your inbox.");
     } catch (e) {
       setMessage("Could not send verification email. Try again later.");
@@ -570,6 +570,11 @@ function RegisterScreen({ onBack, onSuccess }) {
           nextVet: "", notes: "", vaccines: [], reminders: [],
           photoURL: "", uid: cred.user.uid, createdAt: new Date().toISOString()
         });
+      }
+      try {
+        await sendEmailVerification(cred.user, { url: "https://app.mypetdex.app" });
+      } catch (verErr) {
+        console.error("Verification email error:", verErr);
       }
       onSuccess(profile);
     } catch (e) {
