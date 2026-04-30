@@ -2104,7 +2104,49 @@ function BookingsTab() {
 }
 
 // ─── Settings Tab ─────────────────────────────────────────────────────────────
-function SettingsTab({ user, profile, onProfileUpdate, onLogout }) {
+function DeleteAccountButton({ user, onLogout }) {
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleDelete = async () => {
+    setDeleting(true); setError("");
+    try {
+      await deleteDoc(doc(db, "users", user.uid));
+      await deleteUser(user);
+      onLogout();
+    } catch (e) {
+      if (e.code === "auth/requires-recent-login") {
+        setError("For security, please sign in again before deleting. Signing you out now...");
+        setTimeout(async () => { await signOut(auth); onLogout(); }, 2000);
+      } else {
+        setError("Could not delete account. Please try again.");
+      }
+    }
+    setDeleting(false);
+  };
+
+  if (!confirming) return (
+    <button onClick={() => setConfirming(true)} style={{ ...btn(C.danger + "11", C.danger), border: "1px solid " + C.danger + "44", width: "100%", marginBottom: 10 }}>
+      🗑️ Delete My Account
+    </button>
+  );
+
+  return (
+    <div style={{ ...card, border: "1.5px solid " + C.danger, marginBottom: 10 }}>
+      <div style={{ color: C.danger, fontWeight: 800, fontSize: 15, marginBottom: 8 }}>⚠️ Delete Account</div>
+      <div style={{ color: C.muted, fontSize: 13, marginBottom: 14 }}>This will permanently delete your account and all your data. This cannot be undone!</div>
+      {error && <div style={{ color: C.danger, fontSize: 12, marginBottom: 10 }}>{error}</div>}
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={handleDelete} disabled={deleting} style={{ ...btn(C.danger, "#fff"), flex: 1 }}>
+          {deleting ? "Deleting..." : "Yes, Delete Everything"}
+        </button>
+        <button onClick={() => setConfirming(false)} style={{ ...btn(C.cardBorder, C.muted) }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+function SettingsTab({ user, profile, onProfileUpdate, onLogout, isDemo }) {
   const [section, setSection] = useState("main");
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: profile?.name || "", city: profile?.city || "", state: profile?.state || "" });
@@ -2219,7 +2261,8 @@ function SettingsTab({ user, profile, onProfileUpdate, onLogout }) {
         <div style={{ color: C.muted, fontSize: 13 }}>📧 help@mypetdex.app</div>
         <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>🌐 mypetdex.app</div>
       </div>
-      <button onClick={onLogout} style={{ ...btn(C.danger + "22", C.danger), border: `1px solid ${C.danger}`, width: "100%" }}>Sign Out</button>
+      {!isDemo && <DeleteAccountButton user={user} onLogout={onLogout} />}
+      <button onClick={onLogout} style={{ ...btn(C.danger + "22", C.danger), border: "1px solid " + C.danger, width: "100%", marginTop: 10 }}>Sign Out</button>
     </div>
   );
 }
