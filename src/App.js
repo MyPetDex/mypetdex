@@ -2387,8 +2387,8 @@ function SettingsTab({ user, profile, onProfileUpdate, onLogout, isDemo }) {
       <div style={{ ...card, marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div style={{ color: C.text, fontWeight: 800, fontSize: 15 }}>My Profile</div>
-          {!editing && (
-            <button onClick={() => setEditing(true)} style={{ background: C.green + "22", border: `1.5px solid ${C.green}`, borderRadius: 10, padding: "7px 16px", color: C.green, fontFamily: font, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+          {!editing && !isDemo && (
+            <button onClick={() => setEditing(true)} style={{ background: C.green + "22", border: "1.5px solid " + C.green, borderRadius: 10, padding: "7px 16px", color: C.green, fontFamily: font, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
               ✏️ Edit Profile
             </button>
           )}
