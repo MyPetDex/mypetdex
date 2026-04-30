@@ -233,18 +233,183 @@ export default function App() {
   if (screen === "app") return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
 }
 function AdminDashboard({ onLogout }) {
+  const [adminTab, setAdminTab] = useState("shelters");
+  const [shelters, setShelters] = useState([]);
+  const [providers, setProviders] = useState([]);
+  const [shelterPets, setShelterPets] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState(null);
+
+  useEffect(() => {
+    const q1 = query(collection(db, "users"), where("role", "==", "shelter"));
+    const unsub1 = onSnapshot(q1, snap => setShelters(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    const q2 = query(collection(db, "users"), where("role", "==", "provider"));
+    const unsub2 = onSnapshot(q2, snap => setProviders(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    const unsub3 = onSnapshot(collection(db, "shelterPets"), snap => {
+      const petsMap = {};
+      snap.docs.forEach(d => {
+        const pet = { id: d.id, ...d.data() };
+        if (!petsMap[pet.uid]) petsMap[pet.uid] = [];
+        petsMap[pet.uid].push(pet);
+      });
+      setShelterPets(petsMap);
+      setLoading(false);
+    });
+    return () => { unsub1(); unsub2(); unsub3(); };
+  }, []);
+
+  const updateStatus = async (uid, status) => {
+    await updateDoc(doc(db, "users", uid), { status });
+  };
+
+  const toggleSuspend = async (uid, suspended) => {
+    await updateDoc(doc(db, "users", uid), { suspended: !suspended });
+  };
+
+  const statusBadge = (status) => {
+    const colors = { approved: C.green, rejected: C.danger, pending: C.gold };
+    const labels = { approved: "✓ Approved", rejected: "✗ Rejected", pending: "⏳ Pending" };
+    const s = status || "pending";
+    return <span style={{ background: colors[s] + "22", color: colors[s], borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{labels[s]}</span>;
+  };
+
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24 }}>
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, paddingBottom: 80 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <div style={{ color: C.green, fontWeight: 900, fontSize: 24 }}>🛡️ Admin Dashboard</div>
-        <button onClick={onLogout} style={{ ...btn(C.cardBorder, C.muted), border: "1px solid " + C.cardBorder }}>Sign out</button>
+      <div style={{ background: C.card, borderBottom: "1px solid " + C.cardBorder, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 26 }}>🛡️</span>
+          <div>
+            <span style={{ color: C.green, fontWeight: 900, fontSize: 20 }}>MyPetDex</span>
+            <span style={{ color: C.gold, fontSize: 11, fontWeight: 800, marginLeft: 8, background: C.gold + "22", borderRadius: 6, padding: "2px 8px" }}>ADMIN</span>
+          </div>
+        </div>
+        <button onClick={onLogout} style={{ background: "none", border: "1px solid " + C.cardBorder, borderRadius: 8, padding: "5px 12px", color: C.muted, fontFamily: font, fontSize: 12, cursor: "pointer" }}>Sign out</button>
       </div>
-      <div style={{ ...card, textAlign: "center", padding: 40 }}>
-        <div style={{ fontSize: 40 }}>🛡️</div>
-        <div style={{ color: C.text, fontWeight: 800, marginTop: 12 }}>Admin Panel</div>
-        <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>Full admin dashboard coming soon.</div>
+      <div style={{ padding: "16px", maxWidth: 600, margin: "0 auto" }}>
+        <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+          <div style={{ ...card, flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 28, fontWeight: 900, color: C.green }}>{shelters.length}</div>
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>🏠 Shelters</div>
+          </div>
+          <div style={{ ...card, flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 28, fontWeight: 900, color: C.green }}>{providers.length}</div>
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>🛎️ Providers</div>
+          </div>
+          <div style={{ ...card, flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 28, fontWeight: 900, color: C.gold }}>{shelters.filter(s => !s.status || s.status === "pending").length}</div>
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>⏳ Pending</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          {["shelters","providers","reviews"].map(t => (
+            <button key={t} onClick={() => setAdminTab(t)} style={{ ...btn(adminTab === t ? C.green : C.card, adminTab === t ? "#0F1A14" : C.muted), border: "1px solid " + (adminTab === t ? C.green : C.cardBorder), flex: 1, padding: "10px", fontSize: 14 }}>
+              {t === "shelters" ? "🏠 Shelters" : t === "providers" ? "🛎️ Providers" : "⭐ Reviews"}
+            </button>
+          ))}
+        </div>
+        {loading && <Spinner />}
+        {!loading && adminTab === "shelters" && (
+          shelters.length === 0
+            ? <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>No shelters registered yet.</div>
+            : shelters.map(s => (
+              <div key={s.id} style={{ ...card, marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                  <div>
+                    <div style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>{s.shelterName || s.name || s.email}</div>
+                    <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>{s.email}</div>
+                    {s.ein && <div style={{ color: C.muted, fontSize: 12 }}>EIN: {s.ein}</div>}
+                    {s.license && <div style={{ color: C.muted, fontSize: 12 }}>License: {s.license}</div>}
+                    <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>Joined: {s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "N/A"}</div>
+                  </div>
+                  {statusBadge(s.status)}
+                </div>
+                <div onClick={() => setExpandedId(expandedId === s.id ? null : s.id)} style={{ color: C.green, fontSize: 13, cursor: "pointer", fontWeight: 700, marginBottom: 8 }}>
+                  🐶 {shelterPets[s.uid]?.length || 0} pets listed {expandedId === s.id ? "▲" : "▼"}
+                </div>
+                {expandedId === s.id && (shelterPets[s.uid] || []).map(pet => (
+                  <div key={pet.id} style={{ background: C.bg, borderRadius: 10, padding: "8px 12px", marginBottom: 6, fontSize: 13, color: C.muted }}>
+                    <strong style={{ color: C.text }}>{pet.name}</strong> · {pet.type} · {pet.breed} · Age: {pet.age}
+                  </div>
+                ))}
+                <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                  {(!s.status || s.status === "pending") && <>
+                    <button onClick={() => updateStatus(s.uid, "approved")} style={{ ...btn(C.green), padding: "7px 16px", fontSize: 13 }}>✓ Approve</button>
+                    <button onClick={() => updateStatus(s.uid, "rejected")} style={{ ...btn(C.danger), padding: "7px 16px", fontSize: 13 }}>✗ Reject</button>
+                  </>}
+                  {s.status === "approved" && <button onClick={() => updateStatus(s.uid, "rejected")} style={{ ...btn(C.danger), padding: "7px 16px", fontSize: 13 }}>✗ Revoke</button>}
+                  {s.status === "rejected" && <button onClick={() => updateStatus(s.uid, "approved")} style={{ ...btn(C.green), padding: "7px 16px", fontSize: 13 }}>✓ Approve</button>}
+                  <button onClick={() => toggleSuspend(s.uid, s.suspended)} style={{ ...btn(s.suspended ? C.gold : C.cardBorder, s.suspended ? "#0F1A14" : C.muted), padding: "7px 16px", fontSize: 13, border: "1px solid " + (s.suspended ? C.gold : C.cardBorder) }}>
+                    {s.suspended ? "🔓 Unsuspend" : "🔒 Suspend"}
+                  </button>
+                </div>
+              </div>
+            ))
+        )}
+        {!loading && adminTab === "providers" && (
+          providers.length === 0
+            ? <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>No service providers registered yet.</div>
+            : providers.map(p => (
+              <div key={p.id} style={{ ...card, marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <div style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>{p.businessName || p.name || p.email}</div>
+                    <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>{p.email}</div>
+                    {p.service && <div style={{ color: C.muted, fontSize: 12 }}>Service: {p.service}</div>}
+                    {p.priceRange && <div style={{ color: C.muted, fontSize: 12 }}>Price: {p.priceRange}</div>}
+                    {p.state && <div style={{ color: C.muted, fontSize: 12 }}>📍 {p.city}, {p.state}</div>}
+                    <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>Joined: {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "N/A"}</div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
+                    {statusBadge(p.status)}
+                    {p.suspended && <span style={{ background: C.danger + "22", color: C.danger, borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>🔒 Suspended</span>}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                  {(!p.status || p.status === "pending") && <>
+                    <button onClick={() => updateStatus(p.uid, "approved")} style={{ ...btn(C.green), padding: "7px 16px", fontSize: 13 }}>✓ Approve</button>
+                    <button onClick={() => updateStatus(p.uid, "rejected")} style={{ ...btn(C.danger), padding: "7px 16px", fontSize: 13 }}>✗ Reject</button>
+                  </>}
+                  {p.status === "approved" && <button onClick={() => updateStatus(p.uid, "rejected")} style={{ ...btn(C.danger), padding: "7px 16px", fontSize: 13 }}>✗ Revoke</button>}
+                  {p.status === "rejected" && <button onClick={() => updateStatus(p.uid, "approved")} style={{ ...btn(C.green), padding: "7px 16px", fontSize: 13 }}>✓ Approve</button>}
+                  <button onClick={() => toggleSuspend(p.uid, p.suspended)} style={{ ...btn(p.suspended ? C.gold : C.cardBorder, p.suspended ? "#0F1A14" : C.muted), padding: "7px 16px", fontSize: 13, border: "1px solid " + (p.suspended ? C.gold : C.cardBorder) }}>
+                    {p.suspended ? "🔓 Unsuspend" : "🔒 Suspend"}
+                  </button>
+                </div>
+              </div>
+            ))
+        )}
+        {!loading && adminTab === "reviews" && <AdminReviews />}
       </div>
+    </div>
+  );
+}
+
+function AdminReviews() {
+  const [reviews, setReviews] = useState([]);
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "reviews"), snap => {
+      setReviews(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, []);
+  return (
+    <div>
+      {reviews.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>No reviews yet.</div>}
+      {reviews.map(r => (
+        <div key={r.id} style={{ ...card, marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <div style={{ color: C.text, fontWeight: 800 }}>{r.ownerName} → {r.providerName}</div>
+              <div style={{ color: C.gold }}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</div>
+              <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>{r.comment}</div>
+              {r.reply && <div style={{ color: C.green, fontSize: 12, marginTop: 4 }}>Reply: {r.reply}</div>}
+            </div>
+            <button onClick={async () => { if (window.confirm("Delete this review?")) await deleteDoc(doc(db, "reviews", r.id)); }}
+              style={{ ...btn(C.danger), padding: "6px 12px", fontSize: 12 }}>🗑️ Delete</button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
