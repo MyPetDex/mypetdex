@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { canAddPet, hasFeature, UpgradePrompt } from './planUtils';
+import { hasFeature, UpgradePrompt } from './planUtils';
 import { auth, db } from "./firebase";
 import {
   createUserWithEmailAndPassword,
