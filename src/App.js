@@ -111,6 +111,7 @@ const CAT_RECIPES = [
   { id:2, name:"Chicken Liver Bites", time:"20 min", emoji:"🍗", ingredients:["1/2 cup chicken liver","1 egg","2 tbsp oat flour"], steps:["Cook liver until fully done","Mash with fork","Mix in egg and flour","Form small bites, bake 12 min at 325F"] },
   { id:3, name:"Salmon Mousse", time:"10 min", emoji:"🍣", ingredients:["1 can salmon (no salt)","1 tbsp plain cream cheese","1 tsp parsley"], steps:["Drain salmon","Blend with cream cheese until smooth","Garnish with parsley","Serve small portions"] },
 ];
+// eslint-disable-next-line no-unused-vars
 const SHELTERS = [
   { id:1, name:"Second Chance Animal Shelter", state:"New Jersey", city:"Camden", pets:[{name:"Bella",type:"Dog",breed:"Labrador Mix",age:"2yr",emoji:"🐕"},{name:"Mochi",type:"Cat",breed:"Tabby",age:"1yr",emoji:"🐈"}] },
   { id:2, name:"Florida Pet Rescue", state:"Florida", city:"Orlando", pets:[{name:"Rocky",type:"Dog",breed:"Pitbull Mix",age:"3yr",emoji:"🐕"},{name:"Luna",type:"Cat",breed:"Siamese",age:"4mo",emoji:"🐈"}] },
