@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { canAddPet, hasFeature, UpgradePrompt } from './planUtils';
 import { auth, db } from "./firebase";
 import {
   createUserWithEmailAndPassword,
@@ -875,7 +876,7 @@ function PetsTab({ user, profile, isDemo }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets 🐾</h2>
-        <button style={btn(C.green)} onClick={() => setAdding(true)}>+ Add Pet</button>
+        {!isDemo && <button style={btn(C.green)} onClick={() => setAdding(true)}>+ Add Pet</button>}
       </div>
       {loading && <Spinner />}
       {!loading && pets.length === 0 && !adding && (
@@ -1037,10 +1038,10 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
         <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
             <Avatar emoji={pet.type === "Cat" ? "🐱" : "🐶"} size={80} img={pendingPhoto || pet.photoURL} />
-            <label style={{ background: C.cardBorder, border: `1px solid ${C.cardBorder}`, borderRadius: 8, cursor: "pointer", fontSize: 11, padding: "6px 10px", display: "inline-block", textAlign: "center", color: C.muted, fontFamily: font, fontWeight: 700 }}>
+            {!isDemo && <label style={{ background: C.cardBorder, border: "1px solid " + C.cardBorder, borderRadius: 8, cursor: "pointer", fontSize: 11, padding: "6px 10px", display: "inline-block", textAlign: "center", color: C.muted, fontFamily: font, fontWeight: 700 }}>
               📷 Change Photo
               <input type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: "none" }} />
-            </label>
+            </label>}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ color: C.text, fontWeight: 900, fontSize: 22 }}>{pet.name}</div>
@@ -1067,13 +1068,13 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
         <button style={tabStyle("calories")} onClick={() => setActiveTab("calories")}>🔢 Calories</button>
       </div>
 
-      {activeTab === "info" && <EditPetInfo pet={pet} onDelete={onDelete} onSaved={() => showToast("✅ Pet info updated!")} />}
+      {activeTab === "info" && <EditPetInfo pet={pet} onDelete={onDelete} onSaved={() => showToast("✅ Pet info updated!")} isDemo={isDemo} />}
 
       {activeTab === "vaccines" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
             <div style={{ color: C.text, fontWeight: 800 }}>Vaccine Records</div>
-            <button style={{ ...btn(C.green), padding: "8px 16px", fontSize: 13 }} onClick={() => setAddingV(true)}>+ Add</button>
+            {!isDemo && <button style={{ ...btn(C.green), padding: "8px 16px", fontSize: 13 }} onClick={() => setAddingV(true)}>+ Add</button>}
           </div>
           {vaccines.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 30 }}>No vaccines recorded yet</div>}
           {vaccines.map(v => (
@@ -1111,7 +1112,7 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
             <div style={{ color: C.text, fontWeight: 800 }}>Reminders</div>
-            <button style={{ ...btn(C.green), padding: "8px 16px", fontSize: 13 }} onClick={() => setAddingR(true)}>+ Add</button>
+            {!isDemo && <button style={{ ...btn(C.green), padding: "8px 16px", fontSize: 13 }} onClick={() => setAddingR(true)}>+ Add</button>}
           </div>
           {reminders.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 30 }}>No reminders set yet</div>}
           {reminders.map(r => (
@@ -1325,7 +1326,7 @@ function CalcTab({ pet, profile }) {
   );
 }
 // ─── Edit Pet Info ────────────────────────────────────────────────────────────
-function EditPetInfo({ pet, onDelete, onSaved }) {
+function EditPetInfo({ pet, onDelete, onSaved, isDemo }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     name: pet.name || "", type: pet.type || "Dog", breed: pet.breed || "",
@@ -1373,9 +1374,9 @@ function EditPetInfo({ pet, onDelete, onSaved }) {
       <div style={{ ...card, marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ color: C.text, fontWeight: 800, fontSize: 15 }}>Pet Information</div>
-          <button onClick={() => setEditing(true)} style={{ background: C.green + "22", border: `1.5px solid ${C.green}`, borderRadius: 10, padding: "7px 16px", color: C.green, fontFamily: font, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+          {!isDemo && <button onClick={() => setEditing(true)} style={{ background: C.green + "22", border: "1.5px solid " + C.green, borderRadius: 10, padding: "7px 16px", color: C.green, fontFamily: font, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
             ✏️ Edit Info
-          </button>
+          </button>}
         </div>
         {[["Type",pet.type],["Breed",pet.breed],["Age",pet.age],["Weight",pet.weight],["Next Vet",pet.nextVet],["Feeding",pet.feeding]].filter(([,v])=>v).map(([k,v]) => (
           <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.cardBorder}` }}>
@@ -1388,7 +1389,7 @@ function EditPetInfo({ pet, onDelete, onSaved }) {
         )}
       </div>
       {pet.notes && <div style={{ ...card, marginBottom: 12 }}><div style={{ color: C.muted, fontSize: 12, fontWeight: 700, marginBottom: 4 }}>NOTES</div><div style={{ color: C.text, fontSize: 13 }}>{pet.notes}</div></div>}
-      <button onClick={onDelete} style={{ ...btn(C.danger + "22", C.danger), border: `1px solid ${C.danger}`, width: "100%" }}>🗑️ Delete Pet</button>
+      {!isDemo && <button onClick={onDelete} style={{ ...btn(C.danger + "22", C.danger), border: "1px solid " + C.danger, width: "100%" }}>🗑️ Delete Pet</button>}
     </div>
   );
 }
@@ -1641,6 +1642,14 @@ function AITab({ profile, user }) {
     setLoading(false);
   };
 
+  if (!hasFeature(profile, 'ai')) return (
+    <div style={{ padding: 24 }}>
+      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>AI Assistant 🤖</h2>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>Your personal pet care expert</p>
+      <UpgradePrompt feature="AI Assistant" requiredPlan="Plus" />
+    </div>
+  );
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 160px)" }}>
       <div style={{ marginBottom: 16 }}>
@@ -1868,6 +1877,13 @@ function RecipesTab({ profile, user }) {
     );
   };
 
+  if (!hasFeature(profile, 'recipes')) return (
+    <div style={{ padding: 24 }}>
+      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Recipe Builder 🍽️</h2>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>AI-powered balanced meal generator</p>
+      <UpgradePrompt feature="Recipe Builder" requiredPlan="Plus" />
+    </div>
+  );
   if (viewSaved) return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
