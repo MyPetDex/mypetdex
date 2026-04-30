@@ -2129,7 +2129,7 @@ function AdoptionTab({ profile }) {
     setError("");
     setPets([]);
     try {
-      const response = await fetch("https://api.rescuegroups.org/v5/public/animals/search/available?species=" + filterType, {
+      const response = await fetch("https://api.rescuegroups.org/v5/public/animals/search/available?species=" + filterType.toLowerCase(), {
         method: "POST",
         headers: {
           "Content-Type": "application/vnd.api+json",
@@ -2234,7 +2234,7 @@ function AdoptionTab({ profile }) {
                   <a href={attrs.orgWebsite} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.text), padding: "8px 14px", fontSize: 12, textDecoration: "none", border: "1px solid " + C.cardBorder }}>🌐 Website</a>
                 )}
                 {!attrs.orgEmail && !attrs.orgPhone && !attrs.orgWebsite && (
-                  <a href={"https://rescuegroups.org/adopt/?results=1&animalSpecies=" + filterType + "&animalLocation=" + zipCode + "&animalLocationDistance=" + radius} target="_blank" rel="noreferrer" style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none" }}>🐾 View on RescueGroups</a>
+                  <a href={"https://www.adoptapet.com/pet-search?species_id=" + (filterType === "Dog" ? "1" : filterType === "Cat" ? "2" : "1") + "&zip_code=" + zipCode + "&distance=" + radius} target="_blank" rel="noreferrer" style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none" }}>🐾 View on AdoptAPet</a>
                 )}
               </div>
             </div>
