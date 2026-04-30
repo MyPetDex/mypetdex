@@ -169,6 +169,33 @@ export default function App() {
   const [tab, setTab] = useState("home");
 
   useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      select {
+        background: ${C.inputBg} !important;
+        border: 1.5px solid ${C.cardBorder} !important;
+        border-radius: 10px !important;
+        padding: 11px 14px !important;
+        color: ${C.text} !important;
+        font-family: ${font} !important;
+        font-size: 14px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        outline: none !important;
+        cursor: pointer !important;
+      }
+      select option {
+        background: ${C.card} !important;
+        color: ${C.text} !important;
+      }
+      select:focus {
+        border-color: ${C.green} !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+  useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
