@@ -573,8 +573,10 @@ function RegisterScreen({ onBack, onSuccess }) {
       }
       try {
         await sendEmailVerification(cred.user, { url: "https://app.mypetdex.app" });
+        console.log("Verification email sent to:", cred.user.email);
       } catch (verErr) {
-        console.error("Verification email error:", verErr);
+        console.error("Verification email error:", verErr.code, verErr.message);
+        setError("Account created but verification email failed. Use Resend on next screen.");
       }
       onSuccess(profile);
     } catch (e) {
