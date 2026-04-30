@@ -49,7 +49,21 @@ const DOG_BREEDS = [
   "Bichon Frise","Weimaraner","Vizsla","Belgian Malinois","Akita","Samoyed",
   "Alaskan Malamute","Bloodhound","Collie","Dalmatian","Irish Setter",
   "Jack Russell Terrier","Lhasa Apso","Mastiff","Newfoundland","Papillon",
-  "Pug","Saint Bernard","Scottish Terrier","Whippet","Mixed Breed","Other"
+  "Pug","Saint Bernard","Scottish Terrier","Whippet","Cane Corso",
+  "Australian Cattle Dog","Blue Heeler","Rhodesian Ridgeback","Shiba Inu",
+  "Chow Chow","Pit Bull Terrier","American Staffordshire Terrier","Bull Terrier",
+  "West Highland White Terrier","Cairn Terrier","Airedale Terrier","Schnauzer",
+  "Giant Schnauzer","Portuguese Water Dog","Flat-Coated Retriever","Chesapeake Bay Retriever",
+  "Irish Wolfhound","Greyhound","Whippet","Italian Greyhound","Borzoi",
+  "Dogo Argentino","Boerboel","Leonberger","Tibetan Mastiff","Anatolian Shepherd",
+  "Great Pyrenees","Bouvier des Flandres","Belgian Tervuren","Belgian Sheepdog",
+  "Old English Sheepdog","Bearded Collie","Miniature Pinscher","Toy Fox Terrier",
+  "Brussels Griffon","Affenpinscher","Japanese Chin","Pekingese","Silky Terrier",
+  "Chinese Crested","Xoloitzcuintli","Plott Hound","Treeing Walker Coonhound",
+  "Black and Tan Coonhound","Bluetick Coonhound","Redbone Coonhound","Harrier",
+  "Norwegian Elkhound","Finnish Spitz","Keeshond","American Eskimo Dog",
+  "Spitz","Eurasier","Lagotto Romagnolo","Spinone Italiano","Bracco Italiano",
+  "Mixed Breed","Other"
 ];
 const CAT_BREEDS = [
   "Domestic Shorthair","Domestic Longhair","Maine Coon","Persian","Siamese",
@@ -57,7 +71,13 @@ const CAT_BREEDS = [
   "Scottish Fold","Sphynx","Norwegian Forest Cat","Birman","Tonkinese",
   "American Shorthair","Burmese","Devon Rex","Cornish Rex","Oriental",
   "Turkish Angora","Himalayan","Savannah","Manx","Exotic Shorthair",
-  "Chartreux","Egyptian Mau","Balinese","Somali","Singapura","Mixed","Other"
+  "Chartreux","Egyptian Mau","Balinese","Somali","Singapura",
+  "Ocicat","American Curl","Scottish Straight","Selkirk Rex","LaPerm",
+  "Ragamuffin","Chausie","Pixiebob","Bombay","Havana Brown",
+  "Colorpoint Shorthair","Javanese","Turkish Van","Siberian","Nebelung",
+  "Korat","Asian","Burmilla","Tiffanie","Australian Mist",
+  "Toyger","California Spangled","Serengeti","Peterbald","Don Sphynx",
+  "Mixed","Other"
 ];
 const US_STATES = [
   "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
