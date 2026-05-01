@@ -2146,9 +2146,6 @@ function AdoptionTab({ profile }) {
       });
       const data = await response.json();
       const animals = data?.data || [];
-      if (animals.length > 0) {
-        console.log("Sample animal:", JSON.stringify(animals[0].attributes));
-      }
       const filtered = animals.filter(a => {
         const breed = (a.attributes?.breedPrimary || "").toLowerCase();
         const DOG_KEYWORDS = ["dog","labrador","golden retriever","german shepherd","bulldog","poodle","beagle","rottweiler","yorkshire","dachshund","husky","boxer","shih tzu","chihuahua","border collie","maltese","pomeranian","boston terrier","retriever","shepherd","spaniel","terrier","hound","setter","pointer","mastiff","pitbull","pit bull","schnauzer","collie","corgi","pug","samoyed","akita","malinois","vizsla","weimaraner"];
@@ -2243,7 +2240,7 @@ function AdoptionTab({ profile }) {
                   <a href={attrs.orgWebsite} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.text), padding: "8px 14px", fontSize: 12, textDecoration: "none", border: "1px solid " + C.cardBorder }}>🌐 Website</a>
                 )}
                 {!attrs.orgEmail && !attrs.orgPhone && !attrs.orgWebsite && (
-                  <a href={"https://www.petfinder.com/search/pets-for-adoption/?pet_type=" + filterType.toLowerCase() + "&location=" + zipCode + "&distance=" + radius} target="_blank" rel="noreferrer" style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none" }}>🐾 Find More Pets</a>
+                  <a href={"https://rescuegroups.org/organizations/" + (attrs.orgId || "")} target="_blank" rel="noreferrer" style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none" }}>🏠 View Shelter</a>
                 )}
               </div>
             </div>
