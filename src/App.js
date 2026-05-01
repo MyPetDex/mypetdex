@@ -702,12 +702,12 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
   const isProvider = role === "provider";
   const isShelter = role === "shelter";
   const isDemo = user?.email === 'demo@mypetdex.app';
-  const ownerTabs = ["home","pets","services","ai","recipes","adoption","settings"];
+  const ownerTabs = ["home","pets","services","ai","recipes","adoption","shop","settings"];
   const providerTabs = ["home","profile","bookings","settings"];
   const shelterTabs = ["home","listings","settings"];
   const tabs = isOwner ? ownerTabs : isProvider ? providerTabs : shelterTabs;
-  const tabIcon = { home:"🏠", pets:"🐾", services:"🛎️", ai:"🤖", recipes:"🍽️", adoption:"❤️", profile:"📋", bookings:"📅", listings:"🐶", settings:"⚙️" };
-  const tabLabel = { home:"Home", pets:"My Pets", services:"Services", ai:"AI Chat", recipes:"Recipes", adoption:"Adopt", profile:"My Business", bookings:"Bookings", listings:"Listings", settings:"Settings" };
+  const tabIcon = { home:"🏠", pets:"🐾", services:"🛎️", ai:"🤖", recipes:"🍽️", adoption:"❤️", shop:"🛒", profile:"📋", bookings:"📅", listings:"🐶", settings:"⚙️" };
+const tabLabel = { home:"Home", pets:"My Pets", services:"Services", ai:"AI Chat", recipes:"Recipes", adoption:"Adopt", shop:"Shop", profile:"My Business", bookings:"Bookings", listings:"Listings", settings:"Settings" };
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, paddingBottom: 80 }}>
@@ -730,6 +730,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} />}
         {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} user={user} />}
         {tab === "adoption" && isOwner && <AdoptionTab profile={currentProfile} />}
+{tab === "shop" && isOwner && <ShopTab />}
         {tab === "profile" && isProvider && <ProviderProfile profile={currentProfile} />}
         {tab === "bookings" && isProvider && <BookingsTab />}
         {tab === "listings" && isShelter && <ShelterListings user={user} isDemo={isDemo} />}
@@ -2110,6 +2111,37 @@ function RecipesTab({ profile, user }) {
   );
 }
 
+// ─── Shop Tab ─────────────────────────────────────────────────────────────
+function ShopTab() {
+  const products = [
+    { name: "Ring Pet Tag", desc: "Easy-to-use tag with scan alerts & shareable pet profile", price: "$9.99", emoji: "🏷️", url: "https://amzn.to/4eV3G31" },
+    { name: "Kwik Stop Styptic Powder", desc: "Fast acting blood stop powder for dogs, cats & birds", price: "$8.99", emoji: "🩹", url: "https://amzn.to/4unhUyi" },
+    { name: "Pet First Aid Kit", desc: "Complete emergency kit for home, car & travel", price: "$35.90", emoji: "🚑", url: "https://amzn.to/3OQyHuD" },
+    { name: "Zesty Paws Multivitamin", desc: "8-in-1 multivitamin bites for dogs — joint, skin & digestion", price: "$32.97", emoji: "💊", url: "https://amzn.to/429MCyQ" },
+    { name: "Veken Pet Fountain", desc: "#1 Best Seller — 95oz automatic water fountain for cats & dogs", price: "$18.99", emoji: "💧", url: "https://amzn.to/4en5hyu" },
+  ];
+  return (
+    <div>
+      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Pet Shop 🛒</h2>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Top-rated pet products — powered by Amazon</p>
+      <div style={{ background: C.gold + "18", border: "1px solid " + C.gold + "44", borderRadius: 12, padding: "10px 14px", marginBottom: 18, fontSize: 12, color: C.gold }}>
+        🌟 All products are Amazon's Choice or Best Sellers — recommended for pet owners
+      </div>
+      {products.map((p, i) => (
+        <div key={i} style={{ ...card, marginBottom: 12, display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ fontSize: 32, minWidth: 44, textAlign: "center" }}>{p.emoji}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 14 }}>{p.name}</div>
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>{p.desc}</div>
+            <div style={{ color: C.green, fontWeight: 700, fontSize: 13, marginTop: 4 }}>{p.price} on Amazon</div>
+          </div>
+          <a href={p.url} target="_blank" rel="noreferrer" style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none", whiteSpace: "nowrap" }}>Buy Now</a>
+        </div>
+      ))}
+      <p style={{ color: C.muted, fontSize: 11, textAlign: "center", marginTop: 16 }}>MyPetDex earns a small commission on purchases — at no extra cost to you 🐾</p>
+    </div>
+  );
+}
 // ─── Adoption Tab ─────────────────────────────────────────────────────────────
 function AdoptionTab({ profile }) {
   const [filterType, setFilterType] = useState("Dog");
