@@ -2146,7 +2146,16 @@ function AdoptionTab({ profile }) {
       });
       const data = await response.json();
       const animals = data?.data || [];
-      setPets(animals);
+      const filtered = animals.filter(a => {
+        const species = (a.attributes?.species || "").toLowerCase();
+        const breed = (a.attributes?.breedPrimary || "").toLowerCase();
+        if (filterType === "Dog") return species.includes("dog") || breed.includes("dog") || (!species.includes("cat") && !species.includes("rabbit") && !species.includes("bird"));
+        if (filterType === "Cat") return species.includes("cat") || breed.includes("cat");
+        if (filterType === "Rabbit") return species.includes("rabbit");
+        if (filterType === "Bird") return species.includes("bird");
+        return true;
+      });
+      setPets(filtered);
       setSearched(true);
       if (animals.length === 0) setError("No adoptable pets found in this area. Try a larger radius!");
     } catch (err) {
@@ -2234,7 +2243,7 @@ function AdoptionTab({ profile }) {
                   <a href={attrs.orgWebsite} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.text), padding: "8px 14px", fontSize: 12, textDecoration: "none", border: "1px solid " + C.cardBorder }}>🌐 Website</a>
                 )}
                 {!attrs.orgEmail && !attrs.orgPhone && !attrs.orgWebsite && (
-                  <a href={"https://www.adoptapet.com/pet-search?species_id=" + (filterType === "Dog" ? "1" : filterType === "Cat" ? "2" : "1") + "&zip_code=" + zipCode + "&distance=" + radius} target="_blank" rel="noreferrer" style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none" }}>🐾 View on AdoptAPet</a>
+                  <a href={"https://www.petfinder.com/search/pets-for-adoption/?pet_type=" + filterType.toLowerCase() + "&location=" + zipCode + "&distance=" + radius} target="_blank" rel="noreferrer" style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none" }}>🐾 Find More Pets</a>
                 )}
               </div>
             </div>
