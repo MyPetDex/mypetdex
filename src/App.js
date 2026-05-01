@@ -2150,11 +2150,12 @@ function AdoptionTab({ profile }) {
         console.log("Sample animal:", JSON.stringify(animals[0].attributes));
       }
       const filtered = animals.filter(a => {
-        const species = (a.attributes?.species || "").toLowerCase();
         const breed = (a.attributes?.breedPrimary || "").toLowerCase();
-        const searchStr = (a.attributes?.searchString || "").toLowerCase();
-        if (filterType === "Dog") return species === "dog" || species.includes("dog") || (breed.includes("dog") && !species.includes("cat"));
-        if (filterType === "Cat") return species === "cat" || species.includes("cat") || breed.includes("domestic short") || breed.includes("domestic long") || breed.includes("tabby") || searchStr.includes("cat");
+        const name = (a.attributes?.name || "").toLowerCase();
+        const DOG_KEYWORDS = ["dog","labrador","golden retriever","german shepherd","bulldog","poodle","beagle","rottweiler","yorkshire","dachshund","husky","boxer","shih tzu","chihuahua","border collie","maltese","pomeranian","boston terrier","retriever","shepherd","spaniel","terrier","hound","setter","pointer","mastiff","pitbull","pit bull","schnauzer","collie","corgi","pug","samoyed","akita","malinois","vizsla","weimaraner"];
+        const CAT_KEYWORDS = ["cat","kitten","domestic short","domestic long","tabby","siamese","persian","maine coon","ragdoll","bengal","british short","scottish fold","sphynx","russian blue","burmese","abyssinian","birman","tonkinese","oriental","himalayan","savannah","manx","exotic short"];
+        if (filterType === "Dog") return DOG_KEYWORDS.some(k => breed.includes(k));
+        if (filterType === "Cat") return CAT_KEYWORDS.some(k => breed.includes(k));
         return false;
       });
       setPets(filtered);
