@@ -2112,61 +2112,20 @@ function RecipesTab({ profile, user }) {
 
 // ─── Adoption Tab ─────────────────────────────────────────────────────────────
 function AdoptionTab({ profile }) {
-  const [pets, setPets] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [filterType, setFilterType] = useState("Dog");
   const [zipCode, setZipCode] = useState(profile?.zip || "");
   const [radius, setRadius] = useState("25");
-  const [searched, setSearched] = useState(false);
 
-  const searchPets = async () => {
-    if (!zipCode || zipCode.length < 5) {
-      setError("Please enter a valid 5-digit zip code.");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    setPets([]);
-    try {
-      const response = await fetch("https://api.rescuegroups.org/v5/public/animals/search/available?species=" + filterType.toLowerCase(), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/vnd.api+json",
-          "Authorization": process.env.REACT_APP_RESCUEGROUPS_KEY,
-        },
-        body: JSON.stringify({
-          data: {
-            filterRadius: {
-              miles: parseInt(radius),
-              postalcode: zipCode,
-            },
-          }
-        }),
-      });
-      const data = await response.json();
-      const animals = data?.data || [];
-      const filtered = animals.filter(a => {
-        const breed = (a.attributes?.breedPrimary || "").toLowerCase();
-        const DOG_KEYWORDS = ["dog","labrador","golden retriever","german shepherd","bulldog","poodle","beagle","rottweiler","yorkshire","dachshund","husky","boxer","shih tzu","chihuahua","border collie","maltese","pomeranian","boston terrier","retriever","shepherd","spaniel","terrier","hound","setter","pointer","mastiff","pitbull","pit bull","schnauzer","collie","corgi","pug","samoyed","akita","malinois","vizsla","weimaraner"];
-        const CAT_KEYWORDS = ["cat","kitten","domestic short","domestic long","tabby","siamese","persian","maine coon","ragdoll","bengal","british short","scottish fold","sphynx","russian blue","burmese","abyssinian","birman","tonkinese","oriental","himalayan","savannah","manx","exotic short"];
-        if (filterType === "Dog") return DOG_KEYWORDS.some(k => breed.includes(k));
-        if (filterType === "Cat") return CAT_KEYWORDS.some(k => breed.includes(k));
-        return false;
-      });
-      setPets(filtered);
-      setSearched(true);
-      if (filtered.length === 0) setError("No adoptable pets found in this area. Try a larger radius!");
-    } catch (err) {
-      setError("Could not connect to the adoption database. Please try again.");
-    }
-    setLoading(false);
+  const searchOnPetfinder = () => {
+    if (!zipCode || zipCode.length < 5) return;
+    const url = "https://www.petfinder.com/search/pets-for-adoption/?pet_type=" + filterType.toLowerCase() + "s&location=" + zipCode + "&distance=" + radius;
+    window.open(url, "_blank");
   };
 
   return (
     <div>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Adopt a Pet ❤️</h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Real adoptable pets near you — powered by RescueGroups</p>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Find adoptable pets near you — powered by Petfinder</p>
       <div style={{ ...card, marginBottom: 18 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
           <div>
@@ -2190,77 +2149,25 @@ function AdoptionTab({ profile }) {
           <span style={label}>Your Zip Code</span>
           <input type="text" value={zipCode} onChange={e => setZipCode(e.target.value)} placeholder="e.g. 08701" maxLength={5} style={input} />
         </div>
-        <button onClick={searchPets} disabled={loading} style={{ ...btn(C.green), width: "100%" }}>
-          {loading ? "Searching... 🐾" : "🔍 Find Adoptable Pets"}
+        <button onClick={searchOnPetfinder} disabled={!zipCode || zipCode.length < 5} style={{ ...btn(C.green), width: "100%", opacity: !zipCode || zipCode.length < 5 ? 0.5 : 1 }}>
+          🐾 Find Adoptable Pets on Petfinder
         </button>
       </div>
-      {error && (
-        <div style={{ ...card, background: C.danger + "11", border: "1px solid " + C.danger + "33", marginBottom: 16 }}>
-          <div style={{ color: C.danger, fontSize: 13 }}>{error}</div>
-        </div>
-      )}
-      {loading && <Spinner />}
-      {!loading && pets.map((pet, i) => {
-        const attrs = pet.attributes || {};
-        const photo = attrs.pictureThumbnailUrl;
-        return (
-          <div key={pet.id || i} style={{ ...card, marginBottom: 14 }}>
-            <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-              {photo ? (
-                <img src={photo} alt={attrs.name} style={{ width: 80, height: 80, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
-              ) : (
-                <div style={{ width: 80, height: 80, borderRadius: 12, background: C.cardBorder, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, flexShrink: 0 }}>
-                  {filterType === "Cat" ? "🐱" : "🐶"}
-                </div>
-              )}
-              <div style={{ flex: 1 }}>
-                <div style={{ color: C.text, fontWeight: 900, fontSize: 17 }}>{attrs.name || "Unknown"}</div>
-                <div style={{ color: C.muted, fontSize: 13 }}>{attrs.breedPrimary || "Mixed"} · {attrs.ageGroup || "Unknown age"} · {attrs.sex || ""}</div>
-                {(attrs.citytown || attrs.stateProvince) && (
-                  <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>📍 {attrs.citytown}{attrs.citytown && attrs.stateProvince ? ", " : ""}{attrs.stateProvince}</div>
-                )}
-                {attrs.orgName && <div style={{ color: C.green, fontSize: 12, marginTop: 2, fontWeight: 700 }}>🏠 {attrs.orgName}</div>}
-              </div>
-            </div>
-            {attrs.description && (
-              <div style={{ color: C.muted, fontSize: 12, marginTop: 10, lineHeight: 1.5 }}>
-                {attrs.description.replace(/<[^>]*>/g, "").slice(0, 180)}...
-              </div>
-            )}
-            <div style={{ marginTop: 12, padding: 12, background: C.inputBg, borderRadius: 12 }}>
-              <div style={{ color: C.muted, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>CONTACT SHELTER</div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {attrs.orgEmail && (
-                  <a href={"mailto:" + attrs.orgEmail} style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none" }}>📧 Email</a>
-                )}
-                {attrs.orgPhone && (
-                  <a href={"tel:" + attrs.orgPhone} style={{ ...btn(C.cardBorder, C.text), padding: "8px 14px", fontSize: 12, textDecoration: "none", border: "1px solid " + C.cardBorder }}>📞 {attrs.orgPhone}</a>
-                )}
-                {attrs.orgWebsite && (
-                  <a href={attrs.orgWebsite} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.text), padding: "8px 14px", fontSize: 12, textDecoration: "none", border: "1px solid " + C.cardBorder }}>🌐 Website</a>
-                )}
-                {!attrs.orgEmail && !attrs.orgPhone && !attrs.orgWebsite && (
-                  <a href={"https://rescuegroups.org/organizations/" + (attrs.orgId || "")} target="_blank" rel="noreferrer" style={{ ...btn(C.green), padding: "8px 14px", fontSize: 12, textDecoration: "none" }}>🏠 View Shelter</a>
-                )}
-              </div>
-            </div>
+      <div style={{ ...card, textAlign: "center", padding: 40 }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>❤️</div>
+        <div style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>Find your next best friend</div>
+        <div style={{ color: C.muted, fontSize: 13, marginTop: 6, marginBottom: 20 }}>Enter your zip code and we'll take you directly to Petfinder to browse real adoptable pets near you.</div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+          <div style={{ background: C.green + "22", borderRadius: 12, padding: "12px 16px", flex: 1 }}>
+            <div style={{ fontSize: 24 }}>🐶</div>
+            <div style={{ color: C.green, fontWeight: 700, fontSize: 12, marginTop: 4 }}>Dogs</div>
           </div>
-        );
-      })}
-      {!loading && searched && pets.length === 0 && !error && (
-        <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🐾</div>
-          <div style={{ color: C.text, fontWeight: 800 }}>No pets found</div>
-          <div style={{ fontSize: 13, marginTop: 6 }}>Try a larger radius or different pet type</div>
+          <div style={{ background: C.gold + "22", borderRadius: 12, padding: "12px 16px", flex: 1 }}>
+            <div style={{ fontSize: 24 }}>🐱</div>
+            <div style={{ color: C.gold, fontWeight: 700, fontSize: 12, marginTop: 4 }}>Cats</div>
+          </div>
         </div>
-      )}
-      {!searched && !loading && (
-        <div style={{ ...card, textAlign: "center", padding: 40 }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>❤️</div>
-          <div style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>Find your next best friend</div>
-          <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>Enter your zip code and search for adoptable pets near you</div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
