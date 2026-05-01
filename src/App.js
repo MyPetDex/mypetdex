@@ -2149,15 +2149,14 @@ function AdoptionTab({ profile }) {
       const filtered = animals.filter(a => {
         const species = (a.attributes?.species || "").toLowerCase();
         const breed = (a.attributes?.breedPrimary || "").toLowerCase();
-        if (filterType === "Dog") return species.includes("dog") || breed.includes("dog") || (!species.includes("cat") && !species.includes("rabbit") && !species.includes("bird"));
-        if (filterType === "Cat") return species.includes("cat") || breed.includes("cat");
-        if (filterType === "Rabbit") return species.includes("rabbit");
-        if (filterType === "Bird") return species.includes("bird");
-        return true;
+        const searchStr = (a.attributes?.searchString || "").toLowerCase();
+        if (filterType === "Dog") return species === "dog" || species.includes("dog") || (breed.includes("dog") && !species.includes("cat"));
+        if (filterType === "Cat") return species === "cat" || species.includes("cat") || breed.includes("domestic short") || breed.includes("domestic long") || breed.includes("tabby") || searchStr.includes("cat");
+        return false;
       });
       setPets(filtered);
       setSearched(true);
-      if (animals.length === 0) setError("No adoptable pets found in this area. Try a larger radius!");
+      if (filtered.length === 0) setError("No adoptable pets found in this area. Try a larger radius!");
     } catch (err) {
       setError("Could not connect to the adoption database. Please try again.");
     }
@@ -2175,8 +2174,6 @@ function AdoptionTab({ profile }) {
             <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{ ...input, appearance: "none" }}>
               <option value="Dog">🐶 Dogs</option>
               <option value="Cat">🐱 Cats</option>
-              <option value="Rabbit">🐰 Rabbits</option>
-              <option value="Bird">🐦 Birds</option>
             </select>
           </div>
           <div>
