@@ -2146,6 +2146,9 @@ function AdoptionTab({ profile }) {
       });
       const data = await response.json();
       const animals = data?.data || [];
+      if (animals.length > 0) {
+        console.log("Sample animal:", JSON.stringify(animals[0].attributes));
+      }
       const filtered = animals.filter(a => {
         const species = (a.attributes?.species || "").toLowerCase();
         const breed = (a.attributes?.breedPrimary || "").toLowerCase();
