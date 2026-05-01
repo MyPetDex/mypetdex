@@ -2151,7 +2151,6 @@ function AdoptionTab({ profile }) {
       }
       const filtered = animals.filter(a => {
         const breed = (a.attributes?.breedPrimary || "").toLowerCase();
-        const name = (a.attributes?.name || "").toLowerCase();
         const DOG_KEYWORDS = ["dog","labrador","golden retriever","german shepherd","bulldog","poodle","beagle","rottweiler","yorkshire","dachshund","husky","boxer","shih tzu","chihuahua","border collie","maltese","pomeranian","boston terrier","retriever","shepherd","spaniel","terrier","hound","setter","pointer","mastiff","pitbull","pit bull","schnauzer","collie","corgi","pug","samoyed","akita","malinois","vizsla","weimaraner"];
         const CAT_KEYWORDS = ["cat","kitten","domestic short","domestic long","tabby","siamese","persian","maine coon","ragdoll","bengal","british short","scottish fold","sphynx","russian blue","burmese","abyssinian","birman","tonkinese","oriental","himalayan","savannah","manx","exotic short"];
         if (filterType === "Dog") return DOG_KEYWORDS.some(k => breed.includes(k));
