@@ -2124,7 +2124,7 @@ function ShopTab() {
     <div>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Pet Shop 🛒</h2>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Top-rated pet products — powered by Amazon</p>
-      <div style={{ background: "#3B82F6" + "18", border: "1px solid " + "#3B82F6" + "44", borderRadius: 12, padding: "10px 14px", marginBottom: 18, fontSize: 12, color: "#3B82F6" }}>
+      <div style={{ background: "#3B82F618", border: "1px solid #3B82F644", borderRadius: 12, padding: "10px 14px", marginBottom: 18, fontSize: 12, color: "#3B82F6" }}>
         🌟 All products are Amazon's Choice or Best Sellers — recommended for pet owners
       </div>
       {products.map((p, i) => (
