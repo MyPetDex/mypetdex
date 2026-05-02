@@ -15,9 +15,9 @@ import {
 } from "firebase/firestore";
 
 const C = {
-  bg: "#0F1A14", card: "#16251B", cardBorder: "#1E3526",
-  green: "#3DD68C", gold: "#F5C842", text: "#EFF6F1",
-  muted: "#7A9E89", danger: "#E05C5C", inputBg: "#0D1710",
+  bg: "#F5F8FF", card: "#FFFFFF", cardBorder: "#E2E8F0",
+  green: "#3B82F6", gold: "#F59E0B", text: "#1E293B",
+  muted: "#64748B", danger: "#E05C5C", inputBg: "#EEF4FF",
 };
 const font = "'Nunito', sans-serif";
 const btn = (bg = C.green, color = "#0F1A14") => ({
