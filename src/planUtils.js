@@ -81,8 +81,8 @@ export function UpgradePrompt({ feature, requiredPlan = 'Plus', onUpgrade }) {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '40px 24px',
-      background: 'rgba(139,92,246,0.07)',
-      border: '1px dashed rgba(139,92,246,0.35)',
+      background: 'rgba(59,130,246,0.06)',
+      border: '1px dashed rgba(59,130,246,0.3)',
       borderRadius: '16px',
       textAlign: 'center',
       gap: '12px',
@@ -92,24 +92,24 @@ export function UpgradePrompt({ feature, requiredPlan = 'Plus', onUpgrade }) {
       fontFamily: 'Outfit, sans-serif',
       fontWeight: 700,
       fontSize: '1.1rem',
-      color: '#f0f4ff',
+      color: '#1E293B',
       margin: 0,
     },
     sub: {
       fontFamily: 'DM Sans, sans-serif',
       fontSize: '0.88rem',
-      color: 'rgba(176,190,217,0.65)',
+      color: '#64748B',
       margin: 0,
     },
     btn: {
       marginTop: '8px',
       padding: '10px 24px',
-      background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+      background: '#3B82F6',
       color: '#fff',
       border: 'none',
       borderRadius: '10px',
       fontFamily: 'Outfit, sans-serif',
-      fontWeight: 600,
+      fontWeight: 700,
       fontSize: '0.9rem',
       cursor: 'pointer',
     },
@@ -120,11 +120,9 @@ export function UpgradePrompt({ feature, requiredPlan = 'Plus', onUpgrade }) {
       <div style={styles.icon}>🔒</div>
       <p style={styles.title}>{feature} is a {requiredPlan}+ feature</p>
       <p style={styles.sub}>Upgrade to unlock {feature} and more.</p>
-      {onUpgrade && (
-        <button style={styles.btn} onClick={onUpgrade}>
-          Upgrade to {requiredPlan} →
+      <button style={styles.btn} onClick={onUpgrade}>
+          🎁 Start Free Trial — Upgrade to {requiredPlan}
         </button>
-      )}
     </div>
   );
 }
