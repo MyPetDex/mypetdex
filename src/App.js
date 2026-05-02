@@ -1675,7 +1675,7 @@ function AITab({ profile, user }) {
     <div style={{ padding: 24 }}>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>AI Assistant 🤖</h2>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>Your personal pet care expert</p>
-      <UpgradePrompt feature="AI Assistant" requiredPlan="Plus" />
+      <UpgradePrompt feature="AI Assistant" requiredPlan="Plus" onUpgrade={() => window.open("https://home.mypetdex.app/#pricing", "_blank")} />
     </div>
   );
 
@@ -1910,7 +1910,7 @@ function RecipesTab({ profile, user }) {
     <div style={{ padding: 24 }}>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Recipe Builder 🍽️</h2>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>AI-powered balanced meal generator</p>
-      <UpgradePrompt feature="Recipe Builder" requiredPlan="Plus" />
+      <UpgradePrompt feature="Recipe Builder" requiredPlan="Plus" onUpgrade={() => window.open("https://home.mypetdex.app/#pricing", "_blank")} />
     </div>
   );
   if (viewSaved) return (
