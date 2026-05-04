@@ -280,7 +280,24 @@ export default function App() {
   );
 
   if (screen === "admin") return <AdminDashboard onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
-  if (screen === "landing") return <Landing onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} />;
+  if (screen === "landing") return <Landing onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} onGoogle={async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const u = result.user;
+      const snap = await getDoc(doc(db, "users", u.uid));
+      if (snap.exists()) {
+        setProfile(snap.data());
+        setScreen("app");
+      } else {
+        // New Google user — save basic profile and go to app
+        const newProfile = { uid: u.uid, email: u.email, name: u.displayName || "", role: "owner", plan: "free", createdAt: new Date().toISOString() };
+        await setDoc(doc(db, "users", u.uid), newProfile);
+        setProfile(newProfile);
+        setScreen("app");
+      }
+    } catch (e) { console.error("Google sign in error:", e); }
+  }} />;
   if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("verify"); }} />;
   if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} />;
   if (screen === "verify") return <VerifyEmail onVerified={async () => { const u = auth.currentUser; if (!u) return; const snap = await getDoc(doc(db, "users", u.uid)); const userData = snap.exists() ? snap.data() : { email: u.email, role: "owner", uid: u.uid }; setProfile(userData); try { const role = userData.role || "owner"; const name = userData.name?.split(" ")[0] || userData.businessName?.split(" ")[0] || userData.email?.split("@")[0]; await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role, email: userData.email, name, profile: { name: userData.name || "", email: userData.email || "", role: userData.role || "", businessName: userData.businessName || "", shelterName: userData.shelterName || "", city: userData.city || "", state: userData.state || "", plan: userData.plan || "free", createdAt: userData.createdAt || "" } }) }); } catch (emailErr) { console.error("Post-verification email error:", emailErr); } setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
@@ -525,19 +542,40 @@ function VerifyEmail({ onVerified, onLogout }) {
   );
 }
 // ─── Landing ─────────────────────────────────────────────────────────────────
-function Landing({ onRegister, onLogin }) {
+function Landing({ onRegister, onLogin, onGoogle }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+
+      {/* Top Sign In link */}
+      <div style={{ position: "absolute", top: 20, right: 24 }}>
+        <span style={{ color: C.muted, fontSize: 14 }}>Already have an account? </span>
+        <button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: font }}>Sign In</button>
+      </div>
+
+      {/* Logo */}
       <div style={{ fontSize: 72, marginBottom: 8 }}>🐾</div>
       <h1 style={{ color: C.green, fontWeight: 900, fontSize: 42, margin: 0, letterSpacing: -1 }}>MyPetDex</h1>
-      <p style={{ color: C.muted, fontSize: 16, marginBottom: 40, textAlign: "center", maxWidth: 320 }}>Everything you need to care for your pet in one place.</p>
-      <div style={{ display: "flex", gap: 14 }}>
-        <button style={btn(C.green)} onClick={onRegister}>Get Started Free</button>
-        <button style={{ ...btn("transparent", C.green), border: `1.5px solid ${C.green}` }} onClick={onLogin}>Sign In</button>
+      <p style={{ color: C.muted, fontSize: 16, marginBottom: 32, textAlign: "center", maxWidth: 320 }}>Everything you need to care for your pet in one place.</p>
+
+      {/* Google Sign In */}
+      <button onClick={onGoogle} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", maxWidth: 320, padding: "13px 20px", background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: "#1E293B", cursor: "pointer", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+
+      {/* Divider */}
+      <div style={{ display: "flex", alignItems: "center", width: "100%", maxWidth: 320, margin: "4px 0 12px" }}>
+        <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
+        <span style={{ color: C.muted, fontSize: 12, margin: "0 12px" }}>or</span>
+        <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
       </div>
-      <p style={{ color: C.muted, fontSize: 12, marginTop: 32 }}>🐶 Pet Owners · 🛎️ Service Providers · 🏠 Shelters</p>
-      <div style={{ marginTop: 20, background: C.card, borderRadius: 12, padding: "10px 18px", border: `1px solid ${C.cardBorder}` }}>
+
+      {/* Get Started */}
+      <button style={{ ...btn(C.green), width: "100%", maxWidth: 320 }} onClick={onRegister}>Create Free Account 🐾</button>
+
+      <p style={{ color: C.muted, fontSize: 12, marginTop: 24 }}>🐶 Pet Owners · 🛎️ Service Providers · 🏠 Shelters</p>
+      <div style={{ marginTop: 12, background: C.card, borderRadius: 12, padding: "10px 18px", border: `1px solid ${C.cardBorder}`, maxWidth: 320 }}>
         <p style={{ color: C.muted, fontSize: 11, margin: 0, textAlign: "center" }}>🔒 Your data is encrypted and never shared with third parties.</p>
       </div>
     </div>
