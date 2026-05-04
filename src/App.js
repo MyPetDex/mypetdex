@@ -1046,8 +1046,13 @@ function PetsTab({ user, profile, isDemo }) {
     compressImage(file, (compressed) => setPhotoPreview(compressed));
   };
 
+  const petLimit = profile?.plan === "family" ? Infinity : profile?.plan === "plus" ? 3 : 1;
   const addPet = async () => {
     if (!form.name) return;
+    if (pets.length >= petLimit) {
+      alert(`Your ${profile?.plan || "free"} plan allows up to ${petLimit === Infinity ? "unlimited" : petLimit} pet${petLimit === 1 ? "" : "s"}. Upgrade at home.mypetdex.app to add more!`);
+      return;
+    }
     await addDoc(collection(db, "pets"), {
       ...form, uid: user.uid,
       photoURL: photoPreview || "",
@@ -1072,7 +1077,8 @@ function PetsTab({ user, profile, isDemo }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets 🐾</h2>
-        {!isDemo && <button style={btn(C.green)} onClick={() => setAdding(true)}>+ Add Pet</button>}
+        {!isDemo && (pets.length < petLimit) && <button style={btn(C.green)} onClick={() => setAdding(true)}>+ Add Pet</button>}
+        {!isDemo && (pets.length >= petLimit) && <button onClick={() => window.open("https://home.mypetdex.app/#pricing", "_blank")} style={{ ...btn(C.green), fontSize: 13 }}>⬆️ Upgrade for More Pets</button>}
       </div>
       {loading && <Spinner />}
       {!loading && pets.length === 0 && !adding && (
