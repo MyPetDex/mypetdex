@@ -306,28 +306,24 @@ export default function App() {
   if (screen === "verify") return <VerifyEmail onVerified={async () => {
     const u = auth.currentUser;
     if (!u) return;
+    // Force token refresh first
+    try { await u.getIdToken(true); } catch(e) { console.error("Token refresh error:", e); }
+    // Send welcome email immediately using auth data
     try {
-      await u.getIdToken(true);
-      const snap = await getDoc(doc(db, "users", u.uid));
-      const userData = snap.exists() ? snap.data() : { email: u.email, role: "owner", uid: u.uid };
-      setProfile(userData);
-      const role = userData.role || "owner";
-      const name = userData.name?.split(" ")[0] || userData.businessName?.split(" ")[0] || userData.email?.split("@")[0];
       const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, email: userData.email, name, profile: {
-          name: userData.name || "", email: userData.email || "", role: userData.role || "",
-          businessName: userData.businessName || "", shelterName: userData.shelterName || "",
-          city: userData.city || "", state: userData.state || "",
-          plan: userData.plan || "free", createdAt: userData.createdAt || ""
-        }})
+        body: JSON.stringify({ role: "owner", email: u.email, name: u.displayName || u.email.split("@")[0], profile: { email: u.email, role: "owner", plan: sessionStorage.getItem("selectedPlan") || "free" }})
       });
       console.log("sendVerifiedEmail status:", res.status);
-      await updateDoc(doc(db, "users", u.uid), { welcomeEmailSent: true });
     } catch (emailErr) {
-      console.error("Post-verification email error:", emailErr);
+      console.error("Welcome email error:", emailErr);
     }
+    // Then load profile from Firestore
+    try {
+      const snap = await getDoc(doc(db, "users", u.uid));
+      if (snap.exists()) setProfile(snap.data());
+    } catch(e) { console.error("Profile load error:", e); }
     setScreen("app");
   }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "app") return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
