@@ -1100,10 +1100,10 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
 
   const Sidebar = () => (
     <div style={{
-      width: 220, minHeight: "100vh", background: C.card,
+      width: 220, height: "100vh", background: C.card,
       borderRight: `1px solid ${C.cardBorder}`, padding: "20px 12px",
       display: "flex", flexDirection: "column", position: "fixed",
-      top: 0, left: sidebarOpen ? 0 : -220,
+      top: 0, left: sidebarOpen ? 0 : -220, overflowY: "auto",
       zIndex: 200, transition: "left 0.25s ease",
       boxShadow: sidebarOpen ? "4px 0 20px rgba(0,0,0,0.1)" : "none"
     }}>
