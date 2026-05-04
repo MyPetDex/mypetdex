@@ -509,7 +509,7 @@ function UpgradeScreen({ user, profile, onClose }) {
   const [loading, setLoading] = useState(null);
 
   const PLUS_PRICE_ID = "price_1TTTMF3yxDG0TeFVxoEY8KIz";
-  const FAMILY_PRICE_ID = "price_1TTTQL3yxDG0TeFV8HDfbV1";
+  const FAMILY_PRICE_ID = "price_1TTTQL3yxDG0TeFV8HDfbV1e";
 
   const startCheckout = async (priceId, plan) => {
     setLoading(plan);
