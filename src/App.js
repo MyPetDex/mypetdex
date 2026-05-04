@@ -553,35 +553,41 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [step, setStep] = useState(1);
+  const [petForm, setPetForm] = useState({ name:"", type:"Dog", breed:"" });
+
   const submit = async () => {
     if (!role) { setError("Please select your role to continue"); return; }
+    if (role === "owner" && step === 1) { setStep(2); return; }
     setLoading(true);
     try {
       const profile = {
-        uid: user.uid,
-        email: user.email,
-        name: user.displayName || "",
-        role,
-        plan: initialPlan,
-        createdAt: new Date().toISOString(),
+        uid: user.uid, email: user.email,
+        name: user.displayName || "", role,
+        plan: initialPlan, createdAt: new Date().toISOString(),
         welcomeEmailSent: false
       };
       await setDoc(doc(db, "users", user.uid), profile);
+      // Add pet if owner
+      if (role === "owner" && petForm.name) {
+        await addDoc(collection(db, "pets"), {
+          name: petForm.name, type: petForm.type, breed: petForm.breed,
+          age: "", weight: "", feeding: "", nextVet: "", notes: "",
+          vaccines: [], reminders: [], photoURL: "",
+          uid: user.uid, createdAt: new Date().toISOString()
+        });
+      }
       sessionStorage.removeItem("selectedPlan");
-      // Send welcome email
       try {
         const name = user.displayName?.split(" ")[0] || user.email?.split("@")[0];
         await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ role, email: user.email, name, profile })
         });
         await updateDoc(doc(db, "users", user.uid), { welcomeEmailSent: true });
       } catch (emailErr) { console.error("Welcome email error:", emailErr); }
       onSuccess(profile);
-    } catch (e) {
-      setError("Something went wrong. Please try again.");
-    }
+    } catch (e) { setError("Something went wrong. Please try again."); }
     setLoading(false);
   };
 
@@ -601,13 +607,22 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 24, margin: "0 0 8px", textAlign: "center" }}>Welcome, {user?.displayName?.split(" ")[0] || "Friend"}!</h2>
         <p style={{ color: C.muted, fontSize: 14, marginBottom: 24, textAlign: "center" }}>One last step — how will you use MyPetDex?</p>
         {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
-        <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-          {roleCard("owner", "🐾", "Pet Owner", "Manage my pets")}
-          {roleCard("provider", "🛎️", "Service Provider", "Offer pet services")}
-          {roleCard("shelter", "🏠", "Shelter", "Post adoptions")}
-        </div>
+        {step === 1 && <>
+          <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+            {roleCard("owner", "🐾", "Pet Owner", "Manage my pets")}
+            {roleCard("provider", "🛎️", "Service Provider", "Offer pet services")}
+            {roleCard("shelter", "🏠", "Shelter", "Post adoptions")}
+          </div>
+        </>}
+        {step === 2 && role === "owner" && <>
+          <p style={{ color: C.muted, fontSize: 13, marginBottom: 16 }}>Tell us about your pet:</p>
+          <Field label="Pet Name" value={petForm.name} onChange={v => setPetForm(f=>({...f,name:v}))} placeholder="Buddy" />
+          <Field label="Pet Type" as="select" value={petForm.type} onChange={v => setPetForm(f=>({...f,type:v}))} options={["Dog","Cat","Rabbit","Bird","Other"]} />
+          <Field label="Breed" as="select" value={petForm.breed} onChange={v => setPetForm(f=>({...f,breed:v}))} options={petForm.type === "Cat" ? CAT_BREEDS : DOG_BREEDS} />
+          <button onClick={() => setStep(1)} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:13, fontFamily:font, marginBottom:12 }}>← Back</button>
+        </>}
         <button style={{ ...btn(C.green), width: "100%" }} onClick={submit} disabled={loading}>
-          {loading ? "Setting up your account..." : "Get Started →"}
+          {loading ? "Setting up your account..." : step === 1 && role === "owner" ? "Next →" : "Get Started →"}
         </button>
         <button onClick={onLogout} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 13, fontFamily: font, marginTop: 16, width: "100%", textAlign: "center" }}>Sign out</button>
       </div>
