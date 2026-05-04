@@ -11,9 +11,9 @@ const db = admin.firestore();
 const sendgridKey = defineSecret("SENDGRID_API_KEY");
 const anthropicKey = defineSecret("ANTHROPIC_API_KEY");
 
-const FROM_EMAIL = "noreply@mypetdex.app";
+const FROM_EMAIL = "help@mypetdex.app";
 const FROM_NAME = "MyPetDex";
-const ADMIN_EMAIL = "mypetdexapp@gmail.com";
+const ADMIN_EMAIL = "help@mypetdex.app";
 
 // ─── Welcome Email Triggered on New User Document ────────────────────────────
 exports.onNewUser = onDocumentCreated(
