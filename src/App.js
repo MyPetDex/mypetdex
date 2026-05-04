@@ -232,6 +232,8 @@ export default function App() {
       if (firebaseUser) {
         setUser(firebaseUser);
         // Handle payment success redirect
+      const paymentStatus = new URLSearchParams(window.location.search).get('payment');
+      const paymentPlan = new URLSearchParams(window.location.search).get('plan');
       if (paymentStatus === 'success' && paymentPlan) {
         try {
           const { updateDoc } = await import('firebase/firestore');
