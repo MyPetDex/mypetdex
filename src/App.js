@@ -231,7 +231,15 @@ export default function App() {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        if (firebaseUser.email === 'mypetdexapp@gmail.com') {
+        // Handle payment success redirect
+      if (paymentStatus === 'success' && paymentPlan) {
+        try {
+          const { updateDoc } = await import('firebase/firestore');
+          await updateDoc(doc(db, 'users', firebaseUser.uid), { plan: paymentPlan });
+          window.history.replaceState({}, '', window.location.pathname);
+        } catch(e) { console.error('Plan update error:', e); }
+      }
+      if (firebaseUser.email === 'mypetdexapp@gmail.com') {
           setScreen('admin');
           setLoading(false);
         } else if (!firebaseUser.emailVerified && firebaseUser.email !== 'demo@mypetdex.app') {

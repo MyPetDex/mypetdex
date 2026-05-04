@@ -400,6 +400,41 @@ exports.createCheckoutSession = onRequest({ secrets: [stripeSecretKey], cors: tr
       success_url: "https://app.mypetdex.app?payment=success&plan=" + plan,
       cancel_url: "https://app.mypetdex.app?payment=cancelled",
     });
+    // Send payment confirmation email
+    try {
+      const planName = plan === "plus" ? "Plus" : "Family";
+      const price = plan === "plus" ? "$3.00" : "$5.00";
+      await sgMail.send({
+        to: email,
+        from: { email: FROM_EMAIL, name: FROM_NAME },
+        subject: `🎉 Welcome to MyPetDex ${planName}!`,
+        html: `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;">
+          <div style="text-align:center;margin-bottom:24px;">
+            <div style="font-size:48px;">🐾</div>
+            <h1 style="color:#3B82F6;">MyPetDex ${planName}</h1>
+          </div>
+          <div style="background:#F0F4FF;border-radius:12px;padding:20px;margin-bottom:20px;">
+            <h2 style="color:#1E293B;margin:0 0 8px;">Your 30-day free trial has started!</h2>
+            <p style="color:#64748B;margin:0;">After your trial, you'll be charged ${price}/month. Cancel anytime before the trial ends.</p>
+          </div>
+          <p style="color:#1E293B;">Your <strong>${planName} plan</strong> is now active. Enjoy all your premium features!</p>
+          <a href="https://app.mypetdex.app" style="display:inline-block;background:#3B82F6;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:16px;">Open MyPetDex →</a>
+          <p style="color:#94a3b8;font-size:12px;margin-top:24px;">Questions? Contact us at help@mypetdex.app</p>
+        </div>`
+      });
+      // Admin notification
+      await sgMail.send({
+        to: ADMIN_EMAIL,
+        from: { email: FROM_EMAIL, name: FROM_NAME },
+        subject: `💰 New ${planName} subscription: ${email}`,
+        html: `<div style="font-family:sans-serif;padding:24px;">
+          <h2>💰 New Subscription!</h2>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Plan:</strong> ${planName} (${price}/month)</p>
+          <p><strong>Trial ends:</strong> ${new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString()}</p>
+        </div>`
+      });
+    } catch(emailErr) { console.error("Payment email error:", emailErr); }
     res.status(200).json({ url: session.url });
   } catch (err) {
     console.error("Stripe checkout error:", err);
