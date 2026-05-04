@@ -290,11 +290,8 @@ export default function App() {
         setProfile(snap.data());
         setScreen("app");
       } else {
-        // New Google user — save basic profile and go to app
-        const newProfile = { uid: u.uid, email: u.email, name: u.displayName || "", role: "owner", plan: "free", createdAt: new Date().toISOString() };
-        await setDoc(doc(db, "users", u.uid), newProfile);
-        setProfile(newProfile);
-        setScreen("app");
+        // New Google user — go to register to pick role
+        setScreen("register");
       }
     } catch (e) { console.error("Google sign in error:", e); }
   }} />;
@@ -549,8 +546,8 @@ function Landing({ onRegister, onLogin, onGoogle }) {
 
       {/* Top Sign In link */}
       <div style={{ position: "absolute", top: 20, right: 24 }}>
-        <span style={{ color: C.muted, fontSize: 14 }}>Already have an account? </span>
-        <button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: font }}>Sign In</button>
+        <span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span>
+        <button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button>
       </div>
 
       {/* Logo */}
