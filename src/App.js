@@ -294,11 +294,13 @@ export default function App() {
         setProfile(snap.data());
         setScreen("app");
       } else {
-        // New Google user — go to register to pick role
-        setScreen("register");
+        // New Google user — save to state and go to role picker
+        setUser(u);
+        setScreen("google-role");
       }
     } catch (e) { console.error("Google sign in error:", e); }
   }} />;
+  if (screen === "google-role") return <GoogleRoleScreen user={user} initialPlan={urlPlan} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("verify"); }} initialPlan={urlPlan} />;
   if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} />;
   if (screen === "verify") return <VerifyEmail onVerified={async () => { const u = auth.currentUser; if (!u) return; const snap = await getDoc(doc(db, "users", u.uid)); const userData = snap.exists() ? snap.data() : { email: u.email, role: "owner", uid: u.uid }; setProfile(userData); try { const role = userData.role || "owner"; const name = userData.name?.split(" ")[0] || userData.businessName?.split(" ")[0] || userData.email?.split("@")[0]; await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role, email: userData.email, name, profile: { name: userData.name || "", email: userData.email || "", role: userData.role || "", businessName: userData.businessName || "", shelterName: userData.shelterName || "", city: userData.city || "", state: userData.state || "", plan: userData.plan || "free", createdAt: userData.createdAt || "" } }) });
@@ -544,6 +546,75 @@ function VerifyEmail({ onVerified, onLogout }) {
     </div>
   );
 }
+
+// ─── Google Role Picker ───────────────────────────────────────────────────────
+function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
+  const [role, setRole] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submit = async () => {
+    if (!role) { setError("Please select your role to continue"); return; }
+    setLoading(true);
+    try {
+      const profile = {
+        uid: user.uid,
+        email: user.email,
+        name: user.displayName || "",
+        role,
+        plan: initialPlan,
+        createdAt: new Date().toISOString(),
+        welcomeEmailSent: false
+      };
+      await setDoc(doc(db, "users", user.uid), profile);
+      sessionStorage.removeItem("selectedPlan");
+      // Send welcome email
+      try {
+        const name = user.displayName?.split(" ")[0] || user.email?.split("@")[0];
+        await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role, email: user.email, name, profile })
+        });
+        await updateDoc(doc(db, "users", user.uid), { welcomeEmailSent: true });
+      } catch (emailErr) { console.error("Welcome email error:", emailErr); }
+      onSuccess(profile);
+    } catch (e) {
+      setError("Something went wrong. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  const roleCard = (r, emoji, title, desc) => (
+    <div onClick={() => setRole(r)} style={{ ...card, cursor: "pointer", border: `2px solid ${role === r ? C.green : C.cardBorder}`, flex: 1, textAlign: "center" }}>
+      <div style={{ fontSize: 34 }}>{emoji}</div>
+      <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginTop: 6 }}>{title}</div>
+      <div style={{ color: C.muted, fontSize: 11, marginTop: 4 }}>{desc}</div>
+    </div>
+  );
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      <div style={{ width: "100%", maxWidth: 460 }}>
+        <div style={{ fontSize: 52, textAlign: "center", marginBottom: 8 }}>🐾</div>
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 24, margin: "0 0 8px", textAlign: "center" }}>Welcome, {user?.displayName?.split(" ")[0] || "Friend"}!</h2>
+        <p style={{ color: C.muted, fontSize: 14, marginBottom: 24, textAlign: "center" }}>One last step — how will you use MyPetDex?</p>
+        {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
+        <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+          {roleCard("owner", "🐾", "Pet Owner", "Manage my pets")}
+          {roleCard("provider", "🛎️", "Service Provider", "Offer pet services")}
+          {roleCard("shelter", "🏠", "Shelter", "Post adoptions")}
+        </div>
+        <button style={{ ...btn(C.green), width: "100%" }} onClick={submit} disabled={loading}>
+          {loading ? "Setting up your account..." : "Get Started →"}
+        </button>
+        <button onClick={onLogout} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 13, fontFamily: font, marginTop: 16, width: "100%", textAlign: "center" }}>Sign out</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Landing ─────────────────────────────────────────────────────────────────
 function Landing({ onRegister, onLogin, onGoogle }) {
   return (
