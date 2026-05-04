@@ -702,6 +702,118 @@ function LoginScreen({ onBack, onSuccess }) {
 }
 
 // ─── Main App Shell ───────────────────────────────────────────────────────────
+
+function FeedbackButton({ user }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ subject: "Bug Report", message: "", screenshot: null });
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  const subjects = ["Bug Report", "Feature Request", "General Feedback", "Account Issue"];
+
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (file) setForm(f => ({ ...f, screenshot: file }));
+  };
+
+  const send = async () => {
+    if (!form.message.trim()) { setError("Please describe your issue or feedback"); return; }
+    setSending(true); setError("");
+    try {
+      const body = new FormData();
+      body.append("subject", form.subject);
+      body.append("message", form.message);
+      body.append("email", user?.email || "unknown");
+      if (form.screenshot) body.append("screenshot", form.screenshot);
+      await fetch("https://formsubmit.co/help@mypetdex.app", { method: "POST", body });
+      setSent(true);
+      setTimeout(() => { setSent(false); setOpen(false); setForm({ subject: "Bug Report", message: "", screenshot: null }); }, 2500);
+    } catch (e) {
+      setError("Failed to send. Please email help@mypetdex.app directly.");
+    }
+    setSending(false);
+  };
+
+  return (
+    <>
+      {/* Floating button */}
+      <button onClick={() => setOpen(true)} style={{
+        position: "fixed", bottom: 90, right: 16, zIndex: 998,
+        background: C.green, color: "#fff", border: "none", borderRadius: "50px",
+        padding: "10px 16px", fontFamily: font, fontWeight: 800, fontSize: 13,
+        cursor: "pointer", boxShadow: "0 4px 16px rgba(59,130,246,0.4)",
+        display: "flex", alignItems: "center", gap: 6
+      }}>
+        💬 Feedback
+      </button>
+
+      {/* Modal overlay */}
+      {open && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: C.card, borderRadius: 20, padding: 24, width: "100%", maxWidth: 440, boxShadow: "0 8px 40px rgba(0,0,0,0.15)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ color: C.text, fontWeight: 900, fontSize: 18 }}>💬 Send Feedback</div>
+              <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: C.muted }}>✕</button>
+            </div>
+            <p style={{ color: C.muted, fontSize: 13, marginBottom: 16 }}>Facing an issue or have a suggestion? Let us know and we'll get right on it!</p>
+
+            {sent ? (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <div style={{ fontSize: 48 }}>✅</div>
+                <div style={{ color: C.green, fontWeight: 800, fontSize: 16, marginTop: 8 }}>Thank you!</div>
+                <div style={{ color: C.muted, fontSize: 13 }}>We'll look into it shortly.</div>
+              </div>
+            ) : (
+              <>
+                {/* Subject */}
+                <label style={{ display: "block", marginBottom: 14 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: ".08em" }}>Subject</span>
+                  <div style={{ position: "relative" }}>
+                    <select value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
+                      style={{ ...input, appearance: "none", paddingRight: 36, marginTop: 4 }}>
+                      {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: C.muted, fontSize: 14 }}>▼</span>
+                  </div>
+                </label>
+
+                {/* Message */}
+                <label style={{ display: "block", marginBottom: 14 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: ".08em" }}>Your Message</span>
+                  <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+                    placeholder="Describe your issue or feedback in detail..." rows={4}
+                    style={{ ...input, resize: "vertical", marginTop: 4 }} />
+                </label>
+
+                {/* Screenshot upload */}
+                <label style={{ display: "block", marginBottom: 16 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: ".08em" }}>Screenshot (optional)</span>
+                  <div style={{ marginTop: 4, border: `1.5px dashed ${C.cardBorder}`, borderRadius: 10, padding: "12px", textAlign: "center", cursor: "pointer", background: C.bg }}>
+                    <input type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} id="feedback-file" />
+                    <label htmlFor="feedback-file" style={{ cursor: "pointer", color: C.muted, fontSize: 13 }}>
+                      {form.screenshot ? `📎 ${form.screenshot.name}` : "📎 Tap to attach a screenshot"}
+                    </label>
+                  </div>
+                </label>
+
+                {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
+
+                <button onClick={send} disabled={sending} style={{ ...btn(C.green), width: "100%" }}>
+                  {sending ? "Sending..." : "Send Feedback →"}
+                </button>
+                <p style={{ color: C.muted, fontSize: 11, textAlign: "center", marginTop: 10 }}>
+                  Or email us directly at help@mypetdex.app
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function MainApp({ user, profile, tab, setTab, onLogout }) {
   const [currentProfile, setCurrentProfile] = useState(profile);
   const role = currentProfile?.role || "owner";
@@ -743,6 +855,7 @@ const tabLabel = { home:"Home", pets:"My Pets", services:"Services", ai:"AI Chat
         {tab === "listings" && isShelter && <ShelterListings user={user} isDemo={isDemo} />}
         {tab === "settings" && <SettingsTab user={user} profile={currentProfile} onProfileUpdate={setCurrentProfile} onLogout={onLogout} isDemo={isDemo} />}
       </div>
+      <FeedbackButton user={user} />
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.card, borderTop: `1px solid ${C.cardBorder}`, display: "flex", justifyContent: "space-around", padding: "10px 0 6px" }}>
         {tabs.map(t => (
           <button key={t} onClick={() => setTab(t)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, color: tab === t ? C.green : C.muted, fontFamily: font, fontWeight: 700, fontSize: 10 }}>
