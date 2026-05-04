@@ -2033,9 +2033,16 @@ function ProviderCard({ p, user, profile }) {
   );
 }
 
-function ServicesTab({ profile, user }) {
+function ServicesTab({ profile, user, serviceFilter }) {
+  const serviceMap = {
+    groomers: "Grooming",
+    walkers: "Dog Walking",
+    sitters: "Boarding",
+    daycare: "Daycare",
+    vets: "Veterinary"
+  };
   const [filterState, setFilterState] = useState(profile?.state || "");
-  const [filterService, setFilterService] = useState("");
+  const [filterService, setFilterService] = useState(serviceMap[serviceFilter] || "");
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -2055,7 +2062,9 @@ function ServicesTab({ profile, user }) {
 
   return (
     <div>
-      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Services Near You 🛎️</h2>
+      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>
+        {filterService ? filterService + "s Near You" : "Services Near You"} 🛎️
+      </h2>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Verified providers in your area</p>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
         <div><span style={label}>State</span><select value={filterState} onChange={e => setFilterState(e.target.value)} style={{ ...input, appearance: "none" }}><option value="">All States</option>{US_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
