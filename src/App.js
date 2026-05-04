@@ -192,7 +192,9 @@ export default function App() {
   const [user, setUser] = useState(null); // eslint-disable-line no-unused-vars
   const [profile, setProfile] = useState(null);
   const [screen, setScreen] = useState("landing");
-  const urlPlan = new URLSearchParams(window.location.search).get("plan") || "free";
+  const urlPlanFromURL = new URLSearchParams(window.location.search).get("plan");
+  if (urlPlanFromURL) sessionStorage.setItem("selectedPlan", urlPlanFromURL);
+  const urlPlan = sessionStorage.getItem("selectedPlan") || "free";
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
 
@@ -621,6 +623,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
       const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
       const { password, ...formWithoutPassword } = form;
       const profile = { ...formWithoutPassword, role, uid: cred.user.uid, plan: initialPlan, createdAt: new Date().toISOString() };
+      sessionStorage.removeItem("selectedPlan");
       await setDoc(doc(db, "users", cred.user.uid), profile);
       if (role === "owner" && form.petName) {
         await addDoc(collection(db, "pets"), {
@@ -631,11 +634,11 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
         });
       }
       try {
+        await new Promise(r => setTimeout(r, 1000));
         await sendEmailVerification(cred.user, { url: "https://app.mypetdex.app" });
         console.log("Verification email sent to:", cred.user.email);
       } catch (verErr) {
         console.error("Verification email error:", verErr.code, verErr.message);
-        setError("Account created but verification email failed. Use Resend on next screen.");
       }
       onSuccess(profile);
     } catch (e) {
