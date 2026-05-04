@@ -2451,8 +2451,8 @@ function SettingsTab({ user, profile, onProfileUpdate, onLogout, isDemo }) {
       <button onClick={() => setSection("main")} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 16 }}>← Back</button>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 18 }}>Privacy Policy 🔒</h2>
       <div style={{ ...card, marginBottom: 14, background: C.green + "11", border: `1px solid ${C.green}44` }}>
-        <div style={{ color: C.green, fontWeight: 900, fontSize: 15, marginBottom: 6 }}>🔒 Your Data is 100% Private</div>
-        <div style={{ color: C.text, fontSize: 13, lineHeight: 1.7 }}>All your personal information and your pet's details are stored securely and are never shared with anyone — not advertisers, not third parties, not anyone.</div>
+        <div style={{ color: C.green, fontWeight: 900, fontSize: 15, marginBottom: 6 }}>🔒 Your Data is Encrypted</div>
+        <div style={{ color: C.text, fontSize: 13, lineHeight: 1.7 }}>All data transmitted and stored on MyPetDex is encrypted using industry-standard protocols. We do not sell, share, or monetize your personal or pet information under any circumstances.</div>
       </div>
       <div style={{ ...card, marginBottom: 14 }}><div style={{ color: C.green, fontWeight: 800, marginBottom: 8 }}>What we collect</div><div style={{ color: C.muted, fontSize: 13, lineHeight: 1.6 }}>We collect your name, email, city, state, and pet information solely to provide our service. We do NOT collect payment info, government IDs, or precise location.</div></div>
       <div style={{ ...card, marginBottom: 14 }}><div style={{ color: C.green, fontWeight: 800, marginBottom: 8 }}>How we use your data</div><div style={{ color: C.muted, fontSize: 13, lineHeight: 1.6 }}>Your data is used only to provide pet care services, show local providers, and maintain your pet health records. We never sell your data to third parties.</div></div>
@@ -2479,7 +2479,7 @@ function SettingsTab({ user, profile, onProfileUpdate, onLogout, isDemo }) {
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 18 }}>Settings ⚙️</h2>
       <div style={{ ...card, marginBottom: 14, background: C.green + "11", border: `1px solid ${C.green}33` }}>
         <div style={{ color: C.green, fontWeight: 800, fontSize: 13 }}>🔒 Your Privacy is Protected</div>
-        <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>Your personal details and pet information are private and never shared with anyone.</div>
+        <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>Your data is encrypted and never shared with third parties.</div>
       </div>
       <div style={{ ...card, marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
