@@ -277,6 +277,7 @@ export default function App() {
   if (loading) return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 52 }}>🐾</div>
         <div style={{ color: C.green, fontWeight: 900, fontSize: 24, marginTop: 8 }}>MyPetDex</div>
@@ -382,6 +383,7 @@ function AdminDashboard({ onLogout }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, paddingBottom: 80 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
       <div style={{ background: C.card, borderBottom: "1px solid " + C.cardBorder, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 26 }}>🛡️</span>
@@ -492,6 +494,83 @@ function AdminDashboard({ onLogout }) {
   );
 }
 
+
+
+// ─── Upgrade Screen ───────────────────────────────────────────────────────────
+function UpgradeScreen({ user, profile, onClose }) {
+  const [loading, setLoading] = useState(null);
+
+  const PLUS_PRICE_ID = "price_1TTTMF3yxDG0TeFVxoEY8KIz";
+  const FAMILY_PRICE_ID = "price_1TTTQL3yxDG0TeFV8HDfbV1";
+
+  const startCheckout = async (priceId, plan) => {
+    setLoading(plan);
+    try {
+      const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/createCheckoutSession", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priceId, userId: user.uid, email: user.email, plan })
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else alert("Something went wrong. Please try again.");
+    } catch (e) {
+      alert("Something went wrong. Please try again.");
+    }
+    setLoading(null);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: C.card, borderRadius: 20, padding: 28, maxWidth: 480, width: "100%", position: "relative" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", fontSize: 20, cursor: "pointer", color: C.muted }}>✕</button>
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <div style={{ fontSize: 40 }}>🐾</div>
+          <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: "8px 0 4px" }}>Upgrade MyPetDex</h2>
+          <p style={{ color: C.muted, fontSize: 13 }}>Start your 30-day free trial — cancel anytime</p>
+        </div>
+
+        {/* Plus Plan */}
+        <div style={{ ...card, marginBottom: 12, border: `2px solid ${C.green}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div>
+              <div style={{ color: C.text, fontWeight: 900, fontSize: 16 }}>Plus Plan</div>
+              <div style={{ color: C.muted, fontSize: 12 }}>Up to 3 pets</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ color: C.green, fontWeight: 900, fontSize: 20 }}>$3<span style={{ fontSize: 13 }}>/mo</span></div>
+              <div style={{ color: C.green, fontSize: 11, fontWeight: 700 }}>30 days FREE</div>
+            </div>
+          </div>
+          <div style={{ color: C.muted, fontSize: 12, marginBottom: 12 }}>✅ AI Pet Assistant &nbsp; ✅ Pet Recipes &nbsp; ✅ 3 Pets</div>
+          <button onClick={() => startCheckout(PLUS_PRICE_ID, "plus")} disabled={loading === "plus"} style={{ ...btn(C.green), width: "100%" }}>
+            {loading === "plus" ? "Loading..." : "🎁 Start Free Trial — Plus"}
+          </button>
+        </div>
+
+        {/* Family Plan */}
+        <div style={{ ...card, marginBottom: 16, border: `2px solid ${C.gold}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div>
+              <div style={{ color: C.text, fontWeight: 900, fontSize: 16 }}>Family Plan</div>
+              <div style={{ color: C.muted, fontSize: 12 }}>Unlimited pets</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ color: C.gold, fontWeight: 900, fontSize: 20 }}>$5<span style={{ fontSize: 13 }}>/mo</span></div>
+              <div style={{ color: C.gold, fontSize: 11, fontWeight: 700 }}>30 days FREE</div>
+            </div>
+          </div>
+          <div style={{ color: C.muted, fontSize: 12, marginBottom: 12 }}>✅ Everything in Plus &nbsp; ✅ Unlimited Pets &nbsp; ✅ Priority Support</div>
+          <button onClick={() => startCheckout(FAMILY_PRICE_ID, "family")} disabled={loading === "family"} style={{ ...btn(C.gold), width: "100%" }}>
+            {loading === "family" ? "Loading..." : "🎁 Start Free Trial — Family"}
+          </button>
+        </div>
+
+        <p style={{ color: C.muted, fontSize: 11, textAlign: "center" }}>No charge for 30 days. Cancel anytime before trial ends.</p>
+      </div>
+    </div>
+  );
+}
 
 // ─── Admin Shop Manager ───────────────────────────────────────────────────────
 function AdminShop() {
@@ -717,6 +796,7 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
       <div style={{ width: "100%", maxWidth: 460 }}>
         <div style={{ fontSize: 52, textAlign: "center", marginBottom: 8 }}>🐾</div>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 24, margin: "0 0 8px", textAlign: "center" }}>Welcome, {user?.displayName?.split(" ")[0] || "Friend"}!</h2>
@@ -750,6 +830,7 @@ function Landing({ onRegister, onLogin, onGoogle }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
 
       {/* Top Sign In link */}
       <div style={{ position: "absolute", top: 20, right: 24 }}>
@@ -843,6 +924,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
       <div style={{ width: "100%", maxWidth: 460 }}>
         <button onClick={() => step === 2 ? setStep(1) : onBack()} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 8px" }}>Create Account</h2>
@@ -932,6 +1014,7 @@ function LoginScreen({ onBack, onSuccess }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
       <div style={{ width: "100%", maxWidth: 380 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 24px" }}>Welcome back 🐾</h2>
@@ -1055,6 +1138,7 @@ function FeedbackButton({ user }) {
 function MainApp({ user, profile, tab, setTab, onLogout }) {
   const [currentProfile, setCurrentProfile] = useState(profile);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [expanded, setExpanded] = useState({ services: false, ai: false, shop: false });
   const role = currentProfile?.role || "owner";
   const isOwner = role === "owner";
@@ -1186,6 +1270,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, display: "flex" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
       <Sidebar />
 
       {/* Overlay for mobile */}
@@ -1387,7 +1472,7 @@ function PetsTab({ user, profile, isDemo }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets 🐾</h2>
         {!isDemo && (pets.length < petLimit) && <button style={btn(C.green)} onClick={() => setAdding(true)}>+ Add Pet</button>}
-        {!isDemo && (pets.length >= petLimit) && <button onClick={() => window.open("https://home.mypetdex.app/#pricing", "_blank")} style={{ ...btn(C.green), fontSize: 13 }}>⬆️ Upgrade for More Pets</button>}
+        {!isDemo && (pets.length >= petLimit) && <button onClick={() => setShowUpgrade(true)} style={{ ...btn(C.green), fontSize: 13 }}>⬆️ Upgrade for More Pets</button>}
       </div>
       {loading && <Spinner />}
       {!loading && pets.length === 0 && !adding && (
@@ -2166,7 +2251,7 @@ function AITab({ profile, user }) {
     <div style={{ padding: 24 }}>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>AI Assistant 🤖</h2>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>Your personal pet care expert</p>
-      <UpgradePrompt feature="AI Assistant" requiredPlan="Plus" onUpgrade={() => window.open("https://home.mypetdex.app/#pricing", "_blank")} />
+      <UpgradePrompt feature="AI Assistant" requiredPlan="Plus" onUpgrade={() => setShowUpgrade(true)} />
     </div>
   );
 
@@ -2401,7 +2486,7 @@ function RecipesTab({ profile, user }) {
     <div style={{ padding: 24 }}>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Recipe Builder 🍽️</h2>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>AI-powered balanced meal generator</p>
-      <UpgradePrompt feature="Recipe Builder" requiredPlan="Plus" onUpgrade={() => window.open("https://home.mypetdex.app/#pricing", "_blank")} />
+      <UpgradePrompt feature="Recipe Builder" requiredPlan="Plus" onUpgrade={() => setShowUpgrade(true)} />
     </div>
   );
   if (viewSaved) return (

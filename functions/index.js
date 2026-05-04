@@ -380,3 +380,29 @@ function reminderHTML(petName, title, date, time) {
     </div>
   `);
 }
+
+// ─── Stripe Checkout ──────────────────────────────────────────────────────────
+const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
+
+exports.createCheckoutSession = onRequest({ secrets: [stripeSecretKey], cors: true }, async (req, res) => {
+  if (req.method !== "POST") { res.status(405).send("Method not allowed"); return; }
+  const { priceId, userId, email, plan } = req.body;
+  if (!priceId || !userId || !email) { res.status(400).send("Missing required fields"); return; }
+  try {
+    const stripe = require("stripe")(stripeSecretKey.value());
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      payment_method_types: ["card"],
+      customer_email: email,
+      line_items: [{ price: priceId, quantity: 1 }],
+      subscription_data: { trial_period_days: 30, metadata: { userId, plan } },
+      metadata: { userId, plan },
+      success_url: "https://app.mypetdex.app?payment=success&plan=" + plan,
+      cancel_url: "https://app.mypetdex.app?payment=cancelled",
+    });
+    res.status(200).json({ url: session.url });
+  } catch (err) {
+    console.error("Stripe checkout error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
