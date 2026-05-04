@@ -1044,53 +1044,170 @@ function FeedbackButton({ user }) {
 
 function MainApp({ user, profile, tab, setTab, onLogout }) {
   const [currentProfile, setCurrentProfile] = useState(profile);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expanded, setExpanded] = useState({ services: false, ai: false, shop: false });
   const role = currentProfile?.role || "owner";
   const isOwner = role === "owner";
   const isProvider = role === "provider";
   const isShelter = role === "shelter";
   const isDemo = user?.email === 'demo@mypetdex.app';
-  const ownerTabs = ["home","pets","services","ai","recipes","adoption","shop","settings"];
-  const providerTabs = ["home","profile","bookings","settings"];
-  const shelterTabs = ["home","listings","settings"];
-  const tabs = isOwner ? ownerTabs : isProvider ? providerTabs : shelterTabs;
-  const tabIcon = { home:"🏠", pets:"🐾", services:"🛎️", ai:"🤖", recipes:"🍽️", adoption:"❤️", shop:"🛒", profile:"📋", bookings:"📅", listings:"🐶", settings:"⚙️" };
-const tabLabel = { home:"Home", pets:"My Pets", services:"Services", ai:"AI Chat", recipes:"Recipes", adoption:"Adopt", shop:"Shop", profile:"My Business", bookings:"Bookings", listings:"Listings", settings:"Settings" };
+
+  const toggleExpand = (key) => setExpanded(e => ({ ...e, [key]: !e[key] }));
+
+  const navItem = (id, icon, label, indent = false) => (
+    <button key={id} onClick={() => { setTab(id); setSidebarOpen(false); }} style={{
+      display: "flex", alignItems: "center", gap: 10, width: "100%",
+      padding: indent ? "8px 16px 8px 36px" : "10px 16px",
+      background: tab === id ? C.green + "18" : "none",
+      border: "none", borderRadius: 10, cursor: "pointer",
+      color: tab === id ? C.green : C.text,
+      fontFamily: font, fontWeight: tab === id ? 800 : 600,
+      fontSize: indent ? 13 : 14, textAlign: "left",
+      borderLeft: tab === id ? `3px solid ${C.green}` : "3px solid transparent",
+      marginBottom: 2
+    }}>
+      <span style={{ fontSize: indent ? 14 : 16 }}>{icon}</span>
+      {label}
+    </button>
+  );
+
+  const expandItem = (key, icon, label) => (
+    <div key={key}>
+      <button onClick={() => toggleExpand(key)} style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        width: "100%", padding: "10px 16px", background: "none", border: "none",
+        borderRadius: 10, cursor: "pointer", color: C.text,
+        fontFamily: font, fontWeight: 600, fontSize: 14,
+        borderLeft: "3px solid transparent", marginBottom: 2
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 16 }}>{icon}</span>{label}
+        </div>
+        <span style={{ fontSize: 10, color: C.muted }}>{expanded[key] ? "▲" : "▼"}</span>
+      </button>
+    </div>
+  );
+
+  const Sidebar = () => (
+    <div style={{
+      width: 220, minHeight: "100vh", background: C.card,
+      borderRight: `1px solid ${C.cardBorder}`, padding: "20px 12px",
+      display: "flex", flexDirection: "column", position: "fixed",
+      top: 0, left: sidebarOpen || window.innerWidth > 768 ? 0 : -220,
+      zIndex: 200, transition: "left 0.25s ease",
+      boxShadow: sidebarOpen ? "4px 0 20px rgba(0,0,0,0.1)" : "none"
+    }}>
+      {/* Logo */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, padding: "0 4px" }}>
+        <span style={{ fontSize: 24 }}>🐾</span>
+        <span style={{ color: C.green, fontWeight: 900, fontSize: 18 }}>MyPetDex</span>
+      </div>
+
+      {/* User info */}
+      <div style={{ background: C.bg, borderRadius: 10, padding: "10px 12px", marginBottom: 20 }}>
+        <div style={{ color: C.text, fontWeight: 800, fontSize: 13 }}>Hi, {currentProfile?.name?.split(" ")[0] || "Friend"} 👋</div>
+        <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>{currentProfile?.plan ? currentProfile.plan.charAt(0).toUpperCase() + currentProfile.plan.slice(1) + " Plan" : "Free Plan"}</div>
+      </div>
+
+      {/* Nav items */}
+      <div style={{ flex: 1 }}>
+        {navItem("home", "🏠", "Home")}
+        {isOwner && navItem("pets", "🐾", "My Pets")}
+
+        {isOwner && <>
+          {expandItem("services", "🛎️", "Services")}
+          {expanded.services && <>
+            {navItem("services", "🐩", "All Services", true)}
+            {navItem("groomers", "✂️", "Groomers", true)}
+            {navItem("walkers", "🦮", "Dog Walkers", true)}
+            {navItem("sitters", "🏡", "Pet Sitters", true)}
+            {navItem("daycare", "☀️", "Daycare & Boarding", true)}
+            {navItem("vets", "🩺", "Veterinary", true)}
+          </>}
+        </>}
+
+        {isOwner && <>
+          {expandItem("ai", "🤖", "AI Features")}
+          {expanded.ai && <>
+            {navItem("ai", "💬", "AI Chat", true)}
+            {navItem("recipes", "🍽️", "Pet Recipes", true)}
+          </>}
+        </>}
+
+        {isOwner && navItem("adoption", "❤️", "Adopt a Pet")}
+
+        {isOwner && <>
+          {expandItem("shop", "🛒", "Shop")}
+          {expanded.shop && <>
+            {navItem("shop", "📦", "Amazon Products", true)}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px 8px 36px", color: C.muted, fontSize: 13, fontWeight: 600 }}>
+              <span style={{ fontSize: 14 }}>🐾</span> Chewy <span style={{ background: C.gold + "33", color: C.gold, fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 6, marginLeft: 4 }}>Soon</span>
+            </div>
+          </>}
+        </>}
+
+        {isProvider && <>
+          {navItem("profile", "📋", "My Business")}
+          {navItem("bookings", "📅", "Bookings")}
+        </>}
+
+        {isShelter && <>
+          {navItem("listings", "🐶", "Listings")}
+        </>}
+      </div>
+
+      {/* Bottom items */}
+      <div style={{ borderTop: `1px solid ${C.cardBorder}`, paddingTop: 12, marginTop: 12 }}>
+        {navItem("settings", "⚙️", "Settings")}
+        <button onClick={onLogout} style={{
+          display: "flex", alignItems: "center", gap: 10, width: "100%",
+          padding: "10px 16px", background: "none", border: "none",
+          borderRadius: 10, cursor: "pointer", color: C.muted,
+          fontFamily: font, fontWeight: 600, fontSize: 14, textAlign: "left",
+          borderLeft: "3px solid transparent"
+        }}>
+          <span>🚪</span> Sign Out
+        </button>
+      </div>
+    </div>
+  );
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, paddingBottom: 80 }}>
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, display: "flex" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      <div style={{ background: C.card, borderBottom: `1px solid ${C.cardBorder}`, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 26 }}>🐾</span>
-          <span style={{ color: C.green, fontWeight: 900, fontSize: 20 }}>MyPetDex</span>
+      <Sidebar />
+
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)} style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 199
+        }} />
+      )}
+
+      {/* Main content */}
+      <div style={{ marginLeft: 220, flex: 1, minHeight: "100vh" }}>
+        {/* Top bar - mobile only */}
+        <div style={{ background: C.card, borderBottom: `1px solid ${C.cardBorder}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 100 }}>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.text }}>☰</button>
+          <span style={{ color: C.green, fontWeight: 900, fontSize: 18 }}>MyPetDex</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ color: C.muted, fontSize: 13 }}>Hi, {currentProfile?.name?.split(" ")[0] || "Friend"}</span>
-          <button onClick={onLogout} style={{ background: "none", border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: "5px 12px", color: C.muted, fontFamily: font, fontSize: 12, cursor: "pointer" }}>Sign out</button>
+
+        {isDemo && <div style={{ background: C.gold + "22", borderBottom: "1px solid " + C.gold, padding: "8px 16px", textAlign: "center", fontSize: 12, color: C.gold, fontWeight: 700 }}>👀 Demo Mode — browse only, editing disabled</div>}
+
+        <div style={{ padding: "20px 16px", maxWidth: 600, margin: "0 auto" }}>
+          {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} />}
+          {tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} isDemo={isDemo} />}
+          {(tab === "services" || tab === "groomers" || tab === "walkers" || tab === "sitters" || tab === "daycare" || tab === "vets") && isOwner && <ServicesTab profile={currentProfile} user={user} serviceFilter={tab} />}
+          {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} />}
+          {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} user={user} />}
+          {tab === "adoption" && isOwner && <AdoptionTab profile={currentProfile} />}
+          {tab === "shop" && isOwner && <ShopTab />}
+          {tab === "profile" && isProvider && <ProviderProfile profile={currentProfile} />}
+          {tab === "bookings" && isProvider && <BookingsTab />}
+          {tab === "listings" && isShelter && <ShelterListings user={user} isDemo={isDemo} />}
+          {tab === "settings" && <SettingsTab user={user} profile={currentProfile} onProfileUpdate={setCurrentProfile} onLogout={onLogout} isDemo={isDemo} />}
         </div>
-      </div>
-      {isDemo && <div style={{ background: C.gold + "22", borderBottom: "1px solid " + C.gold, padding: "8px 16px", textAlign: "center", fontSize: 12, color: C.gold, fontWeight: 700 }}>👀 Demo Mode — browse only, editing disabled</div>}
-      <div style={{ padding: "20px 16px", maxWidth: 540, margin: "0 auto" }}>
-        {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} />}
-        {tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} isDemo={isDemo} />}
-        {tab === "services" && isOwner && <ServicesTab profile={currentProfile} user={user} />}
-        {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} />}
-        {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} user={user} />}
-        {tab === "adoption" && isOwner && <AdoptionTab profile={currentProfile} />}
-{tab === "shop" && isOwner && <ShopTab />}
-        {tab === "profile" && isProvider && <ProviderProfile profile={currentProfile} />}
-        {tab === "bookings" && isProvider && <BookingsTab />}
-        {tab === "listings" && isShelter && <ShelterListings user={user} isDemo={isDemo} />}
-        {tab === "settings" && <SettingsTab user={user} profile={currentProfile} onProfileUpdate={setCurrentProfile} onLogout={onLogout} isDemo={isDemo} />}
-      </div>
-      <FeedbackButton user={user} />
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.card, borderTop: `1px solid ${C.cardBorder}`, display: "flex", justifyContent: "space-around", padding: "10px 0 6px" }}>
-        {tabs.map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, color: tab === t ? C.green : C.muted, fontFamily: font, fontWeight: 700, fontSize: 10 }}>
-            <span style={{ fontSize: 20 }}>{tabIcon[t]}</span>
-            {tabLabel[t]}
-          </button>
-        ))}
+        <FeedbackButton user={user} />
       </div>
     </div>
   );
