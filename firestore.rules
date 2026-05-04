@@ -6,9 +6,12 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
-    // Helper: email on the auth token is verified
+    // Helper: email on the auth token is verified OR signed in with Google
     function isEmailVerified() {
-      return isSignedIn() && request.auth.token.email_verified == true;
+      return isSignedIn() && (
+        request.auth.token.email_verified == true ||
+        request.auth.token.firebase.sign_in_provider == "google.com"
+      );
     }
     // Helper: user is the demo account (bypasses verification)
     function isDemoAccount() {
