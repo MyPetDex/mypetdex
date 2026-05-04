@@ -192,6 +192,7 @@ export default function App() {
   const [user, setUser] = useState(null); // eslint-disable-line no-unused-vars
   const [profile, setProfile] = useState(null);
   const [screen, setScreen] = useState("landing");
+  const urlPlan = new URLSearchParams(window.location.search).get("plan") || "free";
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
 
@@ -295,7 +296,7 @@ export default function App() {
       }
     } catch (e) { console.error("Google sign in error:", e); }
   }} />;
-  if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("verify"); }} />;
+  if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("verify"); }} initialPlan={urlPlan} />;
   if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} />;
   if (screen === "verify") return <VerifyEmail onVerified={async () => { const u = auth.currentUser; if (!u) return; const snap = await getDoc(doc(db, "users", u.uid)); const userData = snap.exists() ? snap.data() : { email: u.email, role: "owner", uid: u.uid }; setProfile(userData); try { const role = userData.role || "owner"; const name = userData.name?.split(" ")[0] || userData.businessName?.split(" ")[0] || userData.email?.split("@")[0]; await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role, email: userData.email, name, profile: { name: userData.name || "", email: userData.email || "", role: userData.role || "", businessName: userData.businessName || "", shelterName: userData.shelterName || "", city: userData.city || "", state: userData.state || "", plan: userData.plan || "free", createdAt: userData.createdAt || "" } }) }); } catch (emailErr) { console.error("Post-verification email error:", emailErr); } setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "app") return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
@@ -580,7 +581,7 @@ function Landing({ onRegister, onLogin, onGoogle }) {
 }
 
 // ─── Register ────────────────────────────────────────────────────────────────
-function RegisterScreen({ onBack, onSuccess }) {
+function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
   const [role, setRole] = useState("");
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
@@ -600,7 +601,7 @@ function RegisterScreen({ onBack, onSuccess }) {
     try {
       const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
       const { password, ...formWithoutPassword } = form;
-      const profile = { ...formWithoutPassword, role, uid: cred.user.uid, createdAt: new Date().toISOString() };
+      const profile = { ...formWithoutPassword, role, uid: cred.user.uid, plan: initialPlan, createdAt: new Date().toISOString() };
       await setDoc(doc(db, "users", cred.user.uid), profile);
       if (role === "owner" && form.petName) {
         await addDoc(collection(db, "pets"), {
