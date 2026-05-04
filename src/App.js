@@ -132,10 +132,13 @@ function Field({ label: lbl, type = "text", value, onChange, placeholder, as, op
   if (as === "select") return (
     <label style={{ display: "block", marginBottom: 14 }}>
       <span style={label}>{lbl}</span>
-      <select value={value} onChange={e => onChange(e.target.value)} style={{ ...input, appearance: "none" }}>
-        <option value="">Select...</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
+      <div style={{ position: "relative" }}>
+        <select value={value} onChange={e => onChange(e.target.value)} style={{ ...input, appearance: "none", paddingRight: 36 }}>
+          <option value="">Select...</option>
+          {options.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+        <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: C.muted, fontSize: 14 }}>▼</span>
+      </div>
     </label>
   );
   if (as === "textarea") return (
@@ -535,7 +538,7 @@ function Landing({ onRegister, onLogin }) {
       </div>
       <p style={{ color: C.muted, fontSize: 12, marginTop: 32 }}>🐶 Pet Owners · 🛎️ Service Providers · 🏠 Shelters</p>
       <div style={{ marginTop: 20, background: C.card, borderRadius: 12, padding: "10px 18px", border: `1px solid ${C.cardBorder}` }}>
-        <p style={{ color: C.muted, fontSize: 11, margin: 0, textAlign: "center" }}>🔒 Your data is 100% private. We never share your or your pet's information with anyone.</p>
+        <p style={{ color: C.muted, fontSize: 11, margin: 0, textAlign: "center" }}>🔒 Your data is encrypted and never shared with third parties.</p>
       </div>
     </div>
   );
@@ -548,7 +551,7 @@ function RegisterScreen({ onBack, onSuccess }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    name:"", email:"", password:"",
+    name:"", email:"", password:"", confirmPassword:"",
     petName:"", petType:"Dog", petBreed:"", petAge:"", petWeight:"",
     state:"", city:"",
     businessName:"", service:"", priceRange:"", googleReview:"", bio:"",
@@ -598,11 +601,11 @@ function RegisterScreen({ onBack, onSuccess }) {
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
       <div style={{ width: "100%", maxWidth: 460 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>Back</button>
+        <button onClick={() => step === 2 ? setStep(1) : onBack()} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 8px" }}>Create Account</h2>
         <p style={{ color: C.muted, fontSize: 14, marginBottom: 16 }}>Join the MyPetDex community 🐾</p>
         <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
-          <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>🔒 Your personal and pet information is private and never shared with third parties.</p>
+          <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>🔒 Your data is encrypted using industry-standard protocols and never shared with third parties.</p>
         </div>
         {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
         {step === 1 && <>
@@ -614,8 +617,12 @@ function RegisterScreen({ onBack, onSuccess }) {
           </div>
           <Field label="Full Name" value={form.name} onChange={set("name")} placeholder="Jane Smith" required />
           <Field label="Email" type="email" value={form.email} onChange={set("email")} placeholder="you@email.com" required />
-          <Field label="Password (min 6 characters)" type="password" value={form.password} onChange={set("password")} placeholder="password" required />
-          <button style={{ ...btn(), width: "100%" }} onClick={() => { if (!role || !form.name || !form.email || !form.password) { setError("Please fill in all fields and select a role"); return; } setError(""); setStep(2); }}>Continue</button>
+          <Field label="Password (min 8 characters + special character)" type="password" value={form.password} onChange={set("password")} placeholder="e.g. MyPet@2024" required />
+          <Field label="Confirm Password" type="password" value={form.confirmPassword} onChange={set("confirmPassword")} placeholder="Re-enter your password" required />
+          <button style={{ ...btn(), width: "100%" }} onClick={() => { if (!role || !form.name || !form.email || !form.password) { setError("Please fill in all fields and select a role"); return; }
+                  if (form.password.length < 8) { setError("Password must be at least 8 characters"); return; }
+                  if (!/[!@#$%^&*(),.?":{}|<>]/.test(form.password)) { setError("Password must include at least one special character (e.g. @, #, !)"); return; }
+                  if (form.password !== form.confirmPassword) { setError("Passwords do not match"); return; } setError(""); setStep(2); }}>Continue</button>
         </>}
         {step === 2 && role === "owner" && <>
           <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>Tell us about your pet and location</p>
@@ -683,7 +690,7 @@ function LoginScreen({ onBack, onSuccess }) {
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
       <div style={{ width: "100%", maxWidth: 380 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>Back</button>
+        <button onClick={() => step === 2 ? setStep(1) : onBack()} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 24px" }}>Welcome back 🐾</h2>
         {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
         <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" />
