@@ -482,6 +482,75 @@ function AdminDashboard({ onLogout }) {
   );
 }
 
+
+// ─── Admin Shop Manager ───────────────────────────────────────────────────────
+function AdminShop() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState({ name: "", desc: "", price: "", emoji: "🛍️", url: "" });
+  const set = k => v => setForm(f => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "shopProducts"), snap => {
+      setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  const addProduct = async () => {
+    if (!form.name || !form.url) return;
+    await addDoc(collection(db, "shopProducts"), { ...form, createdAt: new Date().toISOString() });
+    setForm({ name: "", desc: "", price: "", emoji: "🛍️", url: "" });
+    setAdding(false);
+  };
+
+  const deleteProduct = async (id) => {
+    if (window.confirm("Delete this product?")) await deleteDoc(doc(db, "shopProducts", id));
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ color: C.text, fontWeight: 900, fontSize: 16 }}>🛒 Shop Products</div>
+        <button onClick={() => setAdding(!adding)} style={{ ...btn(C.green), padding: "8px 16px", fontSize: 13 }}>+ Add Product</button>
+      </div>
+      {adding && (
+        <div style={{ ...card, marginBottom: 16 }}>
+          <Field label="Product Name" value={form.name} onChange={set("name")} placeholder="Zesty Paws Multivitamin" />
+          <Field label="Description" value={form.desc} onChange={set("desc")} placeholder="8-in-1 multivitamin for dogs" />
+          <Field label="Price" value={form.price} onChange={set("price")} placeholder="$32.97" />
+          <Field label="Emoji" value={form.emoji} onChange={set("emoji")} placeholder="💊" />
+          <Field label="Amazon Affiliate URL" value={form.url} onChange={set("url")} placeholder="https://amzn.to/..." />
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={addProduct} style={{ ...btn(C.green), flex: 1 }}>💾 Save Product</button>
+            <button onClick={() => setAdding(false)} style={{ ...btn(C.cardBorder, C.muted), flex: 1 }}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {loading && <Spinner />}
+      {!loading && products.length === 0 && (
+        <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>No products yet. Click "+ Add Product" to add your first one.</div>
+      )}
+      {products.map(p => (
+        <div key={p.id} style={{ ...card, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 28 }}>{p.emoji}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: C.text, fontWeight: 800, fontSize: 14 }}>{p.name}</div>
+            <div style={{ color: C.muted, fontSize: 12 }}>{p.desc}</div>
+            <div style={{ color: C.green, fontWeight: 700, fontSize: 13 }}>{p.price} on Amazon</div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <a href={p.url} target="_blank" rel="noreferrer" style={{ ...btn(C.green), padding: "6px 12px", fontSize: 12, textDecoration: "none" }}>🔗 View</a>
+            <button onClick={() => deleteProduct(p.id)} style={{ ...btn(C.danger), padding: "6px 12px", fontSize: 12 }}>🗑️</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AdminReviews() {
   const [reviews, setReviews] = useState([]);
   useEffect(() => {
