@@ -31,7 +31,7 @@ exports.onNewUser = onDocumentCreated(
         to: email,
         from: { email: FROM_EMAIL, name: FROM_NAME },
         subject: "Welcome to MyPetDex! 🐾",
-        html: ownerWelcomeHTML(name || email.split("@")[0]),
+        html: ownerWelcomeHTML(name || email.split("@")[0], profile?.plan || "free"),
       };
     } else if (role === "provider") {
       welcomeMsg = {
@@ -49,17 +49,10 @@ exports.onNewUser = onDocumentCreated(
       };
     }
 
-    const adminMsg = {
-      to: ADMIN_EMAIL,
-      from: { email: FROM_EMAIL, name: FROM_NAME },
-      subject: `New ${role} signup: ${email}`,
-      html: adminNotificationHTML(role, email, profile),
-    };
+
 
     try {
-      if (welcomeMsg) await sgMail.send(welcomeMsg);
-      await sgMail.send(adminMsg);
-      console.log(`Emails sent for ${email} (${role})`);
+      console.log(`New user created: ${email} (${role}) — welcome email will send after verification`);
     } catch (err) {
       console.error("SendGrid error:", err.response?.body || err);
     }
@@ -131,6 +124,59 @@ exports.aiProxy = onRequest(
   }
 );
 
+
+// ─── Send Welcome Email After Verification ────────────────────────────────────
+exports.sendVerifiedEmail = onRequest(
+  { cors: true, secrets: [sendgridKey] },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+    const { role, email, name, profile } = req.body;
+    if (!email || !role) { res.status(400).send("Missing email or role"); return; }
+
+    sgMail.setApiKey(sendgridKey.value());
+
+    let welcomeMsg = null;
+    if (role === "owner") {
+      welcomeMsg = {
+        to: email,
+        from: { email: FROM_EMAIL, name: FROM_NAME },
+        subject: "Welcome to MyPetDex! 🐾",
+        html: ownerWelcomeHTML(name || email.split("@")[0], profile?.plan || "free"),
+      };
+    } else if (role === "provider") {
+      welcomeMsg = {
+        to: email,
+        from: { email: FROM_EMAIL, name: FROM_NAME },
+        subject: "Welcome to MyPetDex – Provider Account 🐾",
+        html: providerWelcomeHTML(name || email.split("@")[0]),
+      };
+    } else if (role === "shelter") {
+      welcomeMsg = {
+        to: email,
+        from: { email: FROM_EMAIL, name: FROM_NAME },
+        subject: "Welcome to MyPetDex – Shelter Account 🐾",
+        html: shelterWelcomeHTML(name || email.split("@")[0]),
+      };
+    }
+
+    try {
+      const adminMsg = {
+        to: ADMIN_EMAIL,
+        from: { email: FROM_EMAIL, name: FROM_NAME },
+        subject: `✅ Verified ${role} signup: ${email}`,
+        html: adminNotificationHTML(role, email, profile || {}),
+      };
+      if (welcomeMsg) await sgMail.send(welcomeMsg);
+      await sgMail.send(adminMsg);
+      console.log(`Welcome + admin emails sent for ${email} (${role})`);
+      res.status(200).send("Emails sent");
+    } catch (err) {
+      console.error("SendGrid welcome email error:", err.response?.body || err);
+      res.status(500).send("Failed to send welcome email");
+    }
+  }
+);
+
 // ─── Email Base Template ──────────────────────────────────────────────────────
 function emailBase(content) {
   return `<!DOCTYPE html>
@@ -139,25 +185,25 @@ function emailBase(content) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { margin:0; padding:0; background-color:#0F1A14; font-family:'Helvetica Neue',Arial,sans-serif; }
+    body { margin:0; padding:0; background-color:#F5F8FF; font-family:'Helvetica Neue',Arial,sans-serif; }
     .wrapper { max-width:600px; margin:0 auto; padding:40px 20px; }
     .header { text-align:center; margin-bottom:32px; }
     .logo { font-size:52px; }
-    .app-name { color:#3DD68C; font-size:30px; font-weight:900; margin:8px 0 0; letter-spacing:-1px; }
-    .card { background-color:#16251B; border:1.5px solid #1E3526; border-radius:18px; padding:32px; margin-bottom:20px; }
-    h1 { color:#EFF6F1; font-size:22px; font-weight:900; margin:0 0 16px; }
-    p { color:#7A9E89; font-size:15px; line-height:1.7; margin:0 0 12px; }
-    .highlight { color:#EFF6F1; font-weight:700; }
-    .green { color:#3DD68C; font-weight:700; }
+    .app-name { color:#3B82F6; font-size:30px; font-weight:900; margin:8px 0 0; letter-spacing:-1px; }
+    .card { background-color:#FFFFFF; border:1.5px solid #E2E8F0; border-radius:18px; padding:32px; margin-bottom:20px; }
+    h1 { color:#1E293B; font-size:22px; font-weight:900; margin:0 0 16px; }
+    p { color:#64748B; font-size:15px; line-height:1.7; margin:0 0 12px; }
+    .highlight { color:#1E293B; font-weight:700; }
+    .green { color:#3B82F6; font-weight:700; }
     .gold { color:#F5C842; font-weight:700; }
     .feature { display:flex; gap:12px; margin-bottom:12px; align-items:flex-start; }
     .feature-icon { font-size:20px; min-width:28px; }
-    .feature-text { color:#7A9E89; font-size:14px; line-height:1.6; padding-top:2px; }
-    .btn { display:inline-block; background-color:#3DD68C; color:#0F1A14 !important; font-weight:900; font-size:15px; padding:14px 36px; border-radius:12px; text-decoration:none; margin:16px 0; }
-    .footer { text-align:center; color:#7A9E89; font-size:12px; margin-top:32px; line-height:2; }
-    .footer a { color:#3DD68C; text-decoration:none; }
-    .divider { border:none; border-top:1px solid #1E3526; margin:22px 0; }
-    .badge { display:inline-block; background-color:rgba(61,214,140,0.15); color:#3DD68C; border-radius:8px; padding:4px 12px; font-size:12px; font-weight:700; }
+    .feature-text { color:#64748B; font-size:14px; line-height:1.6; padding-top:2px; }
+    .btn { display:inline-block; background-color:#3B82F6; color:#FFFFFF !important; font-weight:900; font-size:15px; padding:14px 36px; border-radius:12px; text-decoration:none; margin:16px 0; }
+    .footer { text-align:center; color:#64748B; font-size:12px; margin-top:32px; line-height:2; }
+    .footer a { color:#3B82F6; text-decoration:none; }
+    .divider { border:none; border-top:1px solid #E2E8F0; margin:22px 0; }
+    .badge { display:inline-block; background-color:rgba(61,214,140,0.15); color:#3B82F6; border-radius:8px; padding:4px 12px; font-size:12px; font-weight:700; }
     .notice { background-color:rgba(245,200,66,0.1); border:1px solid rgba(245,200,66,0.3); border-radius:10px; padding:12px 16px; margin-top:16px; }
   </style>
 </head>
@@ -178,17 +224,54 @@ function emailBase(content) {
 }
 
 // ─── Pet Owner Welcome ────────────────────────────────────────────────────────
-function ownerWelcomeHTML(name) {
+function ownerWelcomeHTML(name, plan = "free") {
+  const isFree = plan === "free";
+  const isPlus = plan === "plus";
+  const isFamily = plan === "family";
+
+  const planBadge = isFree
+    ? `<div style="text-align:center;margin-bottom:16px;"><span class="badge">🎉 Free Plan — 1 Month Trial of Plus included!</span></div>`
+    : isPlus
+    ? `<div style="text-align:center;margin-bottom:16px;"><span class="badge">⭐ Plus Plan Active</span></div>`
+    : `<div style="text-align:center;margin-bottom:16px;"><span class="badge">👑 Family Plan Active</span></div>`;
+
+  const aiFeature = (isFree)
+    ? `<div class="feature"><span class="feature-icon" style="opacity:0.4">🤖</span><div class="feature-text" style="color:#94a3b8;"><span style="text-decoration:line-through">AI Pet Assistant</span> — <a href="https://home.mypetdex.app/#pricing" style="color:#3B82F6;">Upgrade to Plus</a></div></div>`
+    : `<div class="feature"><span class="feature-icon">🤖</span><div class="feature-text"><span class="highlight">AI Pet Assistant</span> — Get personalized pet care advice instantly</div></div>`;
+
+  const recipesFeature = isFree
+    ? `<div class="feature"><span class="feature-icon" style="opacity:0.4">🍽️</span><div class="feature-text" style="color:#94a3b8;"><span style="text-decoration:line-through">Pet Recipes</span> — <a href="https://home.mypetdex.app/#pricing" style="color:#3B82F6;">Upgrade to Plus</a></div></div>`
+    : `<div class="feature"><span class="feature-icon">🍽️</span><div class="feature-text"><span class="highlight">Pet Recipes</span> — AI-powered balanced meal generator</div></div>`;
+
+  const petsFeature = isFree
+    ? `<div class="feature"><span class="feature-icon">🐾</span><div class="feature-text"><span class="highlight">1 Pet Profile</span> — Add your pet and keep their info in one place. <a href="https://home.mypetdex.app/#pricing" style="color:#3B82F6;">Upgrade for more pets</a></div></div>`
+    : isPlus
+    ? `<div class="feature"><span class="feature-icon">🐾</span><div class="feature-text"><span class="highlight">Up to 3 Pet Profiles</span> — Add all your pets and keep their info in one place</div></div>`
+    : `<div class="feature"><span class="feature-icon">🐾</span><div class="feature-text"><span class="highlight">Unlimited Pet Profiles</span> — Add all your pets and keep their info in one place</div></div>`;
+
+  const upgradeSection = isFree
+    ? `<hr class="divider">
+      <div class="notice" style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:12px;padding:16px;text-align:center;">
+        <p style="color:#3B82F6;font-weight:800;font-size:14px;margin:0 0 8px;">🎁 Your 1-Month Free Trial is Active!</p>
+        <p style="color:#64748B;font-size:13px;margin:0 0 12px;">Try all Plus features free for 30 days — no credit card required.</p>
+        <a href="https://home.mypetdex.app/#pricing" style="display:inline-block;background:#3B82F6;color:#fff;padding:10px 24px;border-radius:10px;font-weight:700;font-size:13px;text-decoration:none;">Explore Plans →</a>
+      </div>`
+    : "";
+
   return emailBase(`
     <div class="card">
       <h1>Welcome to MyPetDex, ${name}! 🐾</h1>
+      ${planBadge}
       <p>We're thrilled to have you and your furry family on board. Here's everything waiting for you:</p>
       <hr class="divider">
-      <div class="feature"><span class="feature-icon">🐾</span><div class="feature-text"><span class="highlight">Pet Profiles</span> — Add all your pets and keep their info in one place</div></div>
+      ${petsFeature}
       <div class="feature"><span class="feature-icon">💉</span><div class="feature-text"><span class="highlight">Vaccine Tracker</span> — Log vaccinations and never miss a booster</div></div>
       <div class="feature"><span class="feature-icon">⏰</span><div class="feature-text"><span class="highlight">Smart Reminders</span> — Get notified before vet visits and appointments</div></div>
       <div class="feature"><span class="feature-icon">🛎️</span><div class="feature-text"><span class="highlight">Find Services</span> — Discover trusted groomers, walkers, and vets near you</div></div>
       <div class="feature"><span class="feature-icon">❤️</span><div class="feature-text"><span class="highlight">Adopt a Pet</span> — Browse adoptable pets from verified shelters</div></div>
+      ${aiFeature}
+      ${recipesFeature}
+      ${upgradeSection}
       <hr class="divider">
       <center><a href="https://app.mypetdex.app" class="btn">Open MyPetDex →</a></center>
       <p style="text-align:center;font-size:13px;margin-top:12px;">Questions? Just reply to this email — we're always happy to help.</p>
@@ -204,8 +287,8 @@ function providerWelcomeHTML(name) {
       <p>Your service provider account is set up. Here's what to do next to go live:</p>
       <hr class="divider">
       <div class="feature"><span class="feature-icon">📋</span><div class="feature-text"><span class="highlight">Step 1 — Submit Your Documents</span><br>Reply to this email with the following to activate your listing:</div></div>
-      <div style="background:#0F1A14;border-radius:10px;padding:14px 16px;margin:0 0 14px 40px;">
-        <div style="color:#7A9E89;font-size:13px;line-height:2;">
+      <div style="background:#F0F4FF;border-radius:10px;padding:14px 16px;margin:0 0 14px 40px;">
+        <div style="color:#64748B;font-size:13px;line-height:2;">
           ✓ &nbsp;Business License<br>
           ✓ &nbsp;Google Business Page link<br>
           ✓ &nbsp;Google Reviews Page link
@@ -228,8 +311,8 @@ function shelterWelcomeHTML(name) {
       <p>Your shelter account has been created. Follow these steps to get verified and start connecting pets with families:</p>
       <hr class="divider">
       <div class="feature"><span class="feature-icon">📋</span><div class="feature-text"><span class="highlight">Step 1 — Submit Your Documents</span><br>Reply to this email with the following to complete verification:</div></div>
-      <div style="background:#0F1A14;border-radius:10px;padding:14px 16px;margin:0 0 14px 40px;">
-        <div style="color:#7A9E89;font-size:13px;line-height:2;">
+      <div style="background:#F0F4FF;border-radius:10px;padding:14px 16px;margin:0 0 14px 40px;">
+        <div style="color:#64748B;font-size:13px;line-height:2;">
           ✓ &nbsp;Shelter Name<br>
           ✓ &nbsp;Shelter Website<br>
           ✓ &nbsp;License Number<br>
@@ -253,8 +336,8 @@ function adminNotificationHTML(role, email, profile) {
   const rows = Object.entries(profile)
     .filter(([k, v]) => !skipKeys.includes(k) && v)
     .map(([k, v]) => `<tr>
-      <td style="color:#7A9E89;padding:7px 10px;font-size:13px;border-bottom:1px solid #1E3526;">${k}</td>
-      <td style="color:#EFF6F1;padding:7px 10px;font-size:13px;border-bottom:1px solid #1E3526;font-weight:600;">${v}</td>
+      <td style="color:#64748B;padding:7px 10px;font-size:13px;border-bottom:1px solid #E2E8F0;">${k}</td>
+      <td style="color:#1E293B;padding:7px 10px;font-size:13px;border-bottom:1px solid #E2E8F0;font-weight:600;">${v}</td>
     </tr>`).join("");
 
   const actionNote = role === "shelter"
@@ -287,8 +370,8 @@ function reminderHTML(petName, title, date, time) {
       <hr class="divider">
       <div style="text-align:center;padding:24px 0;">
         <div style="font-size:48px;margin-bottom:14px;">🐾</div>
-        <div style="color:#EFF6F1;font-size:22px;font-weight:900;margin-bottom:8px;">${title}</div>
-        <div style="color:#7A9E89;font-size:15px;">📅 ${date} &nbsp;·&nbsp; 🕐 ${time}</div>
+        <div style="color:#1E293B;font-size:22px;font-weight:900;margin-bottom:8px;">${title}</div>
+        <div style="color:#64748B;font-size:15px;">📅 ${date} &nbsp;·&nbsp; 🕐 ${time}</div>
       </div>
       <hr class="divider">
       <center><a href="https://app.mypetdex.app" class="btn">Open MyPetDex →</a></center>
