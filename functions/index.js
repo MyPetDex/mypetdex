@@ -131,6 +131,7 @@ exports.sendVerifiedEmail = onRequest(
   async (req, res) => {
     if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
     const { role, email, name, profile } = req.body;
+    console.log("sendVerifiedEmail called with:", { email, role, plan: profile?.plan });
     if (!email || !role) { res.status(400).send("Missing email or role"); return; }
 
     sgMail.setApiKey(sendgridKey.value());
