@@ -398,9 +398,9 @@ function AdminDashboard({ onLogout }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-          {["shelters","providers","reviews"].map(t => (
+          {["shelters","providers","reviews","shop"].map(t => (
             <button key={t} onClick={() => setAdminTab(t)} style={{ ...btn(adminTab === t ? C.green : C.card, adminTab === t ? "#0F1A14" : C.muted), border: "1px solid " + (adminTab === t ? C.green : C.cardBorder), flex: 1, padding: "10px", fontSize: 14 }}>
-              {t === "shelters" ? "🏠 Shelters" : t === "providers" ? "🛎️ Providers" : "⭐ Reviews"}
+              {t === "shelters" ? "🏠 Shelters" : t === "providers" ? "🛎️ Providers" : t === "reviews" ? "⭐ Reviews" : "🛒 Shop"}
             </button>
           ))}
         </div>
@@ -476,6 +476,7 @@ function AdminDashboard({ onLogout }) {
             ))
         )}
         {!loading && adminTab === "reviews" && <AdminReviews />}
+        {!loading && adminTab === "shop" && <AdminShop />}
       </div>
     </div>
   );
@@ -2397,13 +2398,13 @@ function RecipesTab({ profile, user }) {
 
 // ─── Shop Tab ─────────────────────────────────────────────────────────────
 function ShopTab() {
-  const products = [
-    { name: "Ring Pet Tag", desc: "Easy-to-use tag with scan alerts & shareable pet profile", price: "$9.99", emoji: "🏷️", url: "https://amzn.to/4eV3G31" },
-    { name: "Kwik Stop Styptic Powder", desc: "Fast acting blood stop powder for dogs, cats & birds", price: "$8.99", emoji: "🩹", url: "https://amzn.to/4unhUyi" },
-    { name: "Pet First Aid Kit", desc: "Complete emergency kit for home, car & travel", price: "$35.90", emoji: "🚑", url: "https://amzn.to/3OQyHuD" },
-    { name: "Zesty Paws Multivitamin", desc: "8-in-1 multivitamin bites for dogs — joint, skin & digestion", price: "$32.97", emoji: "💊", url: "https://amzn.to/429MCyQ" },
-    { name: "Veken Pet Fountain", desc: "#1 Best Seller — 95oz automatic water fountain for cats & dogs", price: "$18.99", emoji: "💧", url: "https://amzn.to/4en5hyu" },
-  ];
+  const [products, setProducts] = useState([]);
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "shopProducts"), snap => {
+      setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, []);
   return (
     <div>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Pet Shop 🛒</h2>
