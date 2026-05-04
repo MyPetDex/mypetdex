@@ -515,18 +515,19 @@ function VerifyEmail({ onVerified, onLogout }) {
   const user = auth.currentUser;
 
   useEffect(() => {
-    if (!user) return;
     const interval = setInterval(async () => {
       try {
-        await user.reload();
-        if (user.emailVerified) {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+        await currentUser.reload();
+        if (currentUser.emailVerified) {
           clearInterval(interval);
           await onVerified();
         }
       } catch(e) {}
-    }, 3000);
+    }, 2000);
     return () => clearInterval(interval);
-  }, [user, onVerified]);
+  }, [onVerified]);
 
   const resend = async () => {
     if (!user) { setMessage("No signed-in user."); return; }
