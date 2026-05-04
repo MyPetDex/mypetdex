@@ -1292,10 +1292,10 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
 
         <div style={{ padding: "20px 16px", maxWidth: 600, margin: "0 auto" }}>
           {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} />}
-          {tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} isDemo={isDemo} />}
+          {tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} isDemo={isDemo} onUpgrade={() => setShowUpgrade(true)} />}
           {(tab === "services" || tab === "groomers" || tab === "walkers" || tab === "sitters" || tab === "daycare" || tab === "vets") && isOwner && <ServicesTab profile={currentProfile} user={user} serviceFilter={tab} />}
-          {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} />}
-          {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} user={user} />}
+          {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} onUpgrade={() => setShowUpgrade(true)} />}
+          {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} user={user} onUpgrade={() => setShowUpgrade(true)} />}
           {tab === "adoption" && isOwner && <AdoptionTab profile={currentProfile} />}
           {tab === "shop" && isOwner && <ShopTab />}
           {tab === "profile" && isProvider && <ProviderProfile profile={currentProfile} />}
@@ -1413,7 +1413,7 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
 }
 
 // ─── Pets Tab ─────────────────────────────────────────────────────────────────
-function PetsTab({ user, profile, isDemo }) {
+function PetsTab({ user, profile, isDemo, onUpgrade }) {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -1472,7 +1472,7 @@ function PetsTab({ user, profile, isDemo }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets 🐾</h2>
         {!isDemo && (pets.length < petLimit) && <button style={btn(C.green)} onClick={() => setAdding(true)}>+ Add Pet</button>}
-        {!isDemo && (pets.length >= petLimit) && <button onClick={() => setShowUpgrade(true)} style={{ ...btn(C.green), fontSize: 13 }}>⬆️ Upgrade for More Pets</button>}
+        {!isDemo && (pets.length >= petLimit) && <button onClick={onUpgrade} style={{ ...btn(C.green), fontSize: 13 }}>⬆️ Upgrade for More Pets</button>}
       </div>
       {loading && <Spinner />}
       {!loading && pets.length === 0 && !adding && (
@@ -2178,7 +2178,7 @@ function ServicesTab({ profile, user, serviceFilter }) {
     </div>
   );
 }
-function AITab({ profile, user }) {
+function AITab({ profile, user, onUpgrade }) {
   const [pets, setPets] = useState([]);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -2251,7 +2251,7 @@ function AITab({ profile, user }) {
     <div style={{ padding: 24 }}>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>AI Assistant 🤖</h2>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>Your personal pet care expert</p>
-      <UpgradePrompt feature="AI Assistant" requiredPlan="Plus" onUpgrade={() => setShowUpgrade(true)} />
+      <UpgradePrompt feature="AI Assistant" requiredPlan="Plus" onUpgrade={onUpgrade} />
     </div>
   );
 
@@ -2362,7 +2362,7 @@ const ACTIVITY_LEVELS = [
   { id: "very_active", label: "⚡ Very Active (working dog)" },
 ];
 
-function RecipesTab({ profile, user }) {
+function RecipesTab({ profile, user, onUpgrade }) {
   const [pets, setPets] = useState([]);
   const [selectedPet, setSelectedPet] = useState(null);
   const [step, setStep] = useState(1);
@@ -2486,7 +2486,7 @@ function RecipesTab({ profile, user }) {
     <div style={{ padding: 24 }}>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Recipe Builder 🍽️</h2>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>AI-powered balanced meal generator</p>
-      <UpgradePrompt feature="Recipe Builder" requiredPlan="Plus" onUpgrade={() => setShowUpgrade(true)} />
+      <UpgradePrompt feature="Recipe Builder" requiredPlan="Plus" onUpgrade={onUpgrade} />
     </div>
   );
   if (viewSaved) return (
