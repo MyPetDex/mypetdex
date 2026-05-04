@@ -1103,9 +1103,10 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       width: 220, height: "100vh", background: C.card,
       borderRight: `1px solid ${C.cardBorder}`, padding: "20px 12px",
       display: "flex", flexDirection: "column", position: "fixed",
-      top: 0, left: sidebarOpen ? 0 : -220, overflowY: "auto",
-      zIndex: 200, transition: "left 0.25s ease",
-      boxShadow: sidebarOpen ? "4px 0 20px rgba(0,0,0,0.1)" : "none"
+      top: 0, left: 0, overflowY: "auto",
+      zIndex: 200, transition: "transform 0.25s ease",
+      transform: window.innerWidth > 768 ? "translateX(0)" : sidebarOpen ? "translateX(0)" : "translateX(-220px)",
+      boxShadow: sidebarOpen && window.innerWidth <= 768 ? "4px 0 20px rgba(0,0,0,0.1)" : "none"
     }}>
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, padding: "0 4px" }}>
@@ -1195,10 +1196,10 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       )}
 
       {/* Main content */}
-      <div style={{ marginLeft: 0, flex: 1, minHeight: "100vh", width: "100%" }}>
+      <div style={{ marginLeft: window.innerWidth > 768 ? 220 : 0, flex: 1, minHeight: "100vh" }}>
         {/* Top bar - mobile only */}
         <div style={{ background: C.card, borderBottom: `1px solid ${C.cardBorder}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 100 }}>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.text }}>☰</button>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.text, display: window.innerWidth > 768 ? "none" : "block" }}>☰</button>
           <span style={{ color: C.green, fontWeight: 900, fontSize: 18 }}>MyPetDex</span>
         </div>
 
