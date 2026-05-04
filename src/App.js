@@ -880,17 +880,12 @@ function LoginScreen({ onBack, onSuccess }) {
 
 function FeedbackButton({ user }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ subject: "Bug Report", message: "", screenshot: null });
+  const [form, setForm] = useState({ subject: "Bug Report", message: "" });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
 
   const subjects = ["Bug Report", "Feature Request", "General Feedback", "Account Issue"];
-
-  const handleFile = (e) => {
-    const file = e.target.files[0];
-    if (file) setForm(f => ({ ...f, screenshot: file }));
-  };
 
   const send = async () => {
     if (!form.message.trim()) { setError("Please describe your issue or feedback"); return; }
@@ -900,10 +895,9 @@ function FeedbackButton({ user }) {
       body.append("subject", form.subject);
       body.append("message", form.message);
       body.append("email", user?.email || "unknown");
-      if (form.screenshot) body.append("screenshot", form.screenshot);
       await fetch("https://formsubmit.co/help@mypetdex.app", { method: "POST", body });
       setSent(true);
-      setTimeout(() => { setSent(false); setOpen(false); setForm({ subject: "Bug Report", message: "", screenshot: null }); }, 2500);
+      setTimeout(() => { setSent(false); setOpen(false); setForm({ subject: "Bug Report", message: "" }); }, 2500);
     } catch (e) {
       setError("Failed to send. Please email help@mypetdex.app directly.");
     }
@@ -959,17 +953,6 @@ function FeedbackButton({ user }) {
                   <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                     placeholder="Describe your issue or feedback in detail..." rows={4}
                     style={{ ...input, resize: "vertical", marginTop: 4 }} />
-                </label>
-
-                {/* Screenshot upload */}
-                <label style={{ display: "block", marginBottom: 16 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: ".08em" }}>Screenshot (optional)</span>
-                  <div style={{ marginTop: 4, border: `1.5px dashed ${C.cardBorder}`, borderRadius: 10, padding: "12px", textAlign: "center", cursor: "pointer", background: C.bg }}>
-                    <input type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} id="feedback-file" />
-                    <label htmlFor="feedback-file" style={{ cursor: "pointer", color: C.muted, fontSize: 13 }}>
-                      {form.screenshot ? `📎 ${form.screenshot.name}` : "📎 Tap to attach a screenshot"}
-                    </label>
-                  </div>
                 </label>
 
                 {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
