@@ -796,7 +796,6 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
       <div style={{ width: "100%", maxWidth: 460 }}>
         <div style={{ fontSize: 52, textAlign: "center", marginBottom: 8 }}>🐾</div>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 24, margin: "0 0 8px", textAlign: "center" }}>Welcome, {user?.displayName?.split(" ")[0] || "Friend"}!</h2>
@@ -924,7 +923,6 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
       <div style={{ width: "100%", maxWidth: 460 }}>
         <button onClick={() => step === 2 ? setStep(1) : onBack()} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 8px" }}>Create Account</h2>
