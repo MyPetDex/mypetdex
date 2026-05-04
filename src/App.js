@@ -526,7 +526,7 @@ function VerifyEmail({ onVerified, onLogout }) {
       } catch(e) {}
     }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user, onVerified]);
 
   const resend = async () => {
     if (!user) { setMessage("No signed-in user."); return; }
