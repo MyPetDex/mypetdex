@@ -308,22 +308,26 @@ export default function App() {
     if (!u) return;
     // Force token refresh first
     try { await u.getIdToken(true); } catch(e) { console.error("Token refresh error:", e); }
-    // Send welcome email immediately using auth data
+    // Load profile from Firestore first
+    let userData = { email: u.email, role: "owner", plan: "free" };
+    try {
+      const snap = await getDoc(doc(db, "users", u.uid));
+      if (snap.exists()) {
+        userData = snap.data();
+        setProfile(userData);
+      }
+    } catch(e) { console.error("Profile load error:", e); }
+    // Then send welcome email with correct role
     try {
       const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "owner", email: u.email, name: u.displayName || u.email.split("@")[0], profile: { email: u.email, role: "owner", plan: sessionStorage.getItem("selectedPlan") || "free" }})
+        body: JSON.stringify({ role: userData.role || "owner", email: u.email, name: userData.name || u.email.split("@")[0], profile: userData })
       });
       console.log("sendVerifiedEmail status:", res.status);
     } catch (emailErr) {
       console.error("Welcome email error:", emailErr);
     }
-    // Then load profile from Firestore
-    try {
-      const snap = await getDoc(doc(db, "users", u.uid));
-      if (snap.exists()) setProfile(snap.data());
-    } catch(e) { console.error("Profile load error:", e); }
     setScreen("app");
   }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "app") return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
