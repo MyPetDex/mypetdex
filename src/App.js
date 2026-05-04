@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { hasFeature, UpgradePrompt } from './planUtils';
-import { auth, db } from "./firebase";
+import { auth, db, GoogleAuthProvider, signInWithPopup } from "./firebase";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
