@@ -202,7 +202,9 @@ export default function App() {
     const style = document.createElement('style');
     style.textContent = `
       select {
-        background: ${C.inputBg} !important;
+        background-color: ${C.inputBg} !important;
+      -webkit-box-shadow: 0 0 0px 1000px ${C.inputBg} inset !important;
+      -webkit-text-fill-color: ${C.text} !important;
         border: 1.5px solid ${C.cardBorder} !important;
         border-radius: 10px !important;
         padding: 11px 14px !important;
