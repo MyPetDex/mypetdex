@@ -303,9 +303,33 @@ export default function App() {
   if (screen === "google-role") return <GoogleRoleScreen user={user} initialPlan={urlPlan} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("verify"); }} initialPlan={urlPlan} />;
   if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} />;
-  if (screen === "verify") return <VerifyEmail onVerified={async () => { const u = auth.currentUser; if (!u) return; const snap = await getDoc(doc(db, "users", u.uid)); const userData = snap.exists() ? snap.data() : { email: u.email, role: "owner", uid: u.uid }; setProfile(userData); try { const role = userData.role || "owner"; const name = userData.name?.split(" ")[0] || userData.businessName?.split(" ")[0] || userData.email?.split("@")[0]; await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role, email: userData.email, name, profile: { name: userData.name || "", email: userData.email || "", role: userData.role || "", businessName: userData.businessName || "", shelterName: userData.shelterName || "", city: userData.city || "", state: userData.state || "", plan: userData.plan || "free", createdAt: userData.createdAt || "" } }) });
-              const { updateDoc } = await import("firebase/firestore");
-              await updateDoc(doc(db, "users", u.uid), { welcomeEmailSent: true }); } catch (emailErr) { console.error("Post-verification email error:", emailErr); } setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
+  if (screen === "verify") return <VerifyEmail onVerified={async () => {
+    const u = auth.currentUser;
+    if (!u) return;
+    try {
+      await u.getIdToken(true);
+      const snap = await getDoc(doc(db, "users", u.uid));
+      const userData = snap.exists() ? snap.data() : { email: u.email, role: "owner", uid: u.uid };
+      setProfile(userData);
+      const role = userData.role || "owner";
+      const name = userData.name?.split(" ")[0] || userData.businessName?.split(" ")[0] || userData.email?.split("@")[0];
+      const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role, email: userData.email, name, profile: {
+          name: userData.name || "", email: userData.email || "", role: userData.role || "",
+          businessName: userData.businessName || "", shelterName: userData.shelterName || "",
+          city: userData.city || "", state: userData.state || "",
+          plan: userData.plan || "free", createdAt: userData.createdAt || ""
+        }})
+      });
+      console.log("sendVerifiedEmail status:", res.status);
+      await updateDoc(doc(db, "users", u.uid), { welcomeEmailSent: true });
+    } catch (emailErr) {
+      console.error("Post-verification email error:", emailErr);
+    }
+    setScreen("app");
+  }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "app") return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
 }
 function AdminDashboard({ onLogout }) {
