@@ -679,7 +679,7 @@ function RegisterScreen({ onBack, onSuccess }) {
           <Field label="City" value={form.city} onChange={set("city")} placeholder="Newark" />
           <Field label="Google Review Link" value={form.googleReview} onChange={set("googleReview")} placeholder="https://maps.google.com/..." />
           <Field label="About Your Business" as="textarea" value={form.bio} onChange={set("bio")} placeholder="Tell pet owners what makes you special..." />
-          <div style={{ ...card, background: "#1a2e1e", marginBottom: 16 }}>
+          <div style={{ ...card, background: "#EEF4FF", marginBottom: 16 }}>
             <p style={{ color: C.gold, fontSize: 12, fontWeight: 700, margin: 0 }}>🎉 6-Month Free Trial — then only 5% commission on bookings. No monthly fees!</p>
           </div>
           <button style={{ ...btn(), width: "100%" }} onClick={submit} disabled={loading}>{loading ? "Creating Account..." : "Create Provider Account"}</button>
@@ -691,7 +691,7 @@ function RegisterScreen({ onBack, onSuccess }) {
           <Field label="State License #" value={form.license} onChange={set("license")} placeholder="NJ-2024-xxxxx" />
           <Field label="State" as="select" value={form.state} onChange={set("state")} options={US_STATES} />
           <Field label="City" value={form.city} onChange={set("city")} placeholder="Camden" />
-          <div style={{ ...card, background: "#1a2e1e", marginBottom: 16 }}>
+          <div style={{ ...card, background: "#EEF4FF", marginBottom: 16 }}>
             <p style={{ color: C.green, fontSize: 12, fontWeight: 700, margin: 0 }}>Shelter access is always FREE on MyPetDex!</p>
           </div>
           <button style={{ ...btn(), width: "100%" }} onClick={submit} disabled={loading}>{loading ? "Submitting..." : "Submit for Approval"}</button>
@@ -731,6 +731,18 @@ function LoginScreen({ onBack, onSuccess }) {
         <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" />
         <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="password" />
         <button style={{ ...btn(), width: "100%", marginTop: 8 }} onClick={login} disabled={loading}>{loading ? "Signing in..." : "Sign In"}</button>
+        <div style={{ textAlign: "center", marginTop: 16 }}>
+          <button onClick={async () => {
+            if (!email) { setError("Enter your email address first"); return; }
+            try {
+              const { sendPasswordResetEmail } = await import("firebase/auth");
+              await sendPasswordResetEmail(auth, email);
+              setError("✅ Password reset email sent! Check your inbox.");
+            } catch(e) { setError("Could not send reset email. Check your email address."); }
+          }} style={{ background: "none", border: "none", color: C.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>
+            Forgot your password?
+          </button>
+        </div>
       </div>
     </div>
   );
