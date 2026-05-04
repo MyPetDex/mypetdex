@@ -2594,7 +2594,8 @@ function ShopTab() {
   return (
     <div>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Pet Shop 🛒</h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Top-rated pet products — powered by Amazon</p>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 8 }}>Top-rated pet products — powered by Amazon</p>
+      <p style={{ color: C.muted, fontSize: 11, marginBottom: 18 }}>⚠️ Prices shown are approximate and may vary. You will pay the current Amazon price at checkout — not the price listed here.</p>
       <div style={{ background: "#3B82F618", border: "1px solid #3B82F644", borderRadius: 12, padding: "10px 14px", marginBottom: 18, fontSize: 12, color: "#3B82F6" }}>
         🌟 All products are Amazon's Choice or Best Sellers — recommended for pet owners
       </div>
