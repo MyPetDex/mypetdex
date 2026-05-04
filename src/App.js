@@ -308,15 +308,19 @@ export default function App() {
     if (!u) return;
     // Force token refresh first
     try { await u.getIdToken(true); } catch(e) { console.error("Token refresh error:", e); }
-    // Load profile from Firestore first
+    // Load profile from Firestore first (with retry)
     let userData = { email: u.email, role: "owner", plan: "free" };
-    try {
-      const snap = await getDoc(doc(db, "users", u.uid));
-      if (snap.exists()) {
-        userData = snap.data();
-        setProfile(userData);
-      }
-    } catch(e) { console.error("Profile load error:", e); }
+    for (let i = 0; i < 3; i++) {
+      try {
+        await new Promise(r => setTimeout(r, 1000));
+        const snap = await getDoc(doc(db, "users", u.uid));
+        if (snap.exists()) {
+          userData = snap.data();
+          setProfile(userData);
+          break;
+        }
+      } catch(e) { console.error("Profile load attempt", i+1, "error:", e); }
+    }
     // Then send welcome email with correct role
     try {
       const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
