@@ -240,23 +240,7 @@ export default function App() {
             const snap = await getDoc(doc(db, "users", firebaseUser.uid));
             const userData = snap.exists() ? { uid: firebaseUser.uid, ...snap.data() } : { email: firebaseUser.email, role: "owner", uid: firebaseUser.uid };
             setProfile(userData);
-            // Send welcome email if not sent yet (user clicked email link directly)
-            if (snap.exists() && !userData.welcomeEmailSent) {
-              try {
-                const role = userData.role || "owner";
-                const name = userData.name?.split(" ")[0] || userData.email?.split("@")[0];
-                await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ role, email: userData.email, name, profile: userData })
-                });
-                // Mark welcome email as sent
-                const { updateDoc } = await import("firebase/firestore");
-                await updateDoc(doc(db, "users", firebaseUser.uid), { welcomeEmailSent: true });
-              } catch (emailErr) {
-                console.error("Auto welcome email error:", emailErr);
-              }
-            }
+
           } catch (e) {
             console.error("Error loading profile:", e);
           }
