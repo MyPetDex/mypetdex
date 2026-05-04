@@ -1120,7 +1120,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       </div>
 
       {/* Nav items */}
-      <div style={{ flex: 1 }}>
+      <div>
         {navItem("home", "🏠", "Home")}
         {isOwner && navItem("pets", "🐾", "My Pets")}
 
