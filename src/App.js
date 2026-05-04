@@ -277,7 +277,6 @@ export default function App() {
   if (loading) return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 52 }}>🐾</div>
         <div style={{ color: C.green, fontWeight: 900, fontSize: 24, marginTop: 8 }}>MyPetDex</div>
@@ -383,7 +382,6 @@ function AdminDashboard({ onLogout }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, paddingBottom: 80 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
       <div style={{ background: C.card, borderBottom: "1px solid " + C.cardBorder, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 26 }}>🛡️</span>
@@ -829,7 +827,6 @@ function Landing({ onRegister, onLogin, onGoogle }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
 
       {/* Top Sign In link */}
       <div style={{ position: "absolute", top: 20, right: 24 }}>
@@ -1012,7 +1009,6 @@ function LoginScreen({ onBack, onSuccess }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
       <div style={{ width: "100%", maxWidth: 380 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 24px" }}>Welcome back 🐾</h2>
