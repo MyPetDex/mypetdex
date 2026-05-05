@@ -2406,6 +2406,11 @@ const ACTIVITY_LEVELS = [
 ];
 
 function RecipesTab({ profile, user, onUpgrade }) {
+  const plan = profile?.plan || "free";
+  const dailyLimit = AI_DAILY_LIMITS[plan] || 0;
+  const today = new Date().toDateString();
+  const getCount = () => { const s = JSON.parse(localStorage.getItem("ai_usage") || "{}"); return s.date === today ? s.count || 0 : 0; };
+  const trackMessage = () => { const c = getCount() + 1; localStorage.setItem("ai_usage", JSON.stringify({ date: today, count: c })); };
   const [pets, setPets] = useState([]);
   const [selectedPet, setSelectedPet] = useState(null);
   const [step, setStep] = useState(1);
@@ -2452,6 +2457,11 @@ function RecipesTab({ profile, user, onUpgrade }) {
 
   const generateRecipe = async () => {
     if (!selectedPet || selected.proteins.length === 0) return;
+    if (getCount() >= dailyLimit) {
+      alert(`⚠️ You've reached your daily AI limit of ${dailyLimit} requests. Resets tomorrow!`);
+      return;
+    }
+    trackMessage();
     setGenerating(true);
     setRecipe(null);
     const petInfo = selectedPet.name + ", " + (selectedPet.type || "Dog") + ", " + (selectedPet.breed || "mixed breed") + ", " + (selectedPet.age || "adult") + ", " + (selectedPet.weight || "unknown weight");
