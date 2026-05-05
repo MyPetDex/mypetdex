@@ -1142,7 +1142,7 @@ function FeedbackButton({ user }) {
 
 function MainApp({ user, profile, tab, setTab, onLogout }) {
   const [currentProfile, setCurrentProfile] = useState(profile);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [expanded, setExpanded] = useState({ services: false, ai: false, shop: false });
   const role = currentProfile?.role || "owner";
@@ -1194,7 +1194,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       display: "flex", flexDirection: "column", position: "fixed",
       top: 0, left: 0, overflowY: "auto",
       zIndex: 200, transition: "transform 0.25s ease",
-      transform: window.innerWidth > 768 ? "translateX(0)" : sidebarOpen ? "translateX(0)" : "translateX(-220px)",
+      transform: sidebarOpen ? "translateX(0)" : "translateX(-220px)",
       boxShadow: sidebarOpen && window.innerWidth <= 768 ? "4px 0 20px rgba(0,0,0,0.1)" : "none"
     }}>
       {/* Logo */}
