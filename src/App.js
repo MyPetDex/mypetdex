@@ -1289,7 +1289,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       <div style={{ marginLeft: 0, flex: 1, minHeight: "100vh" }}>
         {/* Top bar - mobile only */}
         <div style={{ background: C.card, borderBottom: `1px solid ${C.cardBorder}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 100 }}>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.text, display: window.innerWidth > 768 ? "none" : "block" }}>☰</button>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.text, display: "block" }}>☰</button>
           <span style={{ color: C.green, fontWeight: 900, fontSize: 18 }}>MyPetDex</span>
         </div>
 
