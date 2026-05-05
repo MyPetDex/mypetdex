@@ -35,7 +35,7 @@ const card = {
   borderRadius: 18, padding: 22,
 };
 const label = {
-  display: window.innerWidth <= 768 ? "block" : "none", color: C.muted, fontSize: 12, fontWeight: 700,
+  display: "block", color: C.muted, fontSize: 12, fontWeight: 700,
   marginBottom: 5, textTransform: "uppercase", letterSpacing: 1,
 };
 
@@ -130,7 +130,7 @@ function Badge({ text, color = C.green }) {
 }
 function Field({ label: lbl, type = "text", value, onChange, placeholder, as, options, required }) {
   if (as === "select") return (
-    <label style={{ display: window.innerWidth <= 768 ? "block" : "none", marginBottom: 14 }}>
+    <label style={{ display: "block", marginBottom: 14 }}>
       <span style={label}>{lbl}</span>
       <div style={{ position: "relative" }}>
         <select value={value} onChange={e => onChange(e.target.value)} style={{ ...input, appearance: "none", paddingRight: 36 }}>
@@ -142,13 +142,13 @@ function Field({ label: lbl, type = "text", value, onChange, placeholder, as, op
     </label>
   );
   if (as === "textarea") return (
-    <label style={{ display: window.innerWidth <= 768 ? "block" : "none", marginBottom: 14 }}>
+    <label style={{ display: "block", marginBottom: 14 }}>
       <span style={label}>{lbl}</span>
       <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} style={{ ...input, resize: "vertical" }} />
     </label>
   );
   return (
-    <label style={{ display: window.innerWidth <= 768 ? "block" : "none", marginBottom: 14 }}>
+    <label style={{ display: "block", marginBottom: 14 }}>
       <span style={label}>{lbl}{required && " *"}</span>
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={input} />
     </label>
@@ -1104,7 +1104,7 @@ function FeedbackButton({ user }) {
             ) : (
               <>
                 {/* Subject */}
-                <label style={{ display: window.innerWidth <= 768 ? "block" : "none", marginBottom: 14 }}>
+                <label style={{ display: "block", marginBottom: 14 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: ".08em" }}>Subject</span>
                   <div style={{ position: "relative" }}>
                     <select value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
@@ -1116,7 +1116,7 @@ function FeedbackButton({ user }) {
                 </label>
 
                 {/* Message */}
-                <label style={{ display: window.innerWidth <= 768 ? "block" : "none", marginBottom: 14 }}>
+                <label style={{ display: "block", marginBottom: 14 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: ".08em" }}>Your Message</span>
                   <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                     placeholder="Describe your issue or feedback in detail..." rows={4}
