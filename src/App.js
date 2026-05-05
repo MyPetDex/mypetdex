@@ -35,7 +35,7 @@ const card = {
   borderRadius: 18, padding: 22,
 };
 const label = {
-  display: "block", color: C.muted, fontSize: 12, fontWeight: 700,
+  display: isMobile ? "block" : "none", color: C.muted, fontSize: 12, fontWeight: 700,
   marginBottom: 5, textTransform: "uppercase", letterSpacing: 1,
 };
 
@@ -130,7 +130,7 @@ function Badge({ text, color = C.green }) {
 }
 function Field({ label: lbl, type = "text", value, onChange, placeholder, as, options, required }) {
   if (as === "select") return (
-    <label style={{ display: "block", marginBottom: 14 }}>
+    <label style={{ display: isMobile ? "block" : "none", marginBottom: 14 }}>
       <span style={label}>{lbl}</span>
       <div style={{ position: "relative" }}>
         <select value={value} onChange={e => onChange(e.target.value)} style={{ ...input, appearance: "none", paddingRight: 36 }}>
@@ -142,13 +142,13 @@ function Field({ label: lbl, type = "text", value, onChange, placeholder, as, op
     </label>
   );
   if (as === "textarea") return (
-    <label style={{ display: "block", marginBottom: 14 }}>
+    <label style={{ display: isMobile ? "block" : "none", marginBottom: 14 }}>
       <span style={label}>{lbl}</span>
       <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} style={{ ...input, resize: "vertical" }} />
     </label>
   );
   return (
-    <label style={{ display: "block", marginBottom: 14 }}>
+    <label style={{ display: isMobile ? "block" : "none", marginBottom: 14 }}>
       <span style={label}>{lbl}{required && " *"}</span>
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={input} />
     </label>
@@ -1104,7 +1104,7 @@ function FeedbackButton({ user }) {
             ) : (
               <>
                 {/* Subject */}
-                <label style={{ display: "block", marginBottom: 14 }}>
+                <label style={{ display: isMobile ? "block" : "none", marginBottom: 14 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: ".08em" }}>Subject</span>
                   <div style={{ position: "relative" }}>
                     <select value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
@@ -1116,7 +1116,7 @@ function FeedbackButton({ user }) {
                 </label>
 
                 {/* Message */}
-                <label style={{ display: "block", marginBottom: 14 }}>
+                <label style={{ display: isMobile ? "block" : "none", marginBottom: 14 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: ".08em" }}>Your Message</span>
                   <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                     placeholder="Describe your issue or feedback in detail..." rows={4}
@@ -1142,7 +1142,13 @@ function FeedbackButton({ user }) {
 
 function MainApp({ user, profile, tab, setTab, onLogout }) {
   const [currentProfile, setCurrentProfile] = useState(profile);
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [expanded, setExpanded] = useState({ services: false, ai: false, shop: false });
   const role = currentProfile?.role || "owner";
@@ -1194,9 +1200,9 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       display: "flex", flexDirection: "column", position: "fixed",
       top: 0, left: 0, overflowY: "auto",
       zIndex: 200, transition: "transform 0.25s ease",
-      transform: sidebarOpen ? "translateX(0)" : "translateX(-100vw)",
-      boxShadow: sidebarOpen && window.innerWidth <= 768 ? "4px 0 20px rgba(0,0,0,0.1)" : "none",
-      visibility: sidebarOpen ? "visible" : "hidden"
+      transform: isMobile ? (sidebarOpen ? "translateX(0)" : "translateX(-100vw)") : "translateX(0)",
+      boxShadow: isMobile && sidebarOpen ? "4px 0 20px rgba(0,0,0,0.1)" : "none",
+      visibility: isMobile && !sidebarOpen ? "hidden" : "visible"
     }} className={!sidebarOpen ? "sidebar-fixed" : ""}>
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, padding: "0 4px" }}>
@@ -1288,10 +1294,10 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       )}
 
       {/* Main content */}
-      <><style>{`.main-content { margin-left: 220px; } @media(max-width:1024px){ .main-content { margin-left: 0 !important; } } @media(max-width:768px){ .main-content { margin-left: 0 !important; } .sidebar-fixed { transform: translateX(-100vw) !important; visibility: hidden !important; } }`}</style><div style={{ flex: 1, minHeight: "100vh" }} className="main-content">
+      <><style>{`.main-content { margin-left: 220px; } @media(max-width:768px){ .main-content { margin-left: 0 !important; } }`}</style><div style={{ flex: 1, minHeight: "100vh" }} className="main-content">
         {/* Top bar - mobile only */}
         <div style={{ background: C.card, borderBottom: `1px solid ${C.cardBorder}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 100 }}>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.text, display: "block" }}>☰</button>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.text, display: isMobile ? "block" : "none" }}>☰</button>
           <span style={{ color: C.green, fontWeight: 900, fontSize: 18 }}>MyPetDex</span>
         </div>
 
