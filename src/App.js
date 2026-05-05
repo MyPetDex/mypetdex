@@ -1194,8 +1194,9 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       display: "flex", flexDirection: "column", position: "fixed",
       top: 0, left: 0, overflowY: "auto",
       zIndex: 200, transition: "transform 0.25s ease",
-      transform: sidebarOpen ? "translateX(0)" : "translateX(-220px)",
-      boxShadow: sidebarOpen && window.innerWidth <= 768 ? "4px 0 20px rgba(0,0,0,0.1)" : "none"
+      transform: sidebarOpen ? "translateX(0)" : "translateX(-100vw)",
+      boxShadow: sidebarOpen && window.innerWidth <= 768 ? "4px 0 20px rgba(0,0,0,0.1)" : "none",
+      visibility: sidebarOpen ? "visible" : "hidden"
     }}>
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, padding: "0 4px" }}>
