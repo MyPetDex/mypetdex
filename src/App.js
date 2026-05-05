@@ -1207,8 +1207,8 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, padding: "0 4px" }}>
         <img src="/logo.png" alt="MyPetDex" style={{ width: 32, height: 32, objectFit: "contain" }} />
-        <span style={{ color: C.green, fontWeight: 900, fontSize: 18 }}>MyPetDex</span>
-        <button onClick={() => setSidebarOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted, lineHeight: 1 }}>✕</button>
+        <span style={{ color: C.green, fontWeight: 900, fontSize: 18, paddingLeft: 8 }}>MyPetDex</span>
+        {isMobile && <button onClick={() => setSidebarOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted, lineHeight: 1 }}>✕</button>}
       </div>
 
       {/* User info */}
@@ -1298,7 +1298,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         {/* Top bar - mobile only */}
         <div style={{ background: C.card, borderBottom: `1px solid ${C.cardBorder}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 100 }}>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.text, display: isMobile ? "block" : "none" }}>☰</button>
-          <span style={{ color: C.green, fontWeight: 900, fontSize: 18 }}>MyPetDex</span>
+          <span style={{ color: C.green, fontWeight: 900, fontSize: 18, paddingLeft: 8 }}>MyPetDex</span>
         </div>
 
         {isDemo && <div style={{ background: C.gold + "22", borderBottom: "1px solid " + C.gold, padding: "8px 16px", textAlign: "center", fontSize: 12, color: C.gold, fontWeight: 700 }}>👀 Demo Mode — browse only, editing disabled</div>}
