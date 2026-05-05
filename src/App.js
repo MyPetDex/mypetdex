@@ -2496,6 +2496,7 @@ else if (activityLevel === "low") petMultiplier = petNeutered ? 1.2 : 1.4;
 else if (activityLevel === "moderate") petMultiplier = petNeutered ? 1.4 : 1.6;
 else if (activityLevel === "high") petMultiplier = petNeutered ? 1.6 : 1.8;
 else if (activityLevel === "very_high") petMultiplier = petNeutered ? 1.8 : 2.0;
+// eslint-disable-next-line no-unused-vars
 const petDailyCalories = Math.round(petRER * petMultiplier);
     const prompt = "You are a veterinary nutritionist creating a balanced homemade pet food recipe.\n\nPet: " + petInfo + "\nHealth condition: " + healthLabel + "\nActivity level: " + activityLabel + "\nSelected ingredients:\n" + selectedIngredients + (excludeIngredients ? "\nIngredients to exclude: " + excludeIngredients : "") + "\n\nCreate a single balanced recipe using ONLY the selected ingredients. Return your response in this EXACT JSON format (no markdown, no backticks):\n{\n  \"name\": \"Recipe name\",\n  \"emoji\": \"single emoji\",\n  \"prepTime\": \"X minutes\",\n  \"servings\": \"X days worth\",\n  \"dailyAmount\": \"X cups or X grams per day\",\n  \"calories\": \" + petDailyCalories + \" kcal per day\",\n  \"ingredients\": [{\"item\": \"ingredient name\", \"amount\": \"X grams or cups\", \"note\": \"optional note\"}],\n  \"steps\": [\"Step 1\", \"Step 2\"],\n  \"nutrition\": {\"protein\": \"X%\", \"fat\": \"X%\", \"carbs\": \"X%\", \"moisture\": \"X%\"},\n  \"tips\": \"One helpful tip\",\n  \"disclaimer\": \"Always consult your veterinarian before changing your pet's diet.\"\n}";
     try {
