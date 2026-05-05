@@ -1756,9 +1756,9 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
               </div>
             </div>
           )}
-          {activeTab === "calories" && <CalcTab pet={pet} profile={profile} />}
         </div>
       )}
+      {activeTab === "calories" && <CalcTab pet={pet} profile={profile} />}
     </div>
   );
 }
