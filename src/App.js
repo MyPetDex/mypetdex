@@ -1202,6 +1202,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, padding: "0 4px" }}>
         <img src="/logo.png" alt="MyPetDex" style={{ width: 32, height: 32, objectFit: "contain" }} />
         <span style={{ color: C.green, fontWeight: 900, fontSize: 18 }}>MyPetDex</span>
+        <button onClick={() => setSidebarOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted, lineHeight: 1 }}>✕</button>
       </div>
 
       {/* User info */}
