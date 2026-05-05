@@ -847,7 +847,9 @@ function Landing({ onRegister, onLogin, onGoogle }) {
       {/* Logo */}
       <img src="/logo.png" alt="MyPetDex" style={{ width: 100, height: 100, objectFit: "contain", marginBottom: 8 }} />
       <h1 style={{ color: C.green, fontWeight: 900, fontSize: 42, margin: 0, letterSpacing: -1 }}>MyPetDex</h1>
-      <p style={{ color: C.muted, fontSize: 16, marginBottom: 32, textAlign: "center", maxWidth: 320 }}>Everything you need to care for your pet in one place.</p>
+      <p style={{ color: C.muted, fontSize: 16, marginBottom: 32, textAlign: "center", maxWidth: 320 }}>Everything your pet needs — in one simple app.
+      </div>
+      <div style={{ color: "#64748b", fontSize: 14, textAlign: "center", maxWidth: 300, marginBottom: 8 }}>Manage health records, reminders, nutrition, services, and expert guidance in one place.</p>
 
       {/* Google Sign In */}
       <button onClick={onGoogle} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", maxWidth: 320, padding: "13px 20px", background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: "#1E293B", cursor: "pointer", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
