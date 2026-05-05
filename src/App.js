@@ -1286,7 +1286,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       )}
 
       {/* Main content */}
-      <div style={{ marginLeft: 0, flex: 1, minHeight: "100vh" }}>
+      <><style>{`.main-content { margin-left: 220px; } @media(max-width:768px){ .main-content { margin-left: 0 !important; } }`}</style><div style={{ flex: 1, minHeight: "100vh" }} className="main-content">
         {/* Top bar - mobile only */}
         <div style={{ background: C.card, borderBottom: `1px solid ${C.cardBorder}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 100 }}>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.text, display: "block" }}>☰</button>
