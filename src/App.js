@@ -1231,7 +1231,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         {isOwner && <>
           {expandItem("ai", "🤖", "AI Tools")}
           {expanded.ai && <>
-            {navItem("💬", "💬", "Pet AI Chat", true)}
+            {navItem("ai", "💬", "Pet AI Chat", true)}
             {navItem("recipes", "🍽️", "Pet Recipes", true)}
           </>}
         </>}
