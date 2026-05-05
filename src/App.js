@@ -3168,6 +3168,35 @@ function SettingsTab({ user, profile, onProfileUpdate, onLogout, isDemo }) {
         </div>
       </div>
       <div style={{ ...card, marginBottom: 14 }}>
+        <div style={{ color: C.text, fontWeight: 800, fontSize: 15, marginBottom: 12 }}>🆕 What's New</div>
+        <div style={{ color: C.muted, fontSize: 12, marginBottom: 8, fontWeight: 700 }}>Version 1.5 — May 2026</div>
+        {[
+          "✅ New logo and branding",
+          "✅ Onboarding welcome guide",
+          "✅ AI disclaimer added to chat",
+          "✅ Improved empty states",
+          "✅ Navigation labels updated",
+          "🔜 iOS & Android app coming soon"
+        ].map((item, i) => (
+          <div key={i} style={{ color: C.muted, fontSize: 13, padding: "5px 0", borderBottom: i < 5 ? `1px solid ${C.cardBorder}` : "none" }}>{item}</div>
+        ))}
+      </div>
+      <div style={{ ...card, marginBottom: 14 }}>
+        <div style={{ color: C.text, fontWeight: 800, fontSize: 15, marginBottom: 12 }}>❓ FAQ</div>
+        {[
+          ["Is MyPetDex free?", "Yes! The basic plan is free forever. Plus and Family plans unlock advanced features."],
+          ["Is my data private?", "Absolutely. Your data is encrypted and never shared with third parties."],
+          ["Can I add multiple pets?", "Yes! Free plan supports 1 pet, Plus supports 3, and Family supports unlimited pets."],
+          ["Is the AI a real vet?", "No. The AI provides informational guidance only. Always consult your vet for medical advice."],
+          ["When is the mobile app launching?", "iOS & Android apps are coming soon. Join the waitlist at home.mypetdex.app!"]
+        ].map(([q, a], i) => (
+          <div key={i} style={{ padding: "10px 0", borderBottom: i < 4 ? `1px solid ${C.cardBorder}` : "none" }}>
+            <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{q}</div>
+            <div style={{ color: C.muted, fontSize: 12, lineHeight: 1.5 }}>{a}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ ...card, marginBottom: 14 }}>
         <div style={{ color: C.text, fontWeight: 800, fontSize: 15, marginBottom: 8 }}>Contact Us</div>
         <div style={{ color: C.muted, fontSize: 13 }}>📧 help@mypetdex.app</div>
         <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>🌐 mypetdex.app</div>
