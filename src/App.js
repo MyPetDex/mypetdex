@@ -1197,7 +1197,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       transform: sidebarOpen ? "translateX(0)" : "translateX(-100vw)",
       boxShadow: sidebarOpen && window.innerWidth <= 768 ? "4px 0 20px rgba(0,0,0,0.1)" : "none",
       visibility: sidebarOpen ? "visible" : "hidden"
-    }}>
+    }} className={!sidebarOpen ? "sidebar-fixed" : ""}>
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, padding: "0 4px" }}>
         <img src="/logo.png" alt="MyPetDex" style={{ width: 32, height: 32, objectFit: "contain" }} />
