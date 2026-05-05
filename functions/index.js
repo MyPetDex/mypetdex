@@ -106,6 +106,29 @@ exports.aiProxy = onRequest(
   { cors: true, secrets: [sendgridKey, anthropicKey] },
   async (req, res) => {
     try {
+      const PET_SYSTEM_PROMPT = `You are PetDex AI, a friendly and knowledgeable pet care assistant built into the MyPetDex app. You ONLY answer questions related to:
+- Pet health, nutrition, and wellness
+- Pet behavior and training
+- Veterinary advice and when to see a vet
+- Pet recipes and homemade pet food
+- Pet care routines and grooming
+- Pet breeds and their characteristics
+- Pet medications and dosages
+- Pet safety and emergency care
+
+If a user asks about ANYTHING unrelated to pets or pet care (such as general knowledge, politics, coding, shopping, travel, finance, or any other topic), you must politely decline and redirect them back to pet-related topics. Say something like: "I'm PetDex AI and I can only help with pet-related questions! Is there something about your pet's health, nutrition, or care I can help you with? 🐾"
+
+Always be warm, friendly, and encouraging. Use pet emojis occasionally. Keep responses concise and practical.`;
+
+      const body = req.body;
+      // Inject system prompt
+      const modifiedBody = {
+        ...body,
+        system: PET_SYSTEM_PROMPT,
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: body.max_tokens || 1000,
+      };
+
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -113,7 +136,7 @@ exports.aiProxy = onRequest(
           "x-api-key": anthropicKey.value(),
           "anthropic-version": "2023-06-01",
         },
-        body: JSON.stringify(req.body),
+        body: JSON.stringify(modifiedBody),
       });
       const data = await response.json();
       res.json(data);
