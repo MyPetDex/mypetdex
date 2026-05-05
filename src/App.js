@@ -533,7 +533,7 @@ function UpgradeScreen({ user, profile, onClose }) {
       <div style={{ background: C.card, borderRadius: 20, padding: 28, maxWidth: 480, width: "100%", position: "relative" }}>
         <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", fontSize: 20, cursor: "pointer", color: C.muted }}>✕</button>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ fontSize: 40 }}>🐾</div>
+          <img src="/logo.png" alt="MyPetDex" style={{ width: 56, height: 56, objectFit: "contain" }} />
           <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: "8px 0 4px" }}>Upgrade MyPetDex</h2>
           <p style={{ color: C.muted, fontSize: 13 }}>Start your 30-day free trial — cancel anytime</p>
         </div>
@@ -805,7 +805,7 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
       <div style={{ width: "100%", maxWidth: 460 }}>
-        <div style={{ fontSize: 52, textAlign: "center", marginBottom: 8 }}>🐾</div>
+        <img src="/logo.png" alt="MyPetDex" style={{ width: 72, height: 72, objectFit: "contain", marginBottom: 8 }} />
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 24, margin: "0 0 8px", textAlign: "center" }}>Welcome, {user?.displayName?.split(" ")[0] || "Friend"}!</h2>
         <p style={{ color: C.muted, fontSize: 14, marginBottom: 24, textAlign: "center" }}>One last step — how will you use MyPetDex?</p>
         {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
@@ -845,7 +845,7 @@ function Landing({ onRegister, onLogin, onGoogle }) {
       </div>
 
       {/* Logo */}
-      <div style={{ fontSize: 72, marginBottom: 8 }}>🐾</div>
+      <img src="/logo.png" alt="MyPetDex" style={{ width: 100, height: 100, objectFit: "contain", marginBottom: 8 }} />
       <h1 style={{ color: C.green, fontWeight: 900, fontSize: 42, margin: 0, letterSpacing: -1 }}>MyPetDex</h1>
       <p style={{ color: C.muted, fontSize: 16, marginBottom: 32, textAlign: "center", maxWidth: 320 }}>Everything you need to care for your pet in one place.</p>
 
@@ -863,7 +863,7 @@ function Landing({ onRegister, onLogin, onGoogle }) {
       </div>
 
       {/* Get Started */}
-      <button style={{ ...btn(C.green), width: "100%", maxWidth: 320 }} onClick={onRegister}>Create Free Account 🐾</button>
+      <button style={{ ...btn(C.green), width: "100%", maxWidth: 320 }} onClick={onRegister}>Create Free Account →</button>
 
       <p style={{ color: C.muted, fontSize: 12, marginTop: 24 }}>🐶 Pet Owners · 🛎️ Service Providers · 🏠 Shelters</p>
       <div style={{ marginTop: 12, background: C.card, borderRadius: 12, padding: "10px 18px", border: `1px solid ${C.cardBorder}`, maxWidth: 320 }}>
@@ -933,7 +933,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
       <div style={{ width: "100%", maxWidth: 460 }}>
         <button onClick={() => step === 2 ? setStep(1) : onBack()} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 8px" }}>Create Account</h2>
-        <p style={{ color: C.muted, fontSize: 14, marginBottom: 16 }}>Join the MyPetDex community 🐾</p>
+        <p style={{ color: C.muted, fontSize: 14, marginBottom: 16 }}>Join the MyPetDex community</p>
         <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
           <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>🔒 Your data is encrypted using industry-standard protocols and never shared with third parties.</p>
         </div>
@@ -1021,7 +1021,7 @@ function LoginScreen({ onBack, onSuccess }) {
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
       <div style={{ width: "100%", maxWidth: 380 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
-        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 24px" }}>Welcome back 🐾</h2>
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 24px" }}>Welcome back 👋</h2>
         {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
         <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" />
         <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="password" />
@@ -1198,7 +1198,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
     }}>
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, padding: "0 4px" }}>
-        <span style={{ fontSize: 24 }}>🐾</span>
+        <img src="/logo.png" alt="MyPetDex" style={{ width: 32, height: 32, objectFit: "contain" }} />
         <span style={{ color: C.green, fontWeight: 900, fontSize: 18 }}>MyPetDex</span>
       </div>
 
@@ -1358,13 +1358,13 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
     <div>
       {/* ── My Pets Section ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets 🐾</h2>
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets</h2>
         <button onClick={() => setTab("pets")} style={{ ...btn(C.cardBorder, C.green), padding: "6px 14px", fontSize: 13, border: `1px solid ${C.green}` }}>+ Add Pet</button>
       </div>
 
       {pets.length === 0 && (
         <div style={{ ...card, textAlign: "center", padding: 24, marginBottom: 20 }}>
-          <div style={{ fontSize: 40 }}>🐾</div>
+          <img src="/logo.png" alt="MyPetDex" style={{ width: 56, height: 56, objectFit: "contain" }} />
           <div style={{ color: C.text, fontWeight: 800, marginTop: 8 }}>No pets yet!</div>
           <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>Tap "Add Pet" to get started</div>
         </div>
@@ -1474,7 +1474,7 @@ function PetsTab({ user, profile, isDemo, onUpgrade }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets 🐾</h2>
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets</h2>
         {!isDemo && (pets.length < petLimit) && <button style={btn(C.green)} onClick={() => setAdding(true)}>+ Add Pet</button>}
         {!isDemo && (pets.length >= petLimit) && <button onClick={onUpgrade} style={{ ...btn(C.green), fontSize: 13 }}>⬆️ Upgrade for More Pets</button>}
       </div>
