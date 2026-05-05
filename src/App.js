@@ -819,7 +819,7 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
         {step === 2 && role === "owner" && <>
           <p style={{ color: C.muted, fontSize: 13, marginBottom: 16 }}>Tell us about your pet:</p>
           <Field label="Pet Name" value={petForm.name} onChange={v => setPetForm(f=>({...f,name:v}))} placeholder="Buddy" />
-          <Field label="Pet Type" as="select" value={petForm.type} onChange={v => setPetForm(f=>({...f,type:v}))} options={["Dog","Cat","Rabbit","Bird","Other"]} />
+          <Field label="Pet Type" as="select" value={petForm.type} onChange={v => setPetForm(f=>({...f,type:v}))} options={["Dog","Cat"]} />
           <Field label="Breed" as="select" value={petForm.breed} onChange={v => setPetForm(f=>({...f,breed:v}))} options={petForm.type === "Cat" ? CAT_BREEDS : DOG_BREEDS} />
           <button onClick={() => setStep(1)} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:13, fontFamily:font, marginBottom:12 }}>← Back</button>
         </>}
@@ -957,7 +957,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
         {step === 2 && role === "owner" && <>
           <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>Tell us about your pet and location</p>
           <Field label="Pet Name" value={form.petName} onChange={set("petName")} placeholder="Buddy" required />
-          <Field label="Pet Type" as="select" value={form.petType} onChange={set("petType")} options={["Dog","Cat","Rabbit","Bird","Other"]} />
+          <Field label="Pet Type" as="select" value={form.petType} onChange={set("petType")} options={["Dog","Cat"]} />
           <Field label="Breed" as="select" value={form.petBreed} onChange={set("petBreed")} options={form.petType === "Cat" ? CAT_BREEDS : DOG_BREEDS} />
           <Field label="Age" value={form.petAge} onChange={set("petAge")} placeholder="e.g. 2 years" />
           <Field label="Weight" value={form.petWeight} onChange={set("petWeight")} placeholder="e.g. 55 lbs" />
@@ -1530,7 +1530,7 @@ function PetsTab({ user, profile, isDemo, onUpgrade }) {
             )}
           </div>
           <Field label="Pet Name" value={form.name} onChange={set("name")} placeholder="Buddy" required />
-          <Field label="Type" as="select" value={form.type} onChange={set("type")} options={["Dog","Cat","Rabbit","Bird","Other"]} />
+          <Field label="Type" as="select" value={form.type} onChange={set("type")} options={["Dog","Cat"]} />
           <Field label="Breed" as="select" value={form.breed} onChange={set("breed")} options={form.type === "Cat" ? CAT_BREEDS : form.type === "Dog" ? DOG_BREEDS : ["Mixed","Other"]} />
           <Field label="Age" value={form.age} onChange={set("age")} placeholder="2 years" />
           <Field label="Weight" value={form.weight} onChange={set("weight")} placeholder="55 lbs" />
@@ -1955,7 +1955,7 @@ function EditPetInfo({ pet, onDelete, onSaved, isDemo }) {
       <h3 style={{ color: C.text, margin: "0 0 16px" }}>✏️ Edit Pet Info</h3>
       {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 14 }}>{error}</div>}
       <Field label="Pet Name" value={form.name} onChange={set("name")} placeholder="Buddy" required />
-      <Field label="Type" as="select" value={form.type} onChange={set("type")} options={["Dog","Cat","Rabbit","Bird","Other"]} />
+      <Field label="Type" as="select" value={form.type} onChange={set("type")} options={["Dog","Cat"]} />
       <Field label="Breed" as="select" value={form.breed} onChange={set("breed")} options={form.type === "Cat" ? CAT_BREEDS : form.type === "Dog" ? DOG_BREEDS : ["Mixed","Other"]} />
       <Field label="Age" value={form.age} onChange={set("age")} placeholder="2 years" />
       <Field label="Weight" value={form.weight} onChange={set("weight")} placeholder="55 lbs" />
@@ -3216,7 +3216,7 @@ function ShelterListings({ user }) {
         <div style={{ ...card, marginTop: 14 }}>
           <h3 style={{ color: C.text, margin: "0 0 16px" }}>Add Available Pet</h3>
           <Field label="Name" value={form.name} onChange={set("name")} placeholder="Charlie" required />
-          <Field label="Type" as="select" value={form.type} onChange={set("type")} options={["Dog","Cat","Rabbit","Bird","Other"]} />
+          <Field label="Type" as="select" value={form.type} onChange={set("type")} options={["Dog","Cat"]} />
           <Field label="Breed" as="select" value={form.breed} onChange={set("breed")} options={form.type === "Cat" ? CAT_BREEDS : form.type === "Dog" ? DOG_BREEDS : ["Mixed","Other"]} />
           <Field label="Age" value={form.age} onChange={set("age")} placeholder="1yr" />
           <Field label="Notes" as="textarea" value={form.notes} onChange={set("notes")} placeholder="Personality, special needs..." />
