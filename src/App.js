@@ -2182,7 +2182,25 @@ function ServicesTab({ profile, user, serviceFilter }) {
     </div>
   );
 }
+const AI_DAILY_LIMITS = { free: 0, plus: 20, family: 50 };
+
 function AITab({ profile, user, onUpgrade }) {
+  const [msgCount, setMsgCount] = useState(0);
+  const plan = profile?.plan || "free";
+  const dailyLimit = AI_DAILY_LIMITS[plan] || 0;
+  const today = new Date().toDateString();
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem("ai_usage") || "{}");
+    if (stored.date === today) setMsgCount(stored.count || 0);
+    else { localStorage.setItem("ai_usage", JSON.stringify({ date: today, count: 0 })); setMsgCount(0); }
+  }, [today]);
+
+  const trackMessage = () => {
+    const newCount = msgCount + 1;
+    setMsgCount(newCount);
+    localStorage.setItem("ai_usage", JSON.stringify({ date: today, count: newCount }));
+  };
   const [pets, setPets] = useState([]);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -2232,6 +2250,11 @@ function AITab({ profile, user, onUpgrade }) {
   const sendMessage = async () => {
     const text = input.trim();
     if (!text || loading) return;
+    if (msgCount >= dailyLimit) {
+      setMessages(prev => [...prev, { role: "assistant", content: `⚠️ You've reached your daily limit of ${dailyLimit} messages. Your limit resets tomorrow! Upgrade to Family plan for 50 messages/day. 🐾` }]);
+      return;
+    }
+    trackMessage();
     setInput("");
     const newMessages = [...messages, { role: "user", content: text }];
     setMessages(newMessages);
@@ -2287,6 +2310,7 @@ function AITab({ profile, user, onUpgrade }) {
       </div>
       <div style={{ display: "flex", gap: 10, paddingTop: 12, borderTop: "1px solid " + C.cardBorder }}>
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder={"Ask about " + (pets[0]?.name || "your pet") + "..."} style={{ background: C.inputBg, border: "1.5px solid " + C.cardBorder, borderRadius: 24, padding: "12px 18px", color: C.text, fontFamily: font, fontSize: 14, flex: 1, boxSizing: "border-box", outline: "none" }} />
+        <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>{msgCount}/{dailyLimit}</span>
         <button onClick={sendMessage} disabled={loading || !input.trim()} style={{ ...btn(C.green), borderRadius: "50%", width: 46, height: 46, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, opacity: loading || !input.trim() ? 0.5 : 1, flexShrink: 0 }}>↑</button>
       </div>
     </div>
