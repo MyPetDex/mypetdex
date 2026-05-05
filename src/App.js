@@ -1364,6 +1364,15 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
       </div>
 
       {pets.length === 0 && (
+        <div style={{ background: "linear-gradient(135deg,#3B82F6,#6366f1)", borderRadius: 16, padding: "18px 20px", marginBottom: 16, color: "#fff" }}>
+          <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6 }}>👋 Welcome to MyPetDex!</div>
+          <div style={{ fontSize: 13, marginBottom: 10, opacity: 0.9 }}>Get started in 3 easy steps:</div>
+          <div style={{ fontSize: 13, marginBottom: 4 }}>✅ Add your first pet</div>
+          <div style={{ fontSize: 13, marginBottom: 4, opacity: 0.7 }}>○ Add vaccines & health records</div>
+          <div style={{ fontSize: 13, opacity: 0.7 }}>○ Set up reminders</div>
+        </div>
+      )}
+      {pets.length === 0 && (
         <div style={{ ...card, textAlign: "center", padding: 24, marginBottom: 20 }}>
           <img src="/logo.png" alt="MyPetDex" style={{ width: 56, height: 56, objectFit: "contain" }} />
           <div style={{ color: C.text, fontWeight: 800, marginTop: 8 }}>No pets added yet!</div>
@@ -2306,6 +2315,7 @@ Guidelines:
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>Pet AI Assistant</h2>
         <p style={{ color: C.muted, fontSize: 13, margin: "4px 0 0" }}>Personalized advice for {pets.length > 0 ? pets.map(p => p.name).join(" & ") : "your pets"}</p>
       </div>
+      <div style={{ background: "#fef9c3", border: "1px solid #eab308", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#713f12" }}>⚠️ <strong>Important:</strong> AI responses are informational only and not a substitute for professional veterinary advice. Always consult your vet.</div>
       <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 12 }}>
         {messages.map((msg, i) => (
           <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
