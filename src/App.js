@@ -1215,9 +1215,9 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         {isOwner && navItem("pets", "🐾", "My Pets")}
 
         {isOwner && <>
-          {expandItem("services", "🛎️", "Services")}
+          {expandItem("services", "🛎️", "Local Services")}
           {expanded.services && <>
-            {navItem("services", "🐩", "All Services", true)}
+            {navItem("services", "🐩", "Find Services", true)}
             {navItem("groomers", "✂️", "Groomers", true)}
             {navItem("walkers", "🦮", "Dog Walkers", true)}
             {navItem("sitters", "🏡", "Pet Sitters", true)}
@@ -1227,9 +1227,9 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         </>}
 
         {isOwner && <>
-          {expandItem("ai", "🤖", "AI Features")}
+          {expandItem("ai", "🤖", "AI Tools")}
           {expanded.ai && <>
-            {navItem("ai", "💬", "AI Chat", true)}
+            {navItem("💬", "💬", "Pet AI Chat", true)}
             {navItem("recipes", "🍽️", "Pet Recipes", true)}
           </>}
         </>}
