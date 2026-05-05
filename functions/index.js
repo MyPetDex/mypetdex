@@ -106,25 +106,13 @@ exports.aiProxy = onRequest(
   { cors: true, secrets: [sendgridKey, anthropicKey] },
   async (req, res) => {
     try {
-      const PET_SYSTEM_PROMPT = `You are PetDex AI, a friendly and knowledgeable pet care assistant built into the MyPetDex app. You ONLY answer questions related to:
-- Pet health, nutrition, and wellness
-- Pet behavior and training
-- Veterinary advice and when to see a vet
-- Pet recipes and homemade pet food
-- Pet care routines and grooming
-- Pet breeds and their characteristics
-- Pet medications and dosages
-- Pet safety and emergency care
-
-If a user asks about ANYTHING unrelated to pets or pet care (such as general knowledge, politics, coding, shopping, travel, finance, or any other topic), you must politely decline and redirect them back to pet-related topics. Say something like: "I'm PetDex AI and I can only help with pet-related questions! Is there something about your pet's health, nutrition, or care I can help you with? 🐾"
-
-Always be warm, friendly, and encouraging. Use pet emojis occasionally. Keep responses concise and practical.`;
+      const PET_RESTRICTION = `\n\nIMPORTANT: You ONLY answer questions related to pets and pet care. If asked about anything unrelated to pets (politics, coding, shopping, travel, finance, etc.), politely decline and redirect: "I'm PetDex AI and I can only help with pet-related questions! 🐾"`;
 
       const body = req.body;
-      // Inject system prompt
+      // Keep app system prompt but add restriction
       const modifiedBody = {
         ...body,
-        system: PET_SYSTEM_PROMPT,
+        system: (body.system || "") + PET_RESTRICTION,
         model: "claude-haiku-4-5-20251001",
         max_tokens: body.max_tokens || 1000,
       };
@@ -139,6 +127,8 @@ Always be warm, friendly, and encouraging. Use pet emojis occasionally. Keep res
         body: JSON.stringify(modifiedBody),
       });
       const data = await response.json();
+      console.log("Anthropic response status:", response.status);
+      console.log("Anthropic response:", JSON.stringify(data).substring(0, 200));
       res.json(data);
     } catch (err) {
       console.error("AI proxy error:", err);
