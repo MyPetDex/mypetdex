@@ -1366,7 +1366,8 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
       {pets.length === 0 && (
         <div style={{ ...card, textAlign: "center", padding: 24, marginBottom: 20 }}>
           <img src="/logo.png" alt="MyPetDex" style={{ width: 56, height: 56, objectFit: "contain" }} />
-          <div style={{ color: C.text, fontWeight: 800, marginTop: 8 }}>No pets yet!</div>
+          <div style={{ color: C.text, fontWeight: 800, marginTop: 8 }}>No pets added yet!</div>
+              <div style={{ color: C.muted, fontSize: 13, marginTop: 6, textAlign: "center" }}>Start by adding your first pet to track their health, vaccines, and reminders.</div>
           <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>Tap "Add Pet" to get started</div>
         </div>
       )}
@@ -1677,7 +1678,7 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
             <div style={{ color: C.text, fontWeight: 800 }}>Vaccine Records</div>
             {!isDemo && <button style={{ ...btn(C.green), padding: "8px 16px", fontSize: 13 }} onClick={() => setAddingV(true)}>+ Add</button>}
           </div>
-          {vaccines.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 30 }}>No vaccines recorded yet</div>}
+          {vaccines.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 30 }}><div style={{ fontSize: 32, marginBottom: 8 }}>💉</div><div style={{ fontWeight: 800, color: C.text, marginBottom: 6 }}>No vaccines recorded yet</div><div style={{ fontSize: 13 }}>Add your pet's first vaccine to start tracking and receive reminders.</div></div>}
           {vaccines.map(v => (
             <div key={v.id} style={{ ...card, marginBottom: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -1715,7 +1716,7 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
             <div style={{ color: C.text, fontWeight: 800 }}>Reminders</div>
             {!isDemo && <button style={{ ...btn(C.green), padding: "8px 16px", fontSize: 13 }} onClick={() => setAddingR(true)}>+ Add</button>}
           </div>
-          {reminders.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 30 }}>No reminders set yet</div>}
+          {reminders.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 30 }}><div style={{ fontSize: 32, marginBottom: 8 }}>🔔</div><div style={{ fontWeight: 800, color: C.text, marginBottom: 6 }}>No reminders set yet</div><div style={{ fontSize: 13 }}>Add a reminder for vaccines, vet visits, or medications — we'll email you automatically.</div></div>}
           {reminders.map(r => (
             <div key={r.id} style={{ ...card, marginBottom: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -2292,7 +2293,8 @@ Guidelines:
 
   if (!hasFeature(profile, 'ai')) return (
     <div style={{ padding: 24 }}>
-      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>AI Assistant 🤖</h2>
+      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Pet AI Assistant</h2>
+      <div style={{ background: "#fef9c3", border: "1px solid #eab308", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#713f12" }}>⚠️ <strong>Important:</strong> AI responses are for informational purposes only and are not a substitute for professional veterinary advice. Always consult your vet for medical decisions.</div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>Your personal pet care expert</p>
       <UpgradePrompt feature="AI Assistant" requiredPlan="Plus" onUpgrade={onUpgrade} />
     </div>
@@ -2301,7 +2303,7 @@ Guidelines:
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 160px)" }}>
       <div style={{ marginBottom: 16 }}>
-        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>AI Assistant 🤖</h2>
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>Pet AI Assistant</h2>
         <p style={{ color: C.muted, fontSize: 13, margin: "4px 0 0" }}>Personalized advice for {pets.length > 0 ? pets.map(p => p.name).join(" & ") : "your pets"}</p>
       </div>
       <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 12 }}>
