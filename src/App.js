@@ -2224,13 +2224,13 @@ function AITab({ profile, user, onUpgrade }) {
     const firstName = profile?.name?.split(" ")[0] || "there";
     let greeting = "";
     if (pets.length === 0) {
-      greeting = "Hi " + firstName + "! 🐾 I'm your MyPetDex AI assistant. Add a pet to your profile and I can give you personalized advice!";
+      greeting = "Hi " + firstName + "! Welcome to PetDex AI 🐾\n\nI don't see any pets in your profile yet. Please add a pet first so I can give you personalized advice!";
     } else if (pets.length === 1) {
-      const pet = pets[0];
-      greeting = "Hi " + firstName + "! 🐾 How can I help you and " + pet.name + " today?";
+      const p = pets[0];
+      greeting = "Hi " + firstName + "! Welcome to PetDex AI 🐾\n\nI'm here to help with " + p.name + (p.breed ? " (" + p.breed + ")" : "") + ". What would you like to know today?";
     } else {
-      const petNames = pets.map(p => p.name).join(", ");
-      greeting = "Hi " + firstName + "! 🐾 How can I help you and your pets (" + petNames + ") today?";
+      const petList = pets.map((p, i) => (i+1) + ". " + p.name + " — " + p.type + (p.breed ? ", " + p.breed : "") + (p.age ? ", " + p.age + " old" : "")).join("\n");
+      greeting = "Hi " + firstName + "! Welcome to PetDex AI 🐾\n\nWhich pet can I help you with today?\n\n" + petList + "\n\nType the number or your pet's name to get started.";
     }
     setMessages([{ role: "assistant", content: greeting }]);
   }, [petsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
