@@ -1273,7 +1273,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, display: "flex" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, display: "flex", overflowX: "hidden" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
       {showUpgrade && <UpgradeScreen user={user} profile={currentProfile} onClose={() => setShowUpgrade(false)} />}
       <Sidebar />
