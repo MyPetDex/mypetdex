@@ -1309,7 +1309,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
           {tab === "settings" && <SettingsTab user={user} profile={currentProfile} onProfileUpdate={setCurrentProfile} onLogout={onLogout} isDemo={isDemo} />}
         </div>
         <FeedbackButton user={user} />
-      </div>
+      </div></>
     </div>
   );
 }
