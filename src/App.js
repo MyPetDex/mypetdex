@@ -2242,9 +2242,24 @@ function AITab({ profile, user, onUpgrade }) {
   const buildSystemPrompt = () => {
     const firstName = profile?.name?.split(" ")[0] || "the user";
     let petContext = pets.length === 0 ? "The user has not added any pets yet." : pets.map(p =>
-      "- " + p.name + ": " + p.type + (p.breed ? ", " + p.breed : "") + (p.age ? ", age " + p.age : "") + (p.weight ? ", " + p.weight : "")
+      `- ${p.name}: ${p.type}${p.breed ? ", breed: " + p.breed : ""}${p.age ? ", age: " + p.age : ""}${p.weight ? ", weight: " + p.weight : ""}${p.notes ? ", notes: " + p.notes : ""}`
     ).join("\n");
-    return "You are a warm, knowledgeable pet care assistant for MyPetDex. You are talking to " + firstName + ".\n\nTheir pets:\n" + petContext + "\n\nGuidelines:\n- Always reference the user's actual pets by name when relevant\n- Give breed-specific advice when you know the breed\n- Be warm, friendly, and concise\n- Use relevant emojis sparingly\n- If asked about medical emergencies, always recommend seeing a vet immediately\n- Keep responses under 150 words unless truly needed";
+    return `You are PetDex AI, a warm and knowledgeable pet care assistant for MyPetDex. You are talking to ${firstName}.
+
+IMPORTANT: You already know everything about their pets listed below. NEVER ask what type of pet they have or basic info you already know. Use this info to give specific, personalized advice.
+
+Their pets:
+${petContext}
+
+Guidelines:
+- Address pets by their name always
+- Give breed-specific advice based on the known breed
+- Reference their pet's actual age and weight when relevant
+- If user has multiple pets and doesn't specify which one, ask which pet they mean
+- Be warm, friendly, and concise
+- Use pet emojis sparingly 🐾
+- For medical emergencies, always recommend seeing a vet immediately
+- Keep responses under 200 words unless truly needed`;
   };
 
   const sendMessage = async () => {
