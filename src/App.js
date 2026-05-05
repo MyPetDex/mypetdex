@@ -2485,7 +2485,19 @@ function RecipesTab({ profile, user, onUpgrade }) {
     }).filter(Boolean).join("\n");
     const healthLabel = HEALTH_CONDITIONS.find(h => h.id === healthCondition)?.label || "Healthy";
     const activityLabel = ACTIVITY_LEVELS.find(a => a.id === activityLevel)?.label || "Moderate";
-    const prompt = "You are a veterinary nutritionist creating a balanced homemade pet food recipe.\n\nPet: " + petInfo + "\nHealth condition: " + healthLabel + "\nActivity level: " + activityLabel + "\nSelected ingredients:\n" + selectedIngredients + (excludeIngredients ? "\nIngredients to exclude: " + excludeIngredients : "") + "\n\nCreate a single balanced recipe using ONLY the selected ingredients. Return your response in this EXACT JSON format (no markdown, no backticks):\n{\n  \"name\": \"Recipe name\",\n  \"emoji\": \"single emoji\",\n  \"prepTime\": \"X minutes\",\n  \"servings\": \"X days worth\",\n  \"dailyAmount\": \"X cups or X grams per day\",\n  \"calories\": \"approximately X kcal per day\",\n  \"ingredients\": [{\"item\": \"ingredient name\", \"amount\": \"X grams or cups\", \"note\": \"optional note\"}],\n  \"steps\": [\"Step 1\", \"Step 2\"],\n  \"nutrition\": {\"protein\": \"X%\", \"fat\": \"X%\", \"carbs\": \"X%\", \"moisture\": \"X%\"},\n  \"tips\": \"One helpful tip\",\n  \"disclaimer\": \"Always consult your veterinarian before changing your pet's diet.\"\n}";
+    // Calculate RER calories using same formula as Calories tab
+const petWeightKg = (parseFloat(selectedPet.weight) || 22) * 0.453592;
+const petRER = Math.round(70 * Math.pow(petWeightKg, 0.75));
+const petAge = (selectedPet.age || "adult").toLowerCase();
+const petNeutered = selectedPet.neutered !== false;
+let petMultiplier = 1.6;
+if (petAge.includes("puppy") || petAge.includes("kitten")) petMultiplier = 2.0;
+else if (activityLevel === "low") petMultiplier = petNeutered ? 1.2 : 1.4;
+else if (activityLevel === "moderate") petMultiplier = petNeutered ? 1.4 : 1.6;
+else if (activityLevel === "high") petMultiplier = petNeutered ? 1.6 : 1.8;
+else if (activityLevel === "very_high") petMultiplier = petNeutered ? 1.8 : 2.0;
+const petDailyCalories = Math.round(petRER * petMultiplier);
+    const prompt = "You are a veterinary nutritionist creating a balanced homemade pet food recipe.\n\nPet: " + petInfo + "\nHealth condition: " + healthLabel + "\nActivity level: " + activityLabel + "\nSelected ingredients:\n" + selectedIngredients + (excludeIngredients ? "\nIngredients to exclude: " + excludeIngredients : "") + "\n\nCreate a single balanced recipe using ONLY the selected ingredients. Return your response in this EXACT JSON format (no markdown, no backticks):\n{\n  \"name\": \"Recipe name\",\n  \"emoji\": \"single emoji\",\n  \"prepTime\": \"X minutes\",\n  \"servings\": \"X days worth\",\n  \"dailyAmount\": \"X cups or X grams per day\",\n  \"calories\": \"${petDailyCalories} kcal per day\",\n  \"ingredients\": [{\"item\": \"ingredient name\", \"amount\": \"X grams or cups\", \"note\": \"optional note\"}],\n  \"steps\": [\"Step 1\", \"Step 2\"],\n  \"nutrition\": {\"protein\": \"X%\", \"fat\": \"X%\", \"carbs\": \"X%\", \"moisture\": \"X%\"},\n  \"tips\": \"One helpful tip\",\n  \"disclaimer\": \"Always consult your veterinarian before changing your pet's diet.\"\n}";
     try {
       const response = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/aiProxy", {
         method: "POST",
