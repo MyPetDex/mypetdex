@@ -346,7 +346,7 @@ function shelterWelcomeHTML(name) {
 function adminNotificationHTML(role, email, profile) {
   const roleEmoji = { owner: "🐾", provider: "🛎️", shelter: "🏠" }[role] || "👤";
   const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
-  const skipKeys = ["uid", "password"];
+  const skipKeys = ["uid", "password", "confirmPassword", "confirm_password", "rePassword"];
   const rows = Object.entries(profile)
     .filter(([k, v]) => !skipKeys.includes(k) && v)
     .map(([k, v]) => `<tr>
