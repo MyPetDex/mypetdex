@@ -1438,7 +1438,7 @@ function PetsTab({ user, profile, isDemo, onUpgrade, openAdd, onOpenAddDone }) {
   const [adding, setAdding] = useState(false);
   useEffect(() => {
     if (openAdd) { setAdding(true); if (onOpenAddDone) onOpenAddDone(); }
-  }, [openAdd]);
+  }, [openAdd, onOpenAddDone]);
   const [selectedPetId, setSelectedPetId] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [form, setForm] = useState({ name:"", type:"Dog", breed:"", age:"", weight:"", nextVet:"", notes:"", feeding:"" });
