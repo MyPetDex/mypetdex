@@ -1225,7 +1225,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         {isOwner && <>
           {expandItem("services", "🛎️", "Local Services")}
           {expanded.services && <>
-            {navItem("services", "🛎️", "Local Services", true)}
+
           </>}
         </>}
 
