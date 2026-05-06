@@ -197,6 +197,7 @@ export default function App() {
   const urlPlan = sessionStorage.getItem("selectedPlan") || "free";
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
+  const [openAdd, setOpenAdd] = useState(false);
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -585,6 +586,9 @@ function AdminShop() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  useEffect(() => {
+    if (openAdd) { setAdding(true); if (onOpenAddDone) onOpenAddDone(); }
+  }, [openAdd]);
   const [form, setForm] = useState({ name: "", desc: "", price: "", emoji: "🛍️", url: "" });
   const set = k => v => setForm(f => ({ ...f, [k]: v }));
 
@@ -1300,7 +1304,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
 
         <div style={{ padding: "20px 24px", maxWidth: 680 }}>
           {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} />}
-          {tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} isDemo={isDemo} onUpgrade={() => setShowUpgrade(true)} />}
+          {tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} isDemo={isDemo} onUpgrade={() => setShowUpgrade(true)} openAdd={openAdd} onOpenAddDone={() => setOpenAdd(false)} />}
           {(tab === "services" || tab === "groomers" || tab === "walkers" || tab === "sitters" || tab === "daycare" || tab === "vets") && isOwner && <ServicesTab profile={currentProfile} user={user} serviceFilter={tab} />}
           {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} onUpgrade={() => setShowUpgrade(true)} />}
           {tab === "recipes" && isOwner && <RecipesTab profile={currentProfile} user={user} onUpgrade={() => setShowUpgrade(true)} />}
@@ -1363,7 +1367,7 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
       {/* ── My Pets Section ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets</h2>
-        <button onClick={() => setTab("pets")} style={{ ...btn(C.cardBorder, C.green), padding: "6px 14px", fontSize: 13, border: `1px solid ${C.green}` }}>+ Add Pet</button>
+        <button onClick={() => { setTab("pets"); setOpenAdd(true); }} style={{ ...btn(C.cardBorder, C.green), padding: "6px 14px", fontSize: 13, border: `1px solid ${C.green}` }}>+ Add Pet</button>
       </div>
 
       {pets.length === 0 && (
@@ -1431,7 +1435,7 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
 }
 
 // ─── Pets Tab ─────────────────────────────────────────────────────────────────
-function PetsTab({ user, profile, isDemo, onUpgrade }) {
+function PetsTab({ user, profile, isDemo, onUpgrade, openAdd, onOpenAddDone }) {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
