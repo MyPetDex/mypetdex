@@ -197,7 +197,6 @@ export default function App() {
   const urlPlan = sessionStorage.getItem("selectedPlan") || "free";
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
-  const [openAdd, setOpenAdd] = useState(false);
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -1143,6 +1142,7 @@ function FeedbackButton({ user }) {
 
 function MainApp({ user, profile, tab, setTab, onLogout }) {
   const [currentProfile, setCurrentProfile] = useState(profile);
+  const [openAdd, setOpenAdd] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   useEffect(() => {
