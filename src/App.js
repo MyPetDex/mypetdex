@@ -1223,7 +1223,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         {isOwner && navItem("pets", "🐾", "My Pets")}
 
         {isOwner && <>
-          {expandItem("services", "🛎️", "Local Services")}
+          {navItem("services", "🛎️", "Local Services")}
           {expanded.services && <>
 
           </>}
