@@ -399,7 +399,7 @@ const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 
 exports.createCheckoutSession = onRequest({ secrets: [stripeSecretKey, sendgridKey], cors: true }, async (req, res) => {
   if (req.method !== "POST") { res.status(405).send("Method not allowed"); return; }
-  const { priceId, userId, email, plan } = req.body;
+  const { priceId, userId, email, plan, billing } = req.body;
   if (!priceId || !userId || !email) { res.status(400).send("Missing required fields"); return; }
   try {
     const stripe = require("stripe")(stripeSecretKey.value());
@@ -408,16 +408,18 @@ exports.createCheckoutSession = onRequest({ secrets: [stripeSecretKey, sendgridK
       payment_method_types: ["card"],
       customer_email: email,
       line_items: [{ price: priceId, quantity: 1 }],
-      subscription_data: { trial_period_days: 30, metadata: { userId, plan } },
-      metadata: { userId, plan },
-      success_url: "https://app.mypetdex.app?payment=success&plan=" + plan,
+      subscription_data: { trial_period_days: 30, metadata: { userId, plan, billing } },
+      metadata: { userId, plan, billing },
+      success_url: "https://app.mypetdex.app?payment=success&plan=" + plan + "&billing=" + (billing || "monthly"),
       cancel_url: "https://app.mypetdex.app?payment=cancelled",
     });
     // Return URL immediately, send email in background
     res.status(200).json({ url: session.url });
     // Send payment confirmation email
     const planName = plan === "plus" ? "Plus" : "Family";
-    const price = plan === "plus" ? "$3.00" : "$5.00";
+    const price = billing === "yearly"
+      ? (plan === "plus" ? "$28.80/year" : "$48.00/year")
+      : (plan === "plus" ? "$3.00/month" : "$5.00/month");
     sgMail.setApiKey(sendgridKey.value());
     try {
       await sgMail.send({

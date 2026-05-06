@@ -234,10 +234,11 @@ export default function App() {
         // Handle payment success redirect
       const paymentStatus = new URLSearchParams(window.location.search).get('payment');
       const paymentPlan = new URLSearchParams(window.location.search).get('plan');
+      const paymentBilling = new URLSearchParams(window.location.search).get('billing') || 'monthly';
       if (paymentStatus === 'success' && paymentPlan) {
         try {
           const { updateDoc } = await import('firebase/firestore');
-          await updateDoc(doc(db, 'users', firebaseUser.uid), { plan: paymentPlan });
+          await updateDoc(doc(db, 'users', firebaseUser.uid), { plan: paymentPlan, billing: paymentBilling });
           window.history.replaceState({}, '', window.location.pathname);
         } catch(e) { console.error('Plan update error:', e); }
       }
@@ -507,17 +508,22 @@ function AdminDashboard({ onLogout }) {
 // ─── Upgrade Screen ───────────────────────────────────────────────────────────
 function UpgradeScreen({ user, profile, onClose }) {
   const [loading, setLoading] = useState(null);
+  const [yearly, setYearly] = useState(false);
 
-  const PLUS_PRICE_ID = "price_1TTTMF3yxDG0TeFVxoEY8KIz";
-  const FAMILY_PRICE_ID = "price_1TTTQL3yxDG0TeFV8HDfbV1e";
+  const PRICES = {
+    plus:   { monthly: "price_1TUET1KrbYhlx0Wn1PjyLqUw", yearly: "price_1TUETlKrbYhlx0WnA78IrSU6" },
+    family: { monthly: "price_1TUEUVKrbYhlx0Wn3PdRVYjX", yearly: "price_1TUEVAKrbYhlx0WnosSRCax3" },
+  };
 
-  const startCheckout = async (priceId, plan) => {
+  const startCheckout = async (plan) => {
+    const priceId = PRICES[plan][yearly ? "yearly" : "monthly"];
+    const billing = yearly ? "yearly" : "monthly";
     setLoading(plan);
     try {
       const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/createCheckoutSession", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId, userId: user.uid, email: user.email, plan })
+        body: JSON.stringify({ priceId, userId: user.uid, email: user.email, plan, billing })
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
@@ -532,10 +538,20 @@ function UpgradeScreen({ user, profile, onClose }) {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div style={{ background: C.card, borderRadius: 20, padding: 28, maxWidth: 480, width: "100%", position: "relative" }}>
         <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", fontSize: 20, cursor: "pointer", color: C.muted }}>✕</button>
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
           <img src="/logo.png" alt="MyPetDex" style={{ width: 56, height: 56, objectFit: "contain" }} />
           <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: "8px 0 4px" }}>Upgrade MyPetDex</h2>
           <p style={{ color: C.muted, fontSize: 13 }}>Start your 30-day free trial — cancel anytime</p>
+        </div>
+
+        {/* Monthly/Yearly Toggle */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 20 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: !yearly ? C.text : C.muted }}>Monthly</span>
+          <div onClick={() => setYearly(y => !y)} style={{ width: 44, height: 24, borderRadius: 12, background: yearly ? C.green : C.cardBorder, cursor: "pointer", position: "relative", transition: "background 0.2s" }}>
+            <div style={{ position: "absolute", top: 3, left: yearly ? 23 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 700, color: yearly ? C.text : C.muted }}>Yearly</span>
+          {yearly && <span style={{ background: C.green, color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>Save 20%</span>}
         </div>
 
         {/* Plus Plan */}
@@ -546,12 +562,15 @@ function UpgradeScreen({ user, profile, onClose }) {
               <div style={{ color: C.muted, fontSize: 12 }}>Up to 3 pets</div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ color: C.green, fontWeight: 900, fontSize: 20 }}>$3<span style={{ fontSize: 13 }}>/mo</span></div>
+              <div style={{ color: C.green, fontWeight: 900, fontSize: 20 }}>
+                {yearly ? "$2.40" : "$3"}<span style={{ fontSize: 13 }}>/mo</span>
+              </div>
+              {yearly && <div style={{ color: C.muted, fontSize: 11 }}>$28.80 billed yearly</div>}
               <div style={{ color: C.green, fontSize: 11, fontWeight: 700 }}>30 days FREE</div>
             </div>
           </div>
           <div style={{ color: C.muted, fontSize: 12, marginBottom: 12 }}>✅ AI Pet Assistant &nbsp; ✅ Pet Recipes &nbsp; ✅ 3 Pets</div>
-          <button onClick={() => startCheckout(PLUS_PRICE_ID, "plus")} disabled={loading === "plus"} style={{ ...btn(C.green), width: "100%" }}>
+          <button onClick={() => startCheckout("plus")} disabled={loading === "plus"} style={{ ...btn(C.green), width: "100%" }}>
             {loading === "plus" ? "Loading..." : "🎁 Start Free Trial — Plus"}
           </button>
         </div>
@@ -564,12 +583,15 @@ function UpgradeScreen({ user, profile, onClose }) {
               <div style={{ color: C.muted, fontSize: 12 }}>Unlimited pets</div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ color: C.gold, fontWeight: 900, fontSize: 20 }}>$5<span style={{ fontSize: 13 }}>/mo</span></div>
+              <div style={{ color: C.gold, fontWeight: 900, fontSize: 20 }}>
+                {yearly ? "$4" : "$5"}<span style={{ fontSize: 13 }}>/mo</span>
+              </div>
+              {yearly && <div style={{ color: C.muted, fontSize: 11 }}>$48.00 billed yearly</div>}
               <div style={{ color: C.gold, fontSize: 11, fontWeight: 700 }}>30 days FREE</div>
             </div>
           </div>
           <div style={{ color: C.muted, fontSize: 12, marginBottom: 12 }}>✅ Everything in Plus &nbsp; ✅ Unlimited Pets &nbsp; ✅ Priority Support</div>
-          <button onClick={() => startCheckout(FAMILY_PRICE_ID, "family")} disabled={loading === "family"} style={{ ...btn(C.gold), width: "100%" }}>
+          <button onClick={() => startCheckout("family")} disabled={loading === "family"} style={{ ...btn(C.gold), width: "100%" }}>
             {loading === "family" ? "Loading..." : "🎁 Start Free Trial — Family"}
           </button>
         </div>
