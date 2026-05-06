@@ -586,9 +586,6 @@ function AdminShop() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  useEffect(() => {
-    if (openAdd) { setAdding(true); if (onOpenAddDone) onOpenAddDone(); }
-  }, [openAdd]);
   const [form, setForm] = useState({ name: "", desc: "", price: "", emoji: "🛍️", url: "" });
   const set = k => v => setForm(f => ({ ...f, [k]: v }));
 
@@ -1439,6 +1436,9 @@ function PetsTab({ user, profile, isDemo, onUpgrade, openAdd, onOpenAddDone }) {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  useEffect(() => {
+    if (openAdd) { setAdding(true); if (onOpenAddDone) onOpenAddDone(); }
+  }, [openAdd]);
   const [selectedPetId, setSelectedPetId] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [form, setForm] = useState({ name:"", type:"Dog", breed:"", age:"", weight:"", nextVet:"", notes:"", feeding:"" });
