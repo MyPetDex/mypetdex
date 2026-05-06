@@ -1232,7 +1232,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         {isOwner && <>
           {expandItem("ai", "🤖", "AI Tools")}
           {expanded.ai && <>
-            {navItem("ai", "💬", "Pet AI Chat", true)}
+            {navItem("ai", "💬", "PetDex AI Assistant", true)}
             {navItem("recipes", "🍽️", "Pet Recipes", true)}
           </>}
         </>}
@@ -2305,17 +2305,17 @@ Guidelines:
 
   if (!hasFeature(profile, 'ai')) return (
     <div style={{ padding: 24 }}>
-      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Pet AI Assistant</h2>
+      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>PetDex AI Assistant</h2>
       <div style={{ background: "#fef9c3", border: "1px solid #eab308", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#713f12" }}>⚠️ <strong>Important:</strong> AI responses are for informational purposes only and are not a substitute for professional veterinary advice. Always consult your vet for medical decisions.</div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>Your personal pet care expert</p>
-      <UpgradePrompt feature="AI Assistant" requiredPlan="Plus" onUpgrade={onUpgrade} />
+      <UpgradePrompt feature="PetDex AI Assistant" requiredPlan="Plus" onUpgrade={onUpgrade} />
     </div>
   );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 160px)" }}>
       <div style={{ marginBottom: 16 }}>
-        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>Pet AI Assistant</h2>
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>PetDex AI Assistant</h2>
         <p style={{ color: C.muted, fontSize: 13, margin: "4px 0 0" }}>Personalized advice for {pets.length > 0 ? pets.map(p => p.name).join(" & ") : "your pets"}</p>
       </div>
       <div style={{ background: "#fef9c3", border: "1px solid #eab308", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#713f12" }}>⚠️ <strong>Important:</strong> AI responses are informational only and not a substitute for professional veterinary advice. Always consult your vet.</div>
