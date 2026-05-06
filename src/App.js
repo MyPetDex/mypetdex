@@ -1300,7 +1300,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         {isDemo && <div style={{ background: C.gold + "22", borderBottom: "1px solid " + C.gold, padding: "8px 16px", textAlign: "center", fontSize: 12, color: C.gold, fontWeight: 700 }}>👀 Demo Mode — browse only, editing disabled</div>}
 
         <div style={{ padding: "20px 24px", maxWidth: 680 }}>
-          {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} />}
+          {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} onAddPet={() => { setTab("pets"); setOpenAdd(true); }} />}
           {tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} isDemo={isDemo} onUpgrade={() => setShowUpgrade(true)} openAdd={openAdd} onOpenAddDone={() => setOpenAdd(false)} />}
           {(tab === "services" || tab === "groomers" || tab === "walkers" || tab === "sitters" || tab === "daycare" || tab === "vets") && isOwner && <ServicesTab profile={currentProfile} user={user} serviceFilter={tab} />}
           {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} onUpgrade={() => setShowUpgrade(true)} />}
@@ -1319,7 +1319,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
 }
 
 // ─── Home Tab ─────────────────────────────────────────────────────────────────
-function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
+function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab, onAddPet }) {
   const [pets, setPets] = useState([]);
 
   useEffect(() => {
@@ -1364,7 +1364,7 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab }) {
       {/* ── My Pets Section ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets</h2>
-        <button onClick={() => { setTab("pets"); setOpenAdd(true); }} style={{ ...btn(C.cardBorder, C.green), padding: "6px 14px", fontSize: 13, border: `1px solid ${C.green}` }}>+ Add Pet</button>
+        <button onClick={onAddPet} style={{ ...btn(C.cardBorder, C.green), padding: "6px 14px", fontSize: 13, border: `1px solid ${C.green}` }}>+ Add Pet</button>
       </div>
 
       {pets.length === 0 && (
