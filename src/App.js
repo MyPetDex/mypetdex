@@ -340,16 +340,18 @@ export default function App() {
     if (!u) return;
     // Force token refresh first
     try { await u.getIdToken(true); } catch(e) { console.error("Token refresh error:", e); }
-    // Load profile from Firestore first (with retry)
+    // Load profile from Firestore first (with retry - wait longer to ensure data is fresh)
     let userData = { email: u.email, role: "owner", plan: "free" };
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       try {
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 1500));
         const snap = await getDoc(doc(db, "users", u.uid));
         if (snap.exists()) {
           userData = snap.data();
           setProfile(userData);
-          break;
+          console.log("Profile loaded:", JSON.stringify({plan: userData.plan, pendingPlan: userData.pendingPlan}));
+          if (userData.pendingPlan) break; // Got what we need
+          if (i === 4) break; // Last attempt
         }
       } catch(e) { console.error("Profile load attempt", i+1, "error:", e); }
     }
