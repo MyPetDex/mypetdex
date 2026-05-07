@@ -334,16 +334,18 @@ export default function App() {
         }
       } catch(e) { console.error("Profile load attempt", i+1, "error:", e); }
     }
-    // Then send welcome email with correct role
-    try {
-      const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: userData.role || "owner", email: u.email, name: userData.name || u.email.split("@")[0], profile: userData })
-      });
-      console.log("sendVerifiedEmail status:", res.status);
-    } catch (emailErr) {
-      console.error("Welcome email error:", emailErr);
+    // Then send welcome email with correct role (only if not already sent)
+    if (!userData.welcomeEmailSent) {
+      try {
+        const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: userData.role || "owner", email: u.email, name: userData.name || u.email.split("@")[0], profile: userData })
+        });
+        console.log("sendVerifiedEmail status:", res.status);
+      } catch (emailErr) {
+        console.error("Welcome email error:", emailErr);
+      }
     }
     setScreen("app");
   }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
