@@ -600,24 +600,50 @@ function AdminDashboard({ onLogout }) {
             })()}
             {/* Subscriber List */}
             {subscribers.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 30 }}>No paid subscribers yet</div>}
-            {subscribers.map(s => (
-              <div key={s.id} style={{ ...card, marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <div style={{ color: C.text, fontWeight: 800, fontSize: 14 }}>{s.name || s.email}</div>
-                    <div style={{ color: C.muted, fontSize: 12 }}>{s.email}</div>
-                    <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>Joined: {s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "—"}</div>
+            {(() => {
+              const [subFilter, setSubFilter] = React.useState("all");
+              const filtered = subscribers.filter(s => {
+                if (subFilter === "active") return !s.cancelAtPeriodEnd;
+                if (subFilter === "cancelling") return s.cancelAtPeriodEnd;
+                return true;
+              });
+              return (
+                <div>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                    {[["all","All"],["active","✅ Active"],["cancelling","⚠️ Cancelling"]].map(([val, lbl]) => (
+                      <button key={val} onClick={() => setSubFilter(val)} style={{ padding: "6px 14px", fontSize: 12, borderRadius: 8, border: "1px solid " + (subFilter === val ? C.green : C.cardBorder), background: subFilter === val ? C.green + "22" : "none", color: subFilter === val ? C.green : C.muted, cursor: "pointer", fontWeight: 600 }}>{lbl}</button>
+                    ))}
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <span style={{ background: s.plan === "family" ? C.gold + "22" : C.green + "22", color: s.plan === "family" ? C.gold : C.green, borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700, textTransform: "capitalize" }}>{s.plan}</span>
-                    <div style={{ color: C.muted, fontSize: 11, marginTop: 4, textTransform: "capitalize" }}>{s.billing || "monthly"}</div>
-                    <div style={{ color: C.green, fontSize: 12, fontWeight: 700 }}>
-                      ${s.plan === "plus" ? (s.billing === "yearly" ? "2.40" : "3.00") : (s.billing === "yearly" ? "4.00" : "5.00")}/mo
-                    </div>
-                  </div>
+                  {filtered.map(s => {
+                    const isCancelling = s.cancelAtPeriodEnd;
+                    const cancelDate = s.cancelAt ? new Date(s.cancelAt * 1000).toLocaleDateString() : "—";
+                    return (
+                      <div key={s.id} style={{ ...card, marginBottom: 10, borderLeft: "3px solid " + (isCancelling ? C.gold : C.green) }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div>
+                            <div style={{ color: C.text, fontWeight: 800, fontSize: 14 }}>{s.name || s.email}</div>
+                            <div style={{ color: C.muted, fontSize: 12 }}>{s.email}</div>
+                            <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>Joined: {s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "—"}</div>
+                            {isCancelling && <div style={{ color: C.gold, fontSize: 11, fontWeight: 700, marginTop: 2 }}>⚠️ Cancels {cancelDate}</div>}
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <span style={{ background: s.plan === "family" ? C.gold + "22" : C.green + "22", color: s.plan === "family" ? C.gold : C.green, borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700, textTransform: "capitalize" }}>{s.plan}</span>
+                            {isCancelling
+                              ? <div style={{ background: C.gold + "22", color: C.gold, borderRadius: 8, padding: "2px 8px", fontSize: 11, fontWeight: 700, marginTop: 4 }}>Cancelling</div>
+                              : <div style={{ background: C.green + "22", color: C.green, borderRadius: 8, padding: "2px 8px", fontSize: 11, fontWeight: 700, marginTop: 4 }}>Active</div>
+                            }
+                            <div style={{ color: C.muted, fontSize: 11, marginTop: 2, textTransform: "capitalize" }}>{s.billing || "monthly"}</div>
+                            <div style={{ color: C.green, fontSize: 12, fontWeight: 700 }}>
+                              ${s.plan === "plus" ? (s.billing === "yearly" ? "2.40" : "3.00") : (s.billing === "yearly" ? "4.00" : "5.00")}/mo
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-            ))}
+              );
+            })()}
           </div>
         )}
       </div>

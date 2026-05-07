@@ -551,6 +551,23 @@ exports.stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecr
     } catch(e) { console.error("Cancellation handler error:", e); }
   }
 
+  // Handle subscription updated (cancel_at_period_end)
+  if (event.type === "customer.subscription.updated") {
+    const subscription = event.data.object;
+    const customerId = subscription.customer;
+    try {
+      const usersSnap = await db.collection("users").where("stripeCustomerId", "==", customerId).get();
+      if (!usersSnap.empty) {
+        const userDoc = usersSnap.docs[0];
+        await userDoc.ref.update({
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          cancelAt: subscription.cancel_at,
+        });
+        console.log("Subscription updated:", userDoc.data().email, "cancelAtPeriodEnd:", subscription.cancel_at_period_end);
+      }
+    } catch(e) { console.error("Subscription updated handler error:", e); }
+  }
+
   res.status(200).json({ received: true });
 });
 
