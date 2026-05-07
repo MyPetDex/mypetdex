@@ -801,7 +801,7 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
           name: petForm.name, type: petForm.type, breed: petForm.breed,
           age: "", weight: "", feeding: "", nextVet: "", notes: "",
           vaccines: [], reminders: [], photoURL: "",
-          uid: user.uid, createdAt: new Date().toISOString()
+          uid: user.uid, ownerEmail: user.email, createdAt: new Date().toISOString()
         });
       }
       sessionStorage.removeItem("selectedPlan");
@@ -928,7 +928,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
           name: form.petName, type: form.petType, breed: form.petBreed,
           age: form.petAge, weight: form.petWeight, feeding: "",
           nextVet: "", notes: "", vaccines: [], reminders: [],
-          photoURL: "", uid: cred.user.uid, createdAt: new Date().toISOString()
+          photoURL: "", uid: cred.user.uid, ownerEmail: cred.user.email, createdAt: new Date().toISOString()
         });
       }
       try {
@@ -1495,7 +1495,7 @@ function PetsTab({ user, profile, isDemo, onUpgrade, openAdd, onOpenAddDone }) {
       return;
     }
     await addDoc(collection(db, "pets"), {
-      ...form, uid: user.uid,
+      ...form, uid: user.uid, ownerEmail: user.email,
       photoURL: photoPreview || "",
       vaccines: [], reminders: [],
       createdAt: new Date().toISOString()
