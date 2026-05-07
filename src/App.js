@@ -959,7 +959,11 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
       const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
       const { password, confirmPassword, ...formWithoutPassword } = form;
       // Always start on free plan — Stripe will upgrade after payment
-      const profile = { ...formWithoutPassword, role, uid: cred.user.uid, plan: "free", createdAt: new Date().toISOString() };
+      const profile = { 
+        ...formWithoutPassword, role, uid: cred.user.uid, plan: "free", 
+        createdAt: new Date().toISOString(),
+        pendingPlan: (initialPlan === "plus" || initialPlan === "family") ? initialPlan : null
+      };
       await setDoc(doc(db, "users", cred.user.uid), profile);
       if (role === "owner" && form.petName) {
         await addDoc(collection(db, "pets"), {
@@ -976,12 +980,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
         const verifyUrl = (initialPlan === "plus" || initialPlan === "family")
           ? "https://app.mypetdex.app?payment=pending&plan=" + initialPlan
           : "https://app.mypetdex.app";
-        // Store pending plan in Firestore so it persists across redirects
-        if (initialPlan === "plus" || initialPlan === "family") {
-          try {
-            await updateDoc(doc(db, "users", cred.user.uid), { pendingPlan: initialPlan });
-          } catch(e) { console.error("Error saving pending plan:", e); }
-        }
+
         await sendEmailVerification(cred.user, { url: verifyUrl });
         console.log("Verification email sent to:", cred.user.email);
       } catch (verErr) {
