@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { hasFeature, UpgradePrompt } from './planUtils';
-import { auth, db, GoogleAuthProvider, signInWithPopup } from "./firebase";
+import { auth, db, GoogleAuthProvider, signInWithPopup, requestNotificationPermission } from "./firebase";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -231,6 +231,7 @@ export default function App() {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
+        requestNotificationPermission(firebaseUser.uid);
         // Handle payment success redirect
       const paymentStatus = new URLSearchParams(window.location.search).get('payment');
       const paymentPlan = new URLSearchParams(window.location.search).get('plan');
