@@ -236,6 +236,24 @@ export default function App() {
       const paymentStatus = new URLSearchParams(window.location.search).get('payment');
       const paymentPlan = new URLSearchParams(window.location.search).get('plan');
       const paymentBilling = new URLSearchParams(window.location.search).get('billing') || 'monthly';
+
+      // After email verification, redirect to Stripe for paid plans
+      if (paymentStatus === 'pending' && paymentPlan && (paymentPlan === 'plus' || paymentPlan === 'family')) {
+        const PRICES = {
+          plus: "price_1TUET1KrbYhlx0Wn1PjyLqUw",
+          family: "price_1TUEUVKrbYhlx0Wn3PdRVYjX"
+        };
+        try {
+          const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/createCheckoutSession", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ priceId: PRICES[paymentPlan], userId: firebaseUser.uid, email: firebaseUser.email, plan: paymentPlan, billing: "monthly" })
+          });
+          const data = await res.json();
+          if (data.url) { window.location.href = data.url; return; }
+        } catch(e) { console.error("Checkout redirect error:", e); }
+      }
+
       if (paymentStatus === 'success' && paymentPlan) {
         try {
           const { updateDoc } = await import('firebase/firestore');
@@ -932,26 +950,14 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
           photoURL: "", uid: cred.user.uid, ownerEmail: cred.user.email, createdAt: new Date().toISOString()
         });
       }
-      // Redirect to Stripe if paid plan selected
-      if (initialPlan === "plus" || initialPlan === "family") {
-        const PRICES = {
-          plus: "price_1TUET1KrbYhlx0Wn1PjyLqUw",
-          family: "price_1TUEUVKrbYhlx0Wn3PdRVYjX"
-        };
-        try {
-          const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/createCheckoutSession", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ priceId: PRICES[initialPlan], userId: cred.user.uid, email: cred.user.email, plan: initialPlan, billing: "monthly" })
-          });
-          const data = await res.json();
-          if (data.url) { sessionStorage.removeItem("selectedPlan"); window.location.href = data.url; return; }
-        } catch(e) { console.error("Checkout error:", e); }
-      }
-      sessionStorage.removeItem("selectedPlan");
+      // Send verification email first
       try {
         await new Promise(r => setTimeout(r, 1000));
-        await sendEmailVerification(cred.user, { url: "https://app.mypetdex.app" });
+        // For paid plans, redirect to Stripe after verification
+        const verifyUrl = (initialPlan === "plus" || initialPlan === "family")
+          ? "https://app.mypetdex.app?payment=pending&plan=" + initialPlan
+          : "https://app.mypetdex.app";
+        await sendEmailVerification(cred.user, { url: verifyUrl });
         console.log("Verification email sent to:", cred.user.email);
       } catch (verErr) {
         console.error("Verification email error:", verErr.code, verErr.message);
