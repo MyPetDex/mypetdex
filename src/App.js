@@ -1082,6 +1082,7 @@ function FeedbackButton({ user }) {
 
   const send = async () => {
     if (!form.message.trim()) { setError("Please describe your issue or feedback"); return; }
+    if (form.message.trim().length < 20) { setError("Please provide at least 20 characters so we can help you better"); return; }
     setSending(true); setError("");
     try {
       const body = new FormData();
