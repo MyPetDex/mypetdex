@@ -91,8 +91,15 @@ exports.sendScheduledReminders = onSchedule(
         const diffMinutes = (now - reminderUTC) / 1000 / 60;
         if (diffMinutes >= 0 && diffMinutes <= 5) {
           try {
+            // Get ownerEmail from pet or fall back to users collection
+            let ownerEmail = pet.ownerEmail;
+            if (!ownerEmail && pet.uid) {
+              const userDoc = await db.collection("users").doc(pet.uid).get();
+              if (userDoc.exists) ownerEmail = userDoc.data().email;
+            }
+            if (!ownerEmail) { console.log("No email for pet:", pet.name); continue; }
             await sgMail.send({
-              to: pet.ownerEmail,
+              to: ownerEmail,
               from: { email: FROM_EMAIL, name: FROM_NAME },
               subject: `⏰ Reminder: ${reminder.title} for ${pet.name}`,
               html: reminderHTML(pet.name, reminder.title, reminder.date, reminder.time),
@@ -388,6 +395,9 @@ function adminNotificationHTML(role, email, profile) {
 // ─── Reminder Email ───────────────────────────────────────────────────────────
 function reminderHTML(petName, title, date, time) {
   return emailBase(`
+    <div style="text-align:center;margin-bottom:16px;">
+      <img src="https://app.mypetdex.app/logo.png" alt="MyPetDex" style="width:72px;height:72px;object-fit:contain;" />
+    </div>
     <div class="card">
       <h1>⏰ Reminder for ${petName}</h1>
       <p>This is your scheduled reminder from MyPetDex:</p>
