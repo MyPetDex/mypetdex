@@ -3198,9 +3198,30 @@ function SettingsTab({ user, profile, onProfileUpdate, onLogout, isDemo }) {
           <span style={{ color: C.muted, fontSize: 13 }}>Email</span>
           <span style={{ color: C.text, fontSize: 13 }}>{user?.email}</span>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.cardBorder}` }}>
           <span style={{ color: C.muted, fontSize: 13 }}>Account Type</span>
           <span style={{ color: C.green, fontSize: 13, fontWeight: 700, textTransform: "capitalize" }}>{profile?.role}</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", alignItems: "center" }}>
+          <div>
+            <span style={{ color: C.muted, fontSize: 13 }}>Plan</span>
+            <span style={{ color: C.green, fontSize: 13, fontWeight: 700, marginLeft: 8, textTransform: "capitalize" }}>{profile?.plan || "free"}{profile?.billing ? " · " + profile.billing : ""}</span>
+          </div>
+          {profile?.plan && profile.plan !== "free" && (
+            <button onClick={async () => {
+              try {
+                const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/createPortalSession", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ userId: user.uid })
+                });
+                const data = await res.json();
+                if (data.url) window.location.href = data.url;
+                else alert("Could not open subscription portal. Please contact help@mypetdex.app");
+              } catch (e) { alert("Something went wrong. Please try again."); }
+            }} style={{ background: C.danger + "22", border: "1.5px solid " + C.danger, borderRadius: 10, padding: "7px 14px", color: C.danger, fontFamily: font, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+              Manage Subscription
+            </button>
+          )}
         </div>
       </div>
       <div style={{ ...card, marginBottom: 14 }}>

@@ -202,7 +202,7 @@ function emailBase(content) {
     body { margin:0; padding:0; background-color:#F5F8FF; font-family:'Helvetica Neue',Arial,sans-serif; }
     .wrapper { max-width:600px; margin:0 auto; padding:40px 20px; }
     .header { text-align:center; margin-bottom:32px; }
-    .logo { font-size:52px; }
+    .logo { text-align:center; margin-bottom:8px; }
     .app-name { color:#3B82F6; font-size:30px; font-weight:900; margin:8px 0 0; letter-spacing:-1px; }
     .card { background-color:#FFFFFF; border:1.5px solid #E2E8F0; border-radius:18px; padding:32px; margin-bottom:20px; }
     h1 { color:#1E293B; font-size:22px; font-weight:900; margin:0 0 16px; }
@@ -224,7 +224,7 @@ function emailBase(content) {
 <body>
   <div class="wrapper">
     <div class="header">
-      <div class="logo">🐾</div>
+      <div class="logo"><img src="https://app.mypetdex.app/logo.png" alt="MyPetDex" style="width:72px;height:72px;object-fit:contain;" /></div>
       <div class="app-name">MyPetDex</div>
     </div>
     ${content}
@@ -413,48 +413,84 @@ exports.createCheckoutSession = onRequest({ secrets: [stripeSecretKey, sendgridK
       success_url: "https://app.mypetdex.app?payment=success&plan=" + plan + "&billing=" + (billing || "monthly"),
       cancel_url: "https://app.mypetdex.app?payment=cancelled",
     });
-    // Return URL immediately, send email in background
+    // Return URL immediately — emails sent after payment confirmed via webhook
     res.status(200).json({ url: session.url });
-    // Send payment confirmation email
+  } catch (err) {
+    console.error("Stripe checkout error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// ─── Stripe Webhook ───────────────────────────────────────────────────────────
+const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
+
+exports.stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecret, sendgridKey], cors: false }, async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+  let event;
+  try {
+    const stripe = require("stripe")(stripeSecretKey.value());
+    event = stripe.webhooks.constructEvent(req.rawBody, sig, stripeWebhookSecret.value());
+  } catch (err) {
+    console.error("Webhook signature error:", err.message);
+    res.status(400).send("Webhook Error: " + err.message);
+    return;
+  }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    const { userId, plan, billing } = session.metadata || {};
+    const email = session.customer_email;
     const planName = plan === "plus" ? "Plus" : "Family";
     const price = billing === "yearly"
       ? (plan === "plus" ? "$28.80/year" : "$48.00/year")
       : (plan === "plus" ? "$3.00/month" : "$5.00/month");
+
+    if (userId) {
+      try {
+        const customerId = session.customer;
+        await db.collection("users").doc(userId).update({ plan, billing: billing || "monthly", stripeCustomerId: customerId });
+      } catch (e) { console.error("Firestore update error:", e); }
+    }
+
     sgMail.setApiKey(sendgridKey.value());
     try {
+      const trialEnd = new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString();
       await sgMail.send({
         to: email,
         from: { email: FROM_EMAIL, name: FROM_NAME },
-        subject: `🎉 Welcome to MyPetDex ${planName}!`,
-        html: `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#F5F8FF;">
-          <div style="text-align:center;margin-bottom:24px;">
-            <div style="font-size:48px;">🐾</div>
-            <h1 style="color:#3B82F6;">MyPetDex ${planName}</h1>
-          </div>
-          <div style="background:#fff;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #E2E8F0;">
-            <h2 style="color:#1E293B;margin:0 0 8px;">Your 30-day free trial has started!</h2>
-            <p style="color:#64748B;margin:0;">After your trial, you'll be charged ${price}/month. Cancel anytime before the trial ends.</p>
-          </div>
-          <p style="color:#1E293B;">Your <strong>${planName} plan</strong> is now active. Enjoy all your premium features!</p>
-          <a href="https://app.mypetdex.app" style="display:inline-block;background:#3B82F6;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:16px;">Open MyPetDex →</a>
-          <p style="color:#94a3b8;font-size:12px;margin-top:24px;">Questions? Contact us at help@mypetdex.app</p>
-        </div>`
+        subject: "🎉 Welcome to MyPetDex " + planName + "!",
+        html: "<div style='font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#F5F8FF;'><div style='text-align:center;margin-bottom:24px;'><img src='https://app.mypetdex.app/logo.png' alt='MyPetDex' style='width:72px;height:72px;object-fit:contain;' /><h1 style='color:#3B82F6;'>MyPetDex " + planName + "</h1></div><div style='background:#fff;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #E2E8F0;'><h2 style='color:#1E293B;margin:0 0 8px;'>Your 30-day free trial has started!</h2><p style='color:#64748B;margin:0;'>After your trial, you will be charged " + price + ". Cancel anytime before the trial ends.</p></div><p style='color:#1E293B;'>Your <strong>" + planName + " plan</strong> is now active. Enjoy all your premium features!</p><a href='https://app.mypetdex.app' style='display:inline-block;background:#3B82F6;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:16px;'>Open MyPetDex</a><p style='color:#94a3b8;font-size:12px;margin-top:24px;'>Questions? Contact us at help@mypetdex.app</p></div>"
       });
       await sgMail.send({
         to: ADMIN_EMAIL,
         from: { email: FROM_EMAIL, name: FROM_NAME },
-        subject: `💰 New ${planName} subscription: ${email}`,
-        html: `<div style="font-family:sans-serif;padding:24px;">
-          <h2>💰 New Subscription!</h2>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Plan:</strong> ${planName} (${price}/month)</p>
-          <p><strong>Trial ends:</strong> ${new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString()}</p>
-        </div>`
+        subject: "💰 New " + planName + " subscription: " + email,
+        html: "<div style='font-family:sans-serif;padding:24px;'><h2>💰 New Subscription!</h2><p><strong>Email:</strong> " + email + "</p><p><strong>Plan:</strong> " + planName + " (" + price + ")</p><p><strong>Billing:</strong> " + (billing || "monthly") + "</p><p><strong>Trial ends:</strong> " + trialEnd + "</p></div>"
       });
       console.log("Payment emails sent for", email, planName);
     } catch(emailErr) { console.error("Payment email error:", emailErr.response?.body || emailErr); }
+  }
+  res.status(200).json({ received: true });
+});
+
+// ─── Stripe Customer Portal ───────────────────────────────────────────────────
+exports.createPortalSession = onRequest({ secrets: [stripeSecretKey], cors: true }, async (req, res) => {
+  if (req.method !== "POST") { res.status(405).send("Method not allowed"); return; }
+  const { userId } = req.body;
+  if (!userId) { res.status(400).send("Missing userId"); return; }
+  try {
+    const stripe = require("stripe")(stripeSecretKey.value());
+    const userDoc = await db.collection("users").doc(userId).get();
+    const customerId = userDoc.data()?.stripeCustomerId;
+    if (!customerId) { res.status(400).json({ error: "No subscription found" }); return; }
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: "https://app.mypetdex.app",
+    });
+    res.status(200).json({ url: session.url });
   } catch (err) {
-    console.error("Stripe checkout error:", err);
+    console.error("Portal error:", err);
     res.status(500).json({ error: err.message });
   }
 });
