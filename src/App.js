@@ -921,8 +921,8 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
     try {
       const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
       const { password, confirmPassword, ...formWithoutPassword } = form;
-      const profile = { ...formWithoutPassword, role, uid: cred.user.uid, plan: initialPlan, createdAt: new Date().toISOString() };
-      sessionStorage.removeItem("selectedPlan");
+      // Always start on free plan — Stripe will upgrade after payment
+      const profile = { ...formWithoutPassword, role, uid: cred.user.uid, plan: "free", createdAt: new Date().toISOString() };
       await setDoc(doc(db, "users", cred.user.uid), profile);
       if (role === "owner" && form.petName) {
         await addDoc(collection(db, "pets"), {
@@ -932,6 +932,23 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
           photoURL: "", uid: cred.user.uid, ownerEmail: cred.user.email, createdAt: new Date().toISOString()
         });
       }
+      // Redirect to Stripe if paid plan selected
+      if (initialPlan === "plus" || initialPlan === "family") {
+        const PRICES = {
+          plus: "price_1TUET1KrbYhlx0Wn1PjyLqUw",
+          family: "price_1TUEUVKrbYhlx0Wn3PdRVYjX"
+        };
+        try {
+          const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/createCheckoutSession", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ priceId: PRICES[initialPlan], userId: cred.user.uid, email: cred.user.email, plan: initialPlan, billing: "monthly" })
+          });
+          const data = await res.json();
+          if (data.url) { sessionStorage.removeItem("selectedPlan"); window.location.href = data.url; return; }
+        } catch(e) { console.error("Checkout error:", e); }
+      }
+      sessionStorage.removeItem("selectedPlan");
       try {
         await new Promise(r => setTimeout(r, 1000));
         await sendEmailVerification(cred.user, { url: "https://app.mypetdex.app" });
