@@ -445,9 +445,11 @@ exports.createCheckoutSession = onRequest({ secrets: [stripeSecretKey, sendgridK
       mode: "subscription",
       payment_method_types: ["card"],
       customer_email: email,
+      customer_creation: "always",
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: { trial_period_days: 30, metadata: { userId, plan, billing } },
       metadata: { userId, plan, billing },
+      payment_method_options: { card: { request_three_d_secure: "automatic" } },
       success_url: "https://app.mypetdex.app?payment=success&plan=" + plan + "&billing=" + (billing || "monthly"),
       cancel_url: "https://app.mypetdex.app?payment=cancelled",
     });
