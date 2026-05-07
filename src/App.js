@@ -916,7 +916,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
     setLoading(true); setError("");
     try {
       const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
-      const { password, ...formWithoutPassword } = form;
+      const { password, confirmPassword, ...formWithoutPassword } = form;
       const profile = { ...formWithoutPassword, role, uid: cred.user.uid, plan: initialPlan, createdAt: new Date().toISOString() };
       sessionStorage.removeItem("selectedPlan");
       await setDoc(doc(db, "users", cred.user.uid), profile);
