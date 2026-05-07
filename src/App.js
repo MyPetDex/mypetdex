@@ -398,8 +398,11 @@ function AdminDashboard({ onLogout }) {
   const [shelterPets, setShelterPets] = useState({});
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  const [subscribers, setSubscribers] = useState([]);
 
   useEffect(() => {
+    const qSubs = query(collection(db, "users"), where("plan", "in", ["plus", "family"]));
+    const unsubSubs = onSnapshot(qSubs, snap => setSubscribers(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
     const q1 = query(collection(db, "users"), where("role", "==", "shelter"));
     const unsub1 = onSnapshot(q1, snap => setShelters(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
     const q2 = query(collection(db, "users"), where("role", "==", "provider"));
@@ -414,7 +417,7 @@ function AdminDashboard({ onLogout }) {
       setShelterPets(petsMap);
       setLoading(false);
     });
-    return () => { unsub1(); unsub2(); unsub3(); };
+    return () => { unsubSubs(); unsub1(); unsub2(); unsub3(); };
   }, []);
 
   const updateStatus = async (uid, status) => {
@@ -461,9 +464,9 @@ function AdminDashboard({ onLogout }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-          {["shelters","providers","reviews","shop"].map(t => (
-            <button key={t} onClick={() => setAdminTab(t)} style={{ ...btn(adminTab === t ? C.green : C.card, adminTab === t ? "#0F1A14" : C.muted), border: "1px solid " + (adminTab === t ? C.green : C.cardBorder), flex: 1, padding: "10px", fontSize: 14 }}>
-              {t === "shelters" ? "🏠 Shelters" : t === "providers" ? "🛎️ Providers" : t === "reviews" ? "⭐ Reviews" : "🛒 Shop"}
+          {["shelters","providers","reviews","shop","subscribers"].map(t => (
+            <button key={t} onClick={() => setAdminTab(t)} style={{ ...btn(adminTab === t ? C.green : C.card, adminTab === t ? "#0F1A14" : C.muted), border: "1px solid " + (adminTab === t ? C.green : C.cardBorder), flex: 1, padding: "8px", fontSize: 12 }}>
+              {t === "shelters" ? "🏠 Shelters" : t === "providers" ? "🛎️ Providers" : t === "reviews" ? "⭐ Reviews" : t === "shop" ? "🛒 Shop" : "💰 Subs"}
             </button>
           ))}
         </div>
@@ -540,6 +543,80 @@ function AdminDashboard({ onLogout }) {
         )}
         {!loading && adminTab === "reviews" && <AdminReviews />}
         {!loading && adminTab === "shop" && <AdminShop />}
+        {!loading && adminTab === "subscribers" && (
+          <div>
+            {/* Revenue Summary */}
+            {(() => {
+              const plusMonthly = subscribers.filter(s => s.plan === "plus" && s.billing !== "yearly");
+              const plusYearly = subscribers.filter(s => s.plan === "plus" && s.billing === "yearly");
+              const familyMonthly = subscribers.filter(s => s.plan === "family" && s.billing !== "yearly");
+              const familyYearly = subscribers.filter(s => s.plan === "family" && s.billing === "yearly");
+              const mrrPlus = (plusMonthly.length * 3) + (plusYearly.length * 2.40);
+              const mrrFamily = (familyMonthly.length * 5) + (familyYearly.length * 4);
+              const totalMRR = mrrPlus + mrrFamily;
+              return (
+                <div>
+                  <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+                    <div style={{ ...card, flex: 1, textAlign: "center" }}>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: C.green }}>${totalMRR.toFixed(2)}</div>
+                      <div style={{ color: C.muted, fontSize: 11, marginTop: 4 }}>Est. MRR</div>
+                    </div>
+                    <div style={{ ...card, flex: 1, textAlign: "center" }}>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: C.green }}>{subscribers.length}</div>
+                      <div style={{ color: C.muted, fontSize: 11, marginTop: 4 }}>Total Paid</div>
+                    </div>
+                    <div style={{ ...card, flex: 1, textAlign: "center" }}>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: C.gold }}>${(totalMRR * 12).toFixed(2)}</div>
+                      <div style={{ color: C.muted, fontSize: 11, marginTop: 4 }}>Est. ARR</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+                    <div style={{ ...card, flex: 1, textAlign: "center" }}>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: C.green }}>{plusMonthly.length}</div>
+                      <div style={{ color: C.muted, fontSize: 11 }}>Plus Monthly</div>
+                      <div style={{ color: C.green, fontSize: 11 }}>${(plusMonthly.length * 3).toFixed(2)}/mo</div>
+                    </div>
+                    <div style={{ ...card, flex: 1, textAlign: "center" }}>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: C.green }}>{plusYearly.length}</div>
+                      <div style={{ color: C.muted, fontSize: 11 }}>Plus Yearly</div>
+                      <div style={{ color: C.green, fontSize: 11 }}>${(plusYearly.length * 2.40).toFixed(2)}/mo</div>
+                    </div>
+                    <div style={{ ...card, flex: 1, textAlign: "center" }}>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: C.gold }}>{familyMonthly.length}</div>
+                      <div style={{ color: C.muted, fontSize: 11 }}>Family Monthly</div>
+                      <div style={{ color: C.gold, fontSize: 11 }}>${(familyMonthly.length * 5).toFixed(2)}/mo</div>
+                    </div>
+                    <div style={{ ...card, flex: 1, textAlign: "center" }}>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: C.gold }}>{familyYearly.length}</div>
+                      <div style={{ color: C.muted, fontSize: 11 }}>Family Yearly</div>
+                      <div style={{ color: C.gold, fontSize: 11 }}>${(familyYearly.length * 4).toFixed(2)}/mo</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+            {/* Subscriber List */}
+            {subscribers.length === 0 && <div style={{ ...card, textAlign: "center", color: C.muted, padding: 30 }}>No paid subscribers yet</div>}
+            {subscribers.map(s => (
+              <div key={s.id} style={{ ...card, marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ color: C.text, fontWeight: 800, fontSize: 14 }}>{s.name || s.email}</div>
+                    <div style={{ color: C.muted, fontSize: 12 }}>{s.email}</div>
+                    <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>Joined: {s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "—"}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <span style={{ background: s.plan === "family" ? C.gold + "22" : C.green + "22", color: s.plan === "family" ? C.gold : C.green, borderRadius: 8, padding: "3px 10px", fontSize: 12, fontWeight: 700, textTransform: "capitalize" }}>{s.plan}</span>
+                    <div style={{ color: C.muted, fontSize: 11, marginTop: 4, textTransform: "capitalize" }}>{s.billing || "monthly"}</div>
+                    <div style={{ color: C.green, fontSize: 12, fontWeight: 700 }}>
+                      ${s.plan === "plus" ? (s.billing === "yearly" ? "2.40" : "3.00") : (s.billing === "yearly" ? "4.00" : "5.00")}/mo
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
