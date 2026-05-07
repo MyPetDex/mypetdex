@@ -349,7 +349,6 @@ export default function App() {
         if (snap.exists()) {
           userData = snap.data();
           setProfile(userData);
-          console.log("Profile loaded:", JSON.stringify({plan: userData.plan, pendingPlan: userData.pendingPlan}));
           if (userData.pendingPlan) break; // Got what we need
           if (i === 4) break; // Last attempt
         }
@@ -357,7 +356,6 @@ export default function App() {
     }
     // Check if user has a pending paid plan to redirect to Stripe
     const pendingPlan = userData.pendingPlan;
-    console.log("onVerified: userData=", JSON.stringify({plan: userData.plan, pendingPlan: userData.pendingPlan, welcomeEmailSent: userData.welcomeEmailSent}));
     if (pendingPlan === "plus" || pendingPlan === "family") {
       await updateDoc(doc(db, "users", u.uid), { pendingPlan: null });
       const PRICES = {
