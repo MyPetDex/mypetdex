@@ -355,6 +355,7 @@ export default function App() {
     }
     // Check if user has a pending paid plan to redirect to Stripe
     const pendingPlan = userData.pendingPlan;
+    console.log("onVerified: userData=", JSON.stringify({plan: userData.plan, pendingPlan: userData.pendingPlan, welcomeEmailSent: userData.welcomeEmailSent}));
     if (pendingPlan === "plus" || pendingPlan === "family") {
       await updateDoc(doc(db, "users", u.uid), { pendingPlan: null });
       const PRICES = {
