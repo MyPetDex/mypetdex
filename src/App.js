@@ -354,9 +354,9 @@ export default function App() {
       } catch(e) { console.error("Profile load attempt", i+1, "error:", e); }
     }
     // Check if user has a pending paid plan to redirect to Stripe
-    const pendingPlan = sessionStorage.getItem("pendingPlan");
+    const pendingPlan = userData.pendingPlan;
     if (pendingPlan === "plus" || pendingPlan === "family") {
-      sessionStorage.removeItem("pendingPlan");
+      await updateDoc(doc(db, "users", u.uid), { pendingPlan: null });
       const PRICES = {
         plus: "price_1TUET1KrbYhlx0Wn1PjyLqUw",
         family: "price_1TUEUVKrbYhlx0Wn3PdRVYjX"
@@ -976,9 +976,11 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
         const verifyUrl = (initialPlan === "plus" || initialPlan === "family")
           ? "https://app.mypetdex.app?payment=pending&plan=" + initialPlan
           : "https://app.mypetdex.app";
-        // Store pending plan so we can redirect after verification
+        // Store pending plan in Firestore so it persists across redirects
         if (initialPlan === "plus" || initialPlan === "family") {
-          sessionStorage.setItem("pendingPlan", initialPlan);
+          try {
+            await updateDoc(doc(db, "users", cred.user.uid), { pendingPlan: initialPlan });
+          } catch(e) { console.error("Error saving pending plan:", e); }
         }
         await sendEmailVerification(cred.user, { url: verifyUrl });
         console.log("Verification email sent to:", cred.user.email);
