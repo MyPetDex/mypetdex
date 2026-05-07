@@ -1708,6 +1708,7 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
       <div style={{ display: "flex", borderBottom: `1px solid ${C.cardBorder}`, marginBottom: 16 }}>
         <button style={tabStyle("info")} onClick={() => setActiveTab("info")}>Info</button>
         <button style={tabStyle("vaccines")} onClick={() => setActiveTab("vaccines")}>💉 Vaccines ({vaccines.length})</button>
+        <button style={tabStyle("reminders")} onClick={() => setActiveTab("reminders")}>⏰ Reminders</button>
         <button style={tabStyle("calories")} onClick={() => setActiveTab("calories")}>🔢 Calories</button>
       </div>
 
