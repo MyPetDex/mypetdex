@@ -3235,16 +3235,18 @@ function SettingsTab({ user, profile, onProfileUpdate, onLogout, isDemo }) {
       </div>
       <div style={{ ...card, marginBottom: 14 }}>
         <div style={{ color: C.text, fontWeight: 800, fontSize: 15, marginBottom: 12 }}>🆕 What's New</div>
-        <div style={{ color: C.muted, fontSize: 12, marginBottom: 8, fontWeight: 700 }}>Version 1.5 — May 2026</div>
+        <div style={{ color: C.muted, fontSize: 12, marginBottom: 8, fontWeight: 700 }}>Version 1.6 — May 2026</div>
         {[
-          "✅ New logo and branding",
-          "✅ Onboarding welcome guide",
-          "✅ AI disclaimer added to chat",
-          "✅ Improved empty states",
-          "✅ Navigation labels updated",
+          "✅ Live payments — Plus & Family plans now available",
+          "✅ Monthly & Yearly billing toggle",
+          "✅ Manage Subscription — cancel or switch plans anytime",
+          "✅ Add Pet now goes straight to form from Home",
+          "✅ New logo across app and emails",
+          "✅ Improved welcome emails with branding",
+          "✅ Privacy & Terms standalone pages",
           "🔜 iOS & Android app coming soon"
         ].map((item, i) => (
-          <div key={i} style={{ color: C.muted, fontSize: 13, padding: "5px 0", borderBottom: i < 5 ? `1px solid ${C.cardBorder}` : "none" }}>{item}</div>
+          <div key={i} style={{ color: C.muted, fontSize: 13, padding: "5px 0", borderBottom: i < 7 ? `1px solid ${C.cardBorder}` : "none" }}>{item}</div>
         ))}
       </div>
       <div style={{ ...card, marginBottom: 14 }}>

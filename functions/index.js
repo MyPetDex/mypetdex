@@ -471,6 +471,40 @@ exports.stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecr
       console.log("Payment emails sent for", email, planName);
     } catch(emailErr) { console.error("Payment email error:", emailErr.response?.body || emailErr); }
   }
+  // Handle subscription cancellation
+  if (event.type === "customer.subscription.deleted") {
+    const subscription = event.data.object;
+    const customerId = subscription.customer;
+    try {
+      // Find user by stripeCustomerId and downgrade to free
+      const usersSnap = await db.collection("users").where("stripeCustomerId", "==", customerId).get();
+      if (!usersSnap.empty) {
+        const userDoc = usersSnap.docs[0];
+        const email = userDoc.data().email;
+        const name = userDoc.data().name || email.split("@")[0];
+        await userDoc.ref.update({ plan: "free", billing: null });
+        console.log("Downgraded to free:", email);
+
+        // Send cancellation email to user
+        sgMail.setApiKey(sendgridKey.value());
+        try {
+          await sgMail.send({
+            to: email,
+            from: { email: FROM_EMAIL, name: FROM_NAME },
+            subject: "Your MyPetDex subscription has been cancelled",
+            html: "<div style='font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#F5F8FF;'><div style='text-align:center;margin-bottom:24px;'><img src='https://app.mypetdex.app/logo.png' alt='MyPetDex' style='width:72px;height:72px;object-fit:contain;' /><h1 style='color:#3B82F6;'>MyPetDex</h1></div><div style='background:#fff;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #E2E8F0;'><h2 style='color:#1E293B;margin:0 0 8px;'>Subscription Cancelled</h2><p style='color:#64748B;margin:0;'>Hi " + name + ", your MyPetDex subscription has been cancelled. You have been moved to the free plan.</p></div><p style='color:#1E293B;'>You can resubscribe anytime from the app. We hope to see you back!</p><a href='https://app.mypetdex.app' style='display:inline-block;background:#3B82F6;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:16px;'>Open MyPetDex</a><p style='color:#94a3b8;font-size:12px;margin-top:24px;'>Questions? Contact us at help@mypetdex.app</p></div>"
+          });
+          await sgMail.send({
+            to: ADMIN_EMAIL,
+            from: { email: FROM_EMAIL, name: FROM_NAME },
+            subject: "❌ Subscription cancelled: " + email,
+            html: "<div style='font-family:sans-serif;padding:24px;'><h2>❌ Subscription Cancelled</h2><p><strong>Email:</strong> " + email + "</p><p><strong>Plan:</strong> Downgraded to Free</p></div>"
+          });
+        } catch(emailErr) { console.error("Cancellation email error:", emailErr.response?.body || emailErr); }
+      }
+    } catch(e) { console.error("Cancellation handler error:", e); }
+  }
+
   res.status(200).json({ received: true });
 });
 
