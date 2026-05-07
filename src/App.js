@@ -353,7 +353,26 @@ export default function App() {
         }
       } catch(e) { console.error("Profile load attempt", i+1, "error:", e); }
     }
-    // Then send welcome email with correct role (only if not already sent)
+    // Check if user has a pending paid plan to redirect to Stripe
+    const pendingPlan = sessionStorage.getItem("pendingPlan");
+    if (pendingPlan === "plus" || pendingPlan === "family") {
+      sessionStorage.removeItem("pendingPlan");
+      const PRICES = {
+        plus: "price_1TUET1KrbYhlx0Wn1PjyLqUw",
+        family: "price_1TUEUVKrbYhlx0Wn3PdRVYjX"
+      };
+      try {
+        const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/createCheckoutSession", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ priceId: PRICES[pendingPlan], userId: u.uid, email: u.email, plan: pendingPlan, billing: "monthly" })
+        });
+        const data = await res.json();
+        if (data.url) { window.location.href = data.url; return; }
+      } catch(e) { console.error("Checkout redirect error:", e); }
+    }
+
+    // Then send welcome email with correct role (only if not already sent and free plan)
     if (!userData.welcomeEmailSent && (!userData.plan || userData.plan === "free")) {
       try {
         await updateDoc(doc(db, "users", u.uid), { welcomeEmailSent: true });
@@ -957,6 +976,10 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
         const verifyUrl = (initialPlan === "plus" || initialPlan === "family")
           ? "https://app.mypetdex.app?payment=pending&plan=" + initialPlan
           : "https://app.mypetdex.app";
+        // Store pending plan so we can redirect after verification
+        if (initialPlan === "plus" || initialPlan === "family") {
+          sessionStorage.setItem("pendingPlan", initialPlan);
+        }
         await sendEmailVerification(cred.user, { url: verifyUrl });
         console.log("Verification email sent to:", cred.user.email);
       } catch (verErr) {
