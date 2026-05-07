@@ -445,7 +445,6 @@ exports.createCheckoutSession = onRequest({ secrets: [stripeSecretKey, sendgridK
       mode: "subscription",
       payment_method_types: ["card"],
       customer_email: email,
-      customer_creation: "always",
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: { trial_period_days: 30, metadata: { userId, plan, billing } },
       metadata: { userId, plan, billing },
