@@ -1780,7 +1780,22 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
               <h4 style={{ color: C.text, margin: "0 0 14px" }}>Add Reminder</h4>
               <Field label="Reminder Title" value={rForm.title} onChange={setR("title")} placeholder="e.g. Vet checkup, Flea treatment..." required />
               <Field label="Date" type="date" value={rForm.date} onChange={setR("date")} />
-              <Field label="Time" type="time" value={rForm.time} onChange={setR("time")} />
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ color: C.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Time</div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <select value={rForm.time ? rForm.time.split(":")[0] : "08"} onChange={e => { const parts = rForm.time ? rForm.time.split(":") : ["08","00 AM"]; const ampm = parts[1] ? (parts[1].includes("PM") ? "PM" : "AM") : "AM"; const min = parts[1] ? parts[1].replace(" AM","").replace(" PM","") : "00"; setR("time")(e.target.value + ":" + min + " " + ampm); }} style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.cardBorder}`, background: C.bg, color: C.text, fontFamily: font, fontSize: 16, fontWeight: 700 }}>
+                    {["01","02","03","04","05","06","07","08","09","10","11","12"].map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                  <div style={{ color: C.text, fontWeight: 900, fontSize: 20 }}>:</div>
+                  <select value={rForm.time ? rForm.time.split(":")[1]?.replace(" AM","").replace(" PM","") : "00"} onChange={e => { const parts = rForm.time ? rForm.time.split(":") : ["08","00 AM"]; const ampm = parts[1] ? (parts[1].includes("PM") ? "PM" : "AM") : "AM"; setR("time")(parts[0] + ":" + e.target.value + " " + ampm); }} style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.cardBorder}`, background: C.bg, color: C.text, fontFamily: font, fontSize: 16, fontWeight: 700 }}>
+                    {["00","05","10","15","20","25","30","35","40","45","50","55"].map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <select value={rForm.time ? (rForm.time.includes("PM") ? "PM" : "AM") : "AM"} onChange={e => { const parts = rForm.time ? rForm.time.split(":") : ["08","00 AM"]; const min = parts[1] ? parts[1].replace(" AM","").replace(" PM","") : "00"; setR("time")(parts[0] + ":" + min + " " + e.target.value); }} style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.cardBorder}`, background: C.bg, color: C.text, fontFamily: font, fontSize: 16, fontWeight: 700 }}>
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
+              </div>
               <Field label="Repeat" as="select" value={rForm.repeat} onChange={setR("repeat")} options={["None","Daily","Weekly","Monthly","Yearly"]} />
               <Field label="Notes" as="textarea" value={rForm.notes} onChange={setR("notes")} placeholder="Any notes..." />
               <div style={{ display: "flex", gap: 10 }}>

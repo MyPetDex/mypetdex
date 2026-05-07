@@ -72,7 +72,17 @@ exports.sendScheduledReminders = onSchedule(
       for (const reminder of reminders) {
         if (reminder.sent) continue;
         const tz = reminder.timezone || "America/New_York";
-        const localStr = `${reminder.date}T${reminder.time}:00`;
+        // Convert 12-hour format (08:00 AM) to 24-hour format (08:00)
+        let timeStr = reminder.time || "08:00";
+        if (timeStr.includes("AM") || timeStr.includes("PM")) {
+          const [timePart, meridiem] = timeStr.split(" ");
+          let [hours, minutes] = timePart.split(":");
+          hours = parseInt(hours);
+          if (meridiem === "AM" && hours === 12) hours = 0;
+          if (meridiem === "PM" && hours !== 12) hours += 12;
+          timeStr = String(hours).padStart(2, "0") + ":" + minutes;
+        }
+        const localStr = `${reminder.date}T${timeStr}:00`;
         const utcBase = new Date(localStr);
         const tzOffset =
           new Date(utcBase.toLocaleString("en-US", { timeZone: "UTC" })) -
