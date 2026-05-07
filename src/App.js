@@ -593,7 +593,7 @@ function UpgradeScreen({ user, profile, onClose }) {
               <div style={{ color: C.gold, fontSize: 11, fontWeight: 700 }}>30 days FREE</div>
             </div>
           </div>
-          <div style={{ color: C.muted, fontSize: 12, marginBottom: 12 }}>✅ Everything in Plus &nbsp; ✅ Unlimited Pets &nbsp; ✅ Priority Support</div>
+          <div style={{ color: C.muted, fontSize: 12, marginBottom: 12 }}>✅ Everything in Plus &nbsp; ✅ Unlimited Pets &nbsp; ✅ AI Assistant</div>
           <button onClick={() => startCheckout("family")} disabled={loading === "family"} style={{ ...btn(C.gold), width: "100%" }}>
             {loading === "family" ? "Loading..." : "🎁 Start Free Trial — Family"}
           </button>
