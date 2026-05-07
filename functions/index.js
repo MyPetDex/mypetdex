@@ -395,9 +395,6 @@ function adminNotificationHTML(role, email, profile) {
 // ─── Reminder Email ───────────────────────────────────────────────────────────
 function reminderHTML(petName, title, date, time) {
   return emailBase(`
-    <div style="text-align:center;margin-bottom:16px;">
-      <img src="https://app.mypetdex.app/logo.png" alt="MyPetDex" style="width:72px;height:72px;object-fit:contain;" />
-    </div>
     <div class="card">
       <h1>⏰ Reminder for ${petName}</h1>
       <p>This is your scheduled reminder from MyPetDex:</p>
