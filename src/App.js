@@ -354,7 +354,7 @@ export default function App() {
       } catch(e) { console.error("Profile load attempt", i+1, "error:", e); }
     }
     // Then send welcome email with correct role (only if not already sent)
-    if (!userData.welcomeEmailSent) {
+    if (!userData.welcomeEmailSent && (!userData.plan || userData.plan === "free")) {
       try {
         await updateDoc(doc(db, "users", u.uid), { welcomeEmailSent: true });
         const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {

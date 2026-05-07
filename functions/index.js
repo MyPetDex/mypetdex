@@ -480,7 +480,14 @@ exports.stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecr
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const { userId, plan, billing } = session.metadata || {};
-    const email = session.customer_email;
+    // Get email from Firestore to ensure we use the correct account email
+    let email = session.customer_email;
+    if (userId) {
+      try {
+        const userDoc = await db.collection("users").doc(userId).get();
+        if (userDoc.exists) email = userDoc.data().email || email;
+      } catch(e) { console.error("Error fetching user email:", e); }
+    }
     const planName = plan === "plus" ? "Plus" : "Family";
     const price = billing === "yearly"
       ? (plan === "plus" ? "$28.80/year" : "$48.00/year")
