@@ -402,7 +402,10 @@ function AdminDashboard({ onLogout }) {
 
   useEffect(() => {
     const qSubs = query(collection(db, "users"), where("plan", "in", ["plus", "family"]));
-    const unsubSubs = onSnapshot(qSubs, snap => setSubscribers(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    const unsubSubs = onSnapshot(qSubs, snap => setSubscribers(
+      snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .filter(u => u.stripeCustomerId) // Only count users with active Stripe customer
+    ));
     const q1 = query(collection(db, "users"), where("role", "==", "shelter"));
     const unsub1 = onSnapshot(q1, snap => setShelters(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
     const q2 = query(collection(db, "users"), where("role", "==", "provider"));
