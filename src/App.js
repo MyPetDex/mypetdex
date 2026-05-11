@@ -1370,6 +1370,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [form, setForm] = useState({
     name:"", email:"", password:"", confirmPassword:"",
     petName:"", petType:"Dog", petBreed:"", petAge:"", petWeight:"",
@@ -1471,7 +1472,9 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
           <Field label="Email" type="email" value={form.email} onChange={set("email")} placeholder="you@email.com" required />
           <Field label="Password (min 8 characters + special character)" type="password" value={form.password} onChange={set("password")} placeholder="e.g. MyPet@2024" required />
           <Field label="Confirm Password" type="password" value={form.confirmPassword} onChange={set("confirmPassword")} placeholder="Re-enter your password" required />
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16, background: C.inputBg, borderRadius: 10, padding: "10px 14px" }}><input type="checkbox" id="ageCheck" checked={ageConfirmed} onChange={e => setAgeConfirmed(e.target.checked)} style={{ marginTop: 2, cursor: "pointer", width: 16, height: 16 }} /><label htmlFor="ageCheck" style={{ color: C.muted, fontSize: 13, cursor: "pointer", fontFamily: font }}>I confirm I am <strong>13 years of age or older</strong> and agree to the Terms of Service and Privacy Policy.</label></div>
           <button style={{ ...btn(), width: "100%" }} onClick={() => { if (!role || !form.name || !form.email || !form.password) { setError("Please fill in all fields and select a role"); return; }
+                  if (!ageConfirmed) { setError("You must confirm you are 13 years of age or older"); return; }
                   if (form.password.length < 8) { setError("Password must be at least 8 characters"); return; }
                   if (!/[!@#$%^&*(),.?":{}|<>]/.test(form.password)) { setError("Password must include at least one special character (e.g. @, #, !)"); return; }
                   if (form.password !== form.confirmPassword) { setError("Passwords do not match"); return; } setError(""); setStep(2); }}>Continue</button>
