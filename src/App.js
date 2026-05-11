@@ -3215,7 +3215,7 @@ const petDailyCalories = Math.round(petRER * petMultiplier);
           <div style={{ ...card, marginBottom: 14, textAlign: "center" }}>
             <div style={{ fontSize: 48, marginBottom: 8 }}>{recipe.emoji}</div>
             <div style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>{recipe.name}</div>
-            <div style={{ color: C.muted, fontSize: 13, marginBottom: 16 }}>Made for {selectedPet?.name} · {recipe.prepTime}</div>
+            <div style={{ color: C.muted, fontSize: 13, marginBottom: 8 }}>Made for {selectedPet?.name} · {recipe.prepTime}</div><div style={{ background: C.gold + "11", border: "1px solid " + C.gold + "44", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: C.muted, marginBottom: 16 }}>⚠️ Recipes and nutrition insights are for general informational purposes and are not tailored to medical conditions or special diets. Always consult your veterinarian.</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {[["🔥 Daily Calories", recipe.calories], ["🍽️ Daily Amount", recipe.dailyAmount], ["📦 Servings", recipe.servings], ["⏱️ Prep Time", recipe.prepTime]].map(([k, v]) => (
                 <div key={k} style={{ background: C.inputBg, borderRadius: 10, padding: "10px 12px", textAlign: "center" }}>
