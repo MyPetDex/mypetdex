@@ -1295,7 +1295,8 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
       const profile = {
         uid: user.uid, email: user.email,
         name: user.displayName || "", role,
-        plan: initialPlan, createdAt: new Date().toISOString(),
+        plan: "free", createdAt: new Date().toISOString(),
+        pendingPlan: (initialPlan === "plus" || initialPlan === "family") ? initialPlan : null,
         welcomeEmailSent: false,
         refCode, referredBy: referredBy || null, referralCount: 0,
       };
