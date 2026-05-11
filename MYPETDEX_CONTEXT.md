@@ -288,3 +288,29 @@ firebase emulators:start --only functions
 - Admin email: mypetdexapp@gmail.com
 - Website: home.mypetdex.app
 - App: app.mypetdex.app
+
+## 🔐 Sign in with Apple — In Progress (May 11 2026)
+
+### Apple Developer Credentials
+- Team ID: DP9NXZ77FA
+- Bundle ID: app.mypetdex
+- Key ID: 4J3RMYX8BK
+- Key file: ~/mypetdex/AuthKey_SignInWithApple.p8
+- Firebase Apple provider: ENABLED ✅
+
+### What's done:
+- App ID registered with Sign in with Apple + Push Notifications
+- Key created and downloaded
+- Firebase Apple auth provider enabled
+
+### What's next (Step 3):
+- Install firebase/auth Apple provider in code
+- Add Sign in with Apple button to Landing and Login screens
+- Handle Apple sign-in flow in App.js
+- Test on iOS device
+
+### Pricing (Updated May 11)
+- Plus Monthly: price_1TVxf1KrbYhlx0Wng1THRLur ($2.99)
+- Plus Yearly: price_1TVxh8KrbYhlx0WnnS2EoPCv ($28.68)
+- Family Monthly: price_1TVxjIKrbYhlx0WnXcSBrbcG ($4.99)
+- Family Yearly: price_1TVxkvKrbYhlx0WnsGIFaP3d ($47.88)

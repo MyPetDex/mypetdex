@@ -24,3 +24,4 @@ yarn-error.log*
 
 .vercel
 serviceAccount.json
+AuthKey_SignInWithApple.p8
