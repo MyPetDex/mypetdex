@@ -939,7 +939,7 @@ function UpgradeScreen({ user, profile, onClose }) {
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <img src="/logo.png" alt="MyPetDex" style={{ width: 56, height: 56, objectFit: "contain" }} />
           <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: "8px 0 4px" }}>Upgrade MyPetDex</h2>
-          <p style={{ color: C.muted, fontSize: 13 }}>Start your 30-day free trial — cancel anytime</p>
+          <p style={{ color: C.muted, fontSize: 13 }}>Start your 1-month free trial — cancel anytime</p>
         </div>
 
         {/* Monthly/Yearly Toggle */}
@@ -994,7 +994,7 @@ function UpgradeScreen({ user, profile, onClose }) {
           </button>
         </div>
 
-        <p style={{ color: C.muted, fontSize: 11, textAlign: "center" }}>No charge for 30 days. Cancel anytime before trial ends.</p>
+        <p style={{ color: C.muted, fontSize: 11, textAlign: "center" }}>No charge for 30 days. Subscription automatically renews unless cancelled at least 24 hours before the end of the trial period. Manage or cancel anytime in your Apple ID subscription settings.</p>
       </div>
     </div>
   );
