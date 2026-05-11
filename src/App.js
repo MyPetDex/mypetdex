@@ -254,8 +254,8 @@ export default function App() {
       // After email verification, redirect to Stripe for paid plans
       if (paymentStatus === 'pending' && paymentPlan && (paymentPlan === 'plus' || paymentPlan === 'family')) {
         const PRICES = {
-          plus: "price_1TUET1KrbYhlx0Wn1PjyLqUw",
-          family: "price_1TUEUVKrbYhlx0Wn3PdRVYjX"
+          plus: "price_1TVxf1KrbYhlx0Wng1THRLur",
+          family: "price_1TVxjIKrbYhlx0WnXcSBrbcG"
         };
         try {
           const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/createCheckoutSession", {
@@ -423,8 +423,8 @@ export default function App() {
     if (pendingPlan === "plus" || pendingPlan === "family") {
       await updateDoc(doc(db, "users", u.uid), { pendingPlan: null });
       const PRICES = {
-        plus: "price_1TUET1KrbYhlx0Wn1PjyLqUw",
-        family: "price_1TUEUVKrbYhlx0Wn3PdRVYjX"
+        plus: "price_1TVxf1KrbYhlx0Wng1THRLur",
+        family: "price_1TVxjIKrbYhlx0WnXcSBrbcG"
       };
       try {
         const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/createCheckoutSession", {
@@ -909,8 +909,8 @@ function UpgradeScreen({ user, profile, onClose }) {
   const [yearly, setYearly] = useState(false);
 
   const PRICES = {
-    plus:   { monthly: "price_1TUET1KrbYhlx0Wn1PjyLqUw", yearly: "price_1TUETlKrbYhlx0WnA78IrSU6" },
-    family: { monthly: "price_1TUEUVKrbYhlx0Wn3PdRVYjX", yearly: "price_1TUEVAKrbYhlx0WnosSRCax3" },
+    plus:   { monthly: "price_1TVxf1KrbYhlx0Wng1THRLur", yearly: "price_1TVxh8KrbYhlx0WnnS2EoPCv" },
+    family: { monthly: "price_1TVxjIKrbYhlx0WnXcSBrbcG", yearly: "price_1TVxkvKrbYhlx0WnsGIFaP3d" },
   };
 
   const startCheckout = async (plan) => {
