@@ -1614,7 +1614,7 @@ function FeedbackButton({ user }) {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
 
-  const subjects = ["Bug Report", "Feature Request", "General Feedback", "Account Issue"];
+  const subjects = ["Bug Report", "Feature Request", "General Feedback", "Account Issue", "Report Inappropriate Content"];
 
   const send = async () => {
     if (!form.message.trim()) { setError("Please describe your issue or feedback"); return; }
