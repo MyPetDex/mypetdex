@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pet Profile — MyPetDex</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#F5F8FF;font-family:'Nunito',sans-serif;color:#1E293B;min-height:100vh}
+    .header{background:linear-gradient(135deg,#3B82F6,#6366f1);padding:20px;text-align:center;color:#fff}
+    .container{max-width:480px;margin:0 auto;padding:20px}
+    .card{background:#fff;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #E2E8F0}
+    .card h2{font-size:1rem;font-weight:800;color:#3B82F6;margin-bottom:12px}
+    .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F1F5F9}
+    .row:last-child{border-bottom:none}
+    .label{color:#64748B;font-size:.85rem}
+    .value{color:#1E293B;font-size:.85rem;font-weight:700;text-align:right}
+    .badge{display:inline-block;background:#3B82F6;color:#fff;border-radius:20px;padding:4px 12px;font-size:.75rem;font-weight:800;margin-bottom:16px}
+    .emergency{background:#FEF2F2;border:2px solid #FCA5A5;border-radius:16px;padding:16px;margin-bottom:16px}
+    .emergency h2{color:#DC2626;margin-bottom:10px}
+    .vaccine{padding:10px 0;border-bottom:1px solid #F1F5F9}
+    .vaccine:last-child{border-bottom:none}
+    .pet-avatar{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid #E2E8F0;margin:0 auto 12px;display:block}
+    .pet-icon{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:2.5rem;margin:0 auto 12px;}
+  </style>
+</head>
+<body>
+<div class="header">
+  <img src="/logo.png" style="height:44px;width:44px;border-radius:50%;margin-bottom:6px;"/>
+  <div style="font-size:1.2rem;font-weight:900;">MyPetDex</div>
+  <div style="font-size:.8rem;opacity:.85;">Your Pet's Complete Digital Home</div>
+</div>
+<div class="container">
+  <div id="content" style="text-align:center;padding:60px 20px;color:#64748B;">Loading pet profile...</div>
+</div>
+<div style="text-align:center;padding:24px;color:#94A3B8;font-size:.8rem;">
+  <a href="https://app.mypetdex.app" style="color:#3B82F6;text-decoration:none;font-weight:700;">Create your pet's profile on MyPetDex 🐾</a>
+</div>
+<script>
+async function loadPet() {
+  const petId = window.location.pathname.split('/pet/')[1]?.replace(/\/$/, '');
+  const content = document.getElementById('content');
+  if (!petId) { content.innerHTML = '<p>No pet found.</p>'; return; }
+  try {
+    const res = await fetch('https://us-central1-mypetdex-c4315.cloudfunctions.net/getPetProfile?petId=' + petId);
+    if (!res.ok) { content.innerHTML = '<p>Pet profile not found.</p>'; return; }
+    const p = await res.json();
+    document.title = p.name + ' — MyPetDex';
+    const hasEmergency = p.notes || p.feeding;
+    content.innerHTML = `
+      <div style="text-align:center;margin-bottom:20px;">
+        ${p.photoURL ? `<img src="${p.photoURL}" class="pet-avatar"/>` : `<div class="pet-icon">🐾</div>`}
+        <div style="font-size:1.8rem;font-weight:900;color:#1E293B;">${p.name}</div>
+        <span class="badge">${p.type}</span>
+      </div>
+      ${hasEmergency ? `<div class="emergency"><h2>🚨 Emergency Info</h2>${p.feeding?`<div class="row"><span class="label">Feeding</span><span class="value">${p.feeding}</span></div>`:''}${p.notes?`<div style="margin-top:8px;font-size:.85rem;color:#DC2626;line-height:1.6;">${p.notes}</div>`:''}</div>` : ''}
+      <div class="card"><h2>🐾 Pet Info</h2>
+        ${[['Breed',p.breed],['Age',p.age],['Weight',p.weight],['Next Vet',p.nextVet]].filter(([,v])=>v).map(([k,v])=>`<div class="row"><span class="label">${k}</span><span class="value">${v}</span></div>`).join('')}
+      </div>
+      ${p.vaccines && p.vaccines.length ? `<div class="card"><h2>💉 Vaccines</h2>${p.vaccines.map(v=>`<div class="vaccine"><div style="font-weight:800;font-size:.9rem;">${v.name}</div>${v.date?`<div style="color:#64748B;font-size:.8rem;">Given: ${v.date}</div>`:''}${v.nextDue?`<div style="color:#3B82F6;font-size:.8rem;font-weight:700;">Next due: ${v.nextDue}</div>`:''}</div>`).join('')}</div>` : ''}
+      <div class="card" style="text-align:center;background:linear-gradient(135deg,#EFF6FF,#DBEAFE);">
+        <div style="font-size:1.5rem;margin-bottom:8px;">🐾</div>
+        <div style="font-weight:800;color:#1E293B;margin-bottom:4px;">This profile is on MyPetDex</div>
+        <div style="color:#64748B;font-size:.85rem;margin-bottom:12px;">Track vaccines, set reminders, find local vets & more</div>
+        <a href="https://app.mypetdex.app" style="display:inline-block;background:#3B82F6;color:#fff;padding:10px 24px;border-radius:12px;font-weight:800;font-size:.9rem;text-decoration:none;">Try MyPetDex Free 🐾</a>
+      </div>`;
+  } catch(e) {
+    console.error(e);
+    content.innerHTML = '<p>Could not load profile. Please try again.</p>';
+  }
+}
+loadPet();
+</script>
+</body>
+</html>

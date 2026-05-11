@@ -718,46 +718,6 @@ function AdminDashboard({ onLogout }) {
 
 
 
-// ─── Smart Date Picker ───────────────────────────────────────────────────────
-function SmartDatePicker({ label, value, onChange }) {
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 21 }, (_, i) => currentYear - 5 + i);
-  const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
-
-  const parsed = value ? value.split("-") : ["", "", ""];
-  const selYear = parsed[0] || "";
-  const selMonth = parsed[1] || "";
-  const selDay = parsed[2] || "";
-
-  const update = (y, m, d) => {
-    if (y && m && d) onChange(`${y}-${m}-${d}`);
-    else onChange("");
-  };
-
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>{label}</div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <select value={selMonth} onChange={e => update(selYear, e.target.value, selDay)}
-          style={{ flex: 2, padding: "10px 8px", borderRadius: 10, border: `1px solid ${C.cardBorder}`, background: C.inputBg, color: C.text, fontFamily: font, fontSize: 14 }}>
-          <option value="">Month</option>
-          {months.map((m, i) => <option key={m} value={String(i+1).padStart(2,"0")}>{m}</option>)}
-        </select>
-        <select value={selDay} onChange={e => update(selYear, selMonth, e.target.value)}
-          style={{ flex: 1, padding: "10px 8px", borderRadius: 10, border: `1px solid ${C.cardBorder}`, background: C.inputBg, color: C.text, fontFamily: font, fontSize: 14 }}>
-          <option value="">Day</option>
-          {days.map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-        <select value={selYear} onChange={e => update(e.target.value, selMonth, selDay)}
-          style={{ flex: 2, padding: "10px 8px", borderRadius: 10, border: `1px solid ${C.cardBorder}`, background: C.inputBg, color: C.text, fontFamily: font, fontSize: 14 }}>
-          <option value="">Year</option>
-          {years.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
-      </div>
-    </div>
-  );
-}
 // ─── Pet QR Modal ────────────────────────────────────────────────────────────
 function PetQRModal({ pet, onClose }) {
   const petUrl = `https://app.mypetdex.app/pet/${pet.id}`;
@@ -1821,7 +1781,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         {isDemo && <div style={{ background: C.gold + "22", borderBottom: "1px solid " + C.gold, padding: "8px 16px", textAlign: "center", fontSize: 12, color: C.gold, fontWeight: 700 }}>👀 Demo Mode — browse only, editing disabled</div>}
 
         <div style={{ padding: "20px 24px", maxWidth: 680 }}>
-          {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} isDemo={isDemo} onAddPet={() => { setTab("pets"); setOpenAdd(true); }} />}
+          {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} onAddPet={() => { setTab("pets"); setOpenAdd(true); }} />}
           {tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} isDemo={isDemo} onUpgrade={() => setShowUpgrade(true)} openAdd={openAdd} onOpenAddDone={() => setOpenAdd(false)} />}
           {(tab === "services" || tab === "groomers" || tab === "walkers" || tab === "sitters" || tab === "daycare" || tab === "vets") && isOwner && <ServicesTab profile={currentProfile} user={user} serviceFilter={tab} />}
           {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} onUpgrade={() => setShowUpgrade(true)} />}
@@ -1840,7 +1800,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
 }
 
 // ─── Home Tab ─────────────────────────────────────────────────────────────────
-function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab, onAddPet, isDemo }) {
+function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab, onAddPet }) {
   const [pets, setPets] = useState([]);
 
   useEffect(() => {
@@ -1904,11 +1864,11 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab, onAddP
 
   return (
     <div>
-      {!isDemo && InviteBanner}
+      {InviteBanner}
       {/* ── My Pets Section ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets</h2>
-        {!isDemo && <button onClick={onAddPet} style={{ ...btn(C.cardBorder, C.green), padding: "6px 14px", fontSize: 13, border: `1px solid ${C.green}` }}>+ Add Pet</button>}
+        <button onClick={onAddPet} style={{ ...btn(C.cardBorder, C.green), padding: "6px 14px", fontSize: 13, border: `1px solid ${C.green}` }}>+ Add Pet</button>
       </div>
 
       {pets.length === 0 && (
@@ -2097,7 +2057,7 @@ function PetsTab({ user, profile, isDemo, onUpgrade, openAdd, onOpenAddDone }) {
           <Field label="Age" value={form.age} onChange={set("age")} placeholder="2 years" />
           <Field label="Weight" value={form.weight} onChange={set("weight")} placeholder="55 lbs" />
           <Field label="Feeding Schedule" value={form.feeding} onChange={set("feeding")} placeholder="e.g. 8am and 6pm, 1 cup each" />
-          <SmartDatePicker label="Next Vet Visit" value={form.nextVet} onChange={set("nextVet")} />
+          <Field label="Next Vet Visit" type="date" value={form.nextVet} onChange={set("nextVet")} />
           <Field label="Notes" as="textarea" value={form.notes} onChange={set("notes")} placeholder="Anything special about your pet..." />
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
             <button style={{ ...btn(C.green), flex: 1, fontSize: 16 }} onClick={addPet}>💾 Save Pet</button>
@@ -2263,8 +2223,8 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
             <div style={{ ...card, marginTop: 12 }}>
               <h4 style={{ color: C.text, margin: "0 0 14px" }}>Add Vaccine Record</h4>
               <Field label="Vaccine Name" as="select" value={vForm.name} onChange={setV("name")} options={vaccineOptions} />
-              <SmartDatePicker label="Date Given" value={vForm.date} onChange={setV("date")} />
-              <SmartDatePicker label="Next Due Date" value={vForm.nextDue} onChange={setV("nextDue")} />
+              <Field label="Date Given" type="date" value={vForm.date} onChange={setV("date")} />
+              <Field label="Next Due Date" type="date" value={vForm.nextDue} onChange={setV("nextDue")} />
               <Field label="Veterinarian" value={vForm.vet} onChange={setV("vet")} placeholder="Dr. Smith" />
               <Field label="Notes" as="textarea" value={vForm.notes} onChange={setV("notes")} placeholder="Any notes..." />
               <div style={{ display: "flex", gap: 10 }}>
@@ -2303,7 +2263,7 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
             <div style={{ ...card, marginTop: 12 }}>
               <h4 style={{ color: C.text, margin: "0 0 14px" }}>Add Reminder</h4>
               <Field label="Reminder Title" value={rForm.title} onChange={setR("title")} placeholder="e.g. Vet checkup, Flea treatment..." required />
-              <SmartDatePicker label="Date" value={rForm.date} onChange={setR("date")} />
+              <Field label="Date" type="date" value={rForm.date} onChange={setR("date")} />
               <div style={{ marginBottom: 14 }}>
                 <div style={{ color: C.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Time</div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -2543,7 +2503,7 @@ function EditPetInfo({ pet, onDelete, onSaved, isDemo }) {
       <Field label="Age" value={form.age} onChange={set("age")} placeholder="2 years" />
       <Field label="Weight" value={form.weight} onChange={set("weight")} placeholder="55 lbs" />
       <Field label="Feeding Schedule" value={form.feeding} onChange={set("feeding")} placeholder="8am and 6pm, 1 cup each" />
-      <SmartDatePicker label="Next Vet Visit" value={form.nextVet} onChange={set("nextVet")} />
+      <Field label="Next Vet Visit" type="date" value={form.nextVet} onChange={set("nextVet")} />
       <Field label="Notes" as="textarea" value={form.notes} onChange={set("notes")} placeholder="Anything special..." />
       <div style={{ display: "flex", gap: 10 }}>
         <button style={{ ...btn(C.green), flex: 1 }} onClick={save} disabled={saving}>{saving ? "Saving..." : "💾 Save Changes"}</button>
@@ -3374,140 +3334,18 @@ function ShopTab() {
 function AdoptionTab({ profile }) {
   const [filterType, setFilterType] = useState("Dog");
   const [zipCode, setZipCode] = useState(profile?.zip || "");
-  const [pets, setPets] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [shelterListings, setShelterListings] = useState([]);
+  const [radius, setRadius] = useState("25");
 
-  useEffect(() => {
-    const unsub = onSnapshot(
-      query(collection(db, "shelterPets"), where("status", "==", "Available")),
-      snap => setShelterListings(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    );
-    return unsub;
-  }, []);
-
-  const getStateFromZip = (zip) => {
-    const z = parseInt(zip);
-    if (z >= 1001 && z <= 2791) return "MA";
-    if (z >= 6001 && z <= 6999) return "CT";
-    if (z >= 7001 && z <= 8999) return "NJ";
-    if (z >= 10001 && z <= 14999) return "NY";
-    if (z >= 19701 && z <= 19999) return "DE";
-    if (z >= 20001 && z <= 20599) return "DC";
-    if (z >= 20601 && z <= 21999) return "MD";
-    if (z >= 22001 && z <= 24699) return "VA";
-    if (z >= 25001 && z <= 26999) return "WV";
-    if (z >= 27001 && z <= 28999) return "NC";
-    if (z >= 29001 && z <= 29999) return "SC";
-    if (z >= 30001 && z <= 31999) return "GA";
-    if (z >= 32001 && z <= 34999) return "FL";
-    if (z >= 35001 && z <= 36999) return "AL";
-    if (z >= 37001 && z <= 38599) return "TN";
-    if (z >= 38600 && z <= 39999) return "MS";
-    if (z >= 40001 && z <= 42799) return "KY";
-    if (z >= 43001 && z <= 45999) return "OH";
-    if (z >= 46001 && z <= 47999) return "IN";
-    if (z >= 48001 && z <= 49999) return "MI";
-    if (z >= 50001 && z <= 52999) return "IA";
-    if (z >= 53001 && z <= 54999) return "WI";
-    if (z >= 55001 && z <= 56799) return "MN";
-    if (z >= 57001 && z <= 57999) return "SD";
-    if (z >= 58001 && z <= 58999) return "ND";
-    if (z >= 59001 && z <= 59999) return "MT";
-    if (z >= 60001 && z <= 62999) return "IL";
-    if (z >= 63001 && z <= 65999) return "MO";
-    if (z >= 66001 && z <= 67999) return "KS";
-    if (z >= 68001 && z <= 69999) return "NE";
-    if (z >= 70001 && z <= 71599) return "LA";
-    if (z >= 71601 && z <= 72999) return "AR";
-    if (z >= 73001 && z <= 74999) return "OK";
-    if (z >= 75001 && z <= 79999) return "TX";
-    if (z >= 80001 && z <= 81999) return "CO";
-    if (z >= 82001 && z <= 83199) return "WY";
-    if (z >= 83200 && z <= 83999) return "ID";
-    if (z >= 84001 && z <= 84999) return "UT";
-    if (z >= 85001 && z <= 86599) return "AZ";
-    if (z >= 87001 && z <= 88499) return "NM";
-    if (z >= 88901 && z <= 89999) return "NV";
-    if (z >= 90001 && z <= 96199) return "CA";
-    if (z >= 96701 && z <= 96999) return "HI";
-    if (z >= 97001 && z <= 97999) return "OR";
-    if (z >= 98001 && z <= 99499) return "WA";
-    if (z >= 99501 && z <= 99999) return "AK";
-    if (z >= 15001 && z <= 19699) return "PA";
-    if (z >= 2801 && z <= 2999) return "RI";
-    if (z >= 3001 && z <= 3999) return "NH";
-    if (z >= 4001 && z <= 4999) return "ME";
-    if (z >= 5001 && z <= 5999) return "VT";
-    return "NJ";
-  };
-
-  const searchPets = async () => {
+  const searchOnPetfinder = () => {
     if (!zipCode || zipCode.length < 5) return;
-    setLoading(true);
-    setError("");
-    setPets([]);
-    const state = getStateFromZip(zipCode);
-    const speciesFilter = filterType === "Dog" ? "Dog" : "Cat";
-    try {
-      const res = await fetch("https://api.rescuegroups.org/v5/public/animals/search", {
-        method: "POST",
-        headers: { "Authorization": "a0XsphJP", "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: {
-            filters: [
-              { fieldName: "statuses.name", operation: "equals", criteria: "Available" },
-              { fieldName: "locations.state", operation: "equals", criteria: state },
-              { fieldName: "species.singular", operation: "equals", criteria: speciesFilter }
-            ],
-            limit: 12,
-            include: ["pictures", "orgs", "locations"]
-          }
-        })
-      });
-      const data = await res.json();
-      const animals = (data.data || []).filter(a => {
-        const attr = a.attributes;
-        const orgId = a.relationships?.orgs?.data?.[0]?.id;
-        const org = data.included?.find(i => i.type === "orgs" && i.id === orgId);
-        const hasUrl = attr.url && attr.url.startsWith("http");
-        const hasOrgUrl = org?.attributes?.url && org.attributes.url.startsWith("http");
-        return hasUrl || hasOrgUrl;
-      }).map(a => {
-        const attr = a.attributes;
-        const locId = a.relationships?.locations?.data?.[0]?.id;
-        const orgId = a.relationships?.orgs?.data?.[0]?.id;
-        const loc = data.included?.find(i => i.type === "locations" && i.id === locId);
-        const org = data.included?.find(i => i.type === "orgs" && i.id === orgId);
-        return {
-          id: a.id,
-          name: attr.name,
-          breed: attr.breedString || attr.breedPrimary || "",
-          age: attr.ageGroup || "",
-          sex: attr.sex || "",
-          photo: attr.pictureThumbnailUrl || "",
-          url: attr.url && attr.url.startsWith("http") ? attr.url : "",
-          city: loc?.attributes?.city || org?.attributes?.city || state,
-          orgName: org?.attributes?.name || "",
-          orgUrl: org?.attributes?.url || "",
-          description: attr.descriptionText?.slice(0, 120) || ""
-        };
-      });
-      setPets(animals);
-      if (animals.length === 0) setError("No pets found in your area. Try a different zip code.");
-    } catch (e) {
-      setError("Could not load pets. Please try again.");
-    }
-    setLoading(false);
+    const url = "https://www.petfinder.com/search/pets-for-adoption/?pet_type=" + filterType.toLowerCase() + "s&location=" + zipCode + "&distance=" + radius;
+    window.open(url, "_blank");
   };
 
   return (
     <div>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Adopt a Pet ❤️</h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Find your next best friend — real pets available near you</p>
-
-      {/* Search filters */}
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Find adoptable pets near you — powered by Petfinder</p>
       <div style={{ ...card, marginBottom: 18 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
           <div>
@@ -3518,68 +3356,38 @@ function AdoptionTab({ profile }) {
             </select>
           </div>
           <div>
-            <span style={label}>Your Zip Code</span>
-            <input type="text" value={zipCode} onChange={e => setZipCode(e.target.value)} placeholder="e.g. 08701" maxLength={5} style={input} />
+            <span style={label}>Radius</span>
+            <select value={radius} onChange={e => setRadius(e.target.value)} style={{ ...input, appearance: "none" }}>
+              <option value="10">10 miles</option>
+              <option value="25">25 miles</option>
+              <option value="50">50 miles</option>
+              <option value="100">100 miles</option>
+            </select>
           </div>
         </div>
-        <button onClick={searchPets} disabled={!zipCode || zipCode.length < 5 || loading} style={{ ...btn(C.green), width: "100%", opacity: !zipCode || zipCode.length < 5 ? 0.5 : 1 }}>
-          {loading ? "🔍 Searching..." : "🐾 Find Adoptable Pets Near Me"}
+        <div style={{ marginBottom: 12 }}>
+          <span style={label}>Your Zip Code</span>
+          <input type="text" value={zipCode} onChange={e => setZipCode(e.target.value)} placeholder="e.g. 08701" maxLength={5} style={input} />
+        </div>
+        <button onClick={searchOnPetfinder} disabled={!zipCode || zipCode.length < 5} style={{ ...btn(C.green), width: "100%", opacity: !zipCode || zipCode.length < 5 ? 0.5 : 1 }}>
+          🐾 Find Adoptable Pets on Petfinder
         </button>
       </div>
-
-      {/* MyPetDex shelter listings */}
-      {shelterListings.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontWeight: 800, fontSize: 14, color: C.green, marginBottom: 10 }}>⭐ Featured — Listed by Local Shelters</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {shelterListings.map(pet => (
-              <div key={pet.id} style={{ ...card, padding: 12 }}>
-                {pet.photoURL && <img src={pet.photoURL} alt={pet.name} style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 10, marginBottom: 8 }} />}
-                <div style={{ fontWeight: 800, fontSize: 14, color: C.text }}>{pet.name}</div>
-                <div style={{ color: C.muted, fontSize: 12 }}>{pet.type} · {pet.breed}</div>
-                <div style={{ color: C.muted, fontSize: 12 }}>{pet.city}, {pet.state}</div>
-                <div style={{ background: C.green + "22", borderRadius: 8, padding: "4px 8px", fontSize: 11, color: C.green, fontWeight: 700, marginTop: 6, display: "inline-block" }}>⭐ On MyPetDex</div>
-              </div>
-            ))}
+      <div style={{ ...card, textAlign: "center", padding: 40 }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>❤️</div>
+        <div style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>Find your next best friend</div>
+        <div style={{ color: C.muted, fontSize: 13, marginTop: 6, marginBottom: 20 }}>Enter your zip code and we'll take you directly to Petfinder to browse real adoptable pets near you.</div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+          <div style={{ background: C.green + "22", borderRadius: 12, padding: "12px 16px", flex: 1 }}>
+            <div style={{ fontSize: 24 }}>🐶</div>
+            <div style={{ color: C.green, fontWeight: 700, fontSize: 12, marginTop: 4 }}>Dogs</div>
+          </div>
+          <div style={{ background: C.gold + "22", borderRadius: 12, padding: "12px 16px", flex: 1 }}>
+            <div style={{ fontSize: 24 }}>🐱</div>
+            <div style={{ color: C.gold, fontWeight: 700, fontSize: 12, marginTop: 4 }}>Cats</div>
           </div>
         </div>
-      )}
-
-      {/* Error */}
-      {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 12, textAlign: "center" }}>{error}</div>}
-
-      {/* RescueGroups results */}
-      {pets.length > 0 && (
-        <div>
-          <div style={{ fontWeight: 800, fontSize: 14, color: C.text, marginBottom: 10 }}>🐾 Available Near You ({pets.length} found)</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {pets.map(pet => (
-              <a key={pet.id} href={pet.url || pet.orgUrl || "#"} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }} onClick={e => { if(!pet.url && !pet.orgUrl) e.preventDefault(); }}>
-                <div style={{ ...card, padding: 12, cursor: "pointer", transition: "transform 0.2s" }}>
-                  {pet.photo
-                    ? <img src={pet.photo} alt={pet.name} style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 10, marginBottom: 8 }} />
-                    : <div style={{ width: "100%", height: 120, background: C.inputBg, borderRadius: 10, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>{filterType === "Dog" ? "🐶" : "🐱"}</div>
-                  }
-                  <div style={{ fontWeight: 800, fontSize: 14, color: C.text }}>{pet.name}</div>
-                  <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>{pet.breed}</div>
-                  <div style={{ color: C.muted, fontSize: 11 }}>{pet.age} · {pet.sex}</div>
-                  <div style={{ color: C.muted, fontSize: 11 }}>{pet.city}</div>
-                  <div style={{ ...btn(C.green), fontSize: 11, padding: "6px 10px", marginTop: 8, textAlign: "center", borderRadius: 8 }}>{pet.url ? `Meet ${pet.name} →` : `View at Shelter →`}</div>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && pets.length === 0 && shelterListings.length === 0 && !error && (
-        <div style={{ ...card, textAlign: "center", padding: 40 }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>❤️</div>
-          <div style={{ color: C.text, fontWeight: 800, fontSize: 16 }}>Find your next best friend</div>
-          <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>Enter your zip code and search for real adoptable pets near you — powered by RescueGroups.org</div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

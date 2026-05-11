@@ -3,6 +3,7 @@
   "outputDirectory": "build",
   "framework": "create-react-app",
   "rewrites": [
+    { "source": "/pet/:id", "destination": "/pet.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

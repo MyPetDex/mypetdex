@@ -61,6 +61,12 @@ service cloud.firestore {
     }
 
     // Deny everything else by default (covers any other paths)
+    // Public stats (user count for website)
+    match /stats/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

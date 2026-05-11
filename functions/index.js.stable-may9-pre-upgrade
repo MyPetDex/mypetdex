@@ -53,14 +53,6 @@ exports.onNewUser = onDocumentCreated(
 
     try {
       console.log(`New user created: ${email} (${role}) — welcome email will send after verification`);
-      // Increment public user counter
-      await db.collection("stats").doc("public").update({
-        userCount: admin.firestore.FieldValue.increment(1)
-      });
-      // Increment public user counter
-      await db.collection("stats").doc("public").update({
-        userCount: admin.firestore.FieldValue.increment(1)
-      });
     } catch (err) {
       console.error("SendGrid error:", err.response?.body || err);
     }
@@ -622,15 +614,5 @@ exports.getPetProfile = onRequest({ cors: true }, async (req, res) => {
   } catch (err) {
     console.error("getPetProfile error:", err);
     res.status(500).json({ error: err.message });
-  }
-});
-
-// ─── Public Stats (user count for website) ───────────────────────────────────
-exports.getPublicStats = onRequest({ cors: true }, async (req, res) => {
-  try {
-    const snap = await db.collection("stats").doc("public").get();
-    res.json({ userCount: snap.data()?.userCount || 20 });
-  } catch (err) {
-    res.json({ userCount: 20 });
   }
 });

@@ -1821,7 +1821,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         {isDemo && <div style={{ background: C.gold + "22", borderBottom: "1px solid " + C.gold, padding: "8px 16px", textAlign: "center", fontSize: 12, color: C.gold, fontWeight: 700 }}>👀 Demo Mode — browse only, editing disabled</div>}
 
         <div style={{ padding: "20px 24px", maxWidth: 680 }}>
-          {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} isDemo={isDemo} onAddPet={() => { setTab("pets"); setOpenAdd(true); }} />}
+          {tab === "home" && <HomeTab profile={currentProfile} user={user} isOwner={isOwner} isProvider={isProvider} isShelter={isShelter} setTab={setTab} onAddPet={() => { setTab("pets"); setOpenAdd(true); }} />}
           {tab === "pets" && isOwner && <PetsTab user={user} profile={currentProfile} isDemo={isDemo} onUpgrade={() => setShowUpgrade(true)} openAdd={openAdd} onOpenAddDone={() => setOpenAdd(false)} />}
           {(tab === "services" || tab === "groomers" || tab === "walkers" || tab === "sitters" || tab === "daycare" || tab === "vets") && isOwner && <ServicesTab profile={currentProfile} user={user} serviceFilter={tab} />}
           {tab === "ai" && isOwner && <AITab profile={currentProfile} user={user} onUpgrade={() => setShowUpgrade(true)} />}
@@ -1840,7 +1840,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
 }
 
 // ─── Home Tab ─────────────────────────────────────────────────────────────────
-function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab, onAddPet, isDemo }) {
+function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab, onAddPet }) {
   const [pets, setPets] = useState([]);
 
   useEffect(() => {
@@ -1904,11 +1904,11 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab, onAddP
 
   return (
     <div>
-      {!isDemo && InviteBanner}
+      {InviteBanner}
       {/* ── My Pets Section ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>My Pets</h2>
-        {!isDemo && <button onClick={onAddPet} style={{ ...btn(C.cardBorder, C.green), padding: "6px 14px", fontSize: 13, border: `1px solid ${C.green}` }}>+ Add Pet</button>}
+        <button onClick={onAddPet} style={{ ...btn(C.cardBorder, C.green), padding: "6px 14px", fontSize: 13, border: `1px solid ${C.green}` }}>+ Add Pet</button>
       </div>
 
       {pets.length === 0 && (
@@ -3467,14 +3467,7 @@ function AdoptionTab({ profile }) {
         })
       });
       const data = await res.json();
-      const animals = (data.data || []).filter(a => {
-        const attr = a.attributes;
-        const orgId = a.relationships?.orgs?.data?.[0]?.id;
-        const org = data.included?.find(i => i.type === "orgs" && i.id === orgId);
-        const hasUrl = attr.url && attr.url.startsWith("http");
-        const hasOrgUrl = org?.attributes?.url && org.attributes.url.startsWith("http");
-        return hasUrl || hasOrgUrl;
-      }).map(a => {
+      const animals = (data.data || []).map(a => {
         const attr = a.attributes;
         const locId = a.relationships?.locations?.data?.[0]?.id;
         const orgId = a.relationships?.orgs?.data?.[0]?.id;
@@ -3490,7 +3483,6 @@ function AdoptionTab({ profile }) {
           url: attr.url && attr.url.startsWith("http") ? attr.url : "",
           city: loc?.attributes?.city || org?.attributes?.city || state,
           orgName: org?.attributes?.name || "",
-          orgUrl: org?.attributes?.url || "",
           description: attr.descriptionText?.slice(0, 120) || ""
         };
       });
@@ -3554,7 +3546,7 @@ function AdoptionTab({ profile }) {
           <div style={{ fontWeight: 800, fontSize: 14, color: C.text, marginBottom: 10 }}>🐾 Available Near You ({pets.length} found)</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {pets.map(pet => (
-              <a key={pet.id} href={pet.url || pet.orgUrl || "#"} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }} onClick={e => { if(!pet.url && !pet.orgUrl) e.preventDefault(); }}>
+              <a key={pet.id} href={pet.url || "#"} target={pet.url ? "_blank" : "_self"} rel="noreferrer" style={{ textDecoration: "none" }} onClick={e => { if(!pet.url) e.preventDefault(); }}>
                 <div style={{ ...card, padding: 12, cursor: "pointer", transition: "transform 0.2s" }}>
                   {pet.photo
                     ? <img src={pet.photo} alt={pet.name} style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 10, marginBottom: 8 }} />
@@ -3564,7 +3556,7 @@ function AdoptionTab({ profile }) {
                   <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>{pet.breed}</div>
                   <div style={{ color: C.muted, fontSize: 11 }}>{pet.age} · {pet.sex}</div>
                   <div style={{ color: C.muted, fontSize: 11 }}>{pet.city}</div>
-                  <div style={{ ...btn(C.green), fontSize: 11, padding: "6px 10px", marginTop: 8, textAlign: "center", borderRadius: 8 }}>{pet.url ? `Meet ${pet.name} →` : `View at Shelter →`}</div>
+                  <div style={{ ...btn(C.green), fontSize: 11, padding: "6px 10px", marginTop: 8, textAlign: "center", borderRadius: 8 }}>Meet {pet.name} →</div>
                 </div>
               </a>
             ))}
