@@ -489,7 +489,7 @@ function SubscriberList({ subscribers, C, card }) {
                 }
                 <div style={{ color: C.muted, fontSize: 11, marginTop: 2, textTransform: "capitalize" }}>{s.billing || "monthly"}</div>
                 <div style={{ color: C.green, fontSize: 12, fontWeight: 700 }}>
-                  ${s.plan === "plus" ? (s.billing === "yearly" ? "2.40" : "3.00") : (s.billing === "yearly" ? "4.00" : "5.00")}/mo
+                  ${s.plan === "plus" ? (s.billing === "yearly" ? "2.39" : "2.99") : (s.billing === "yearly" ? "3.99" : "4.99")}/mo
                 </div>
               </div>
             </div>
@@ -664,8 +664,8 @@ function AdminDashboard({ onLogout }) {
               const plusYearly = subscribers.filter(s => s.plan === "plus" && s.billing === "yearly");
               const familyMonthly = subscribers.filter(s => s.plan === "family" && s.billing !== "yearly");
               const familyYearly = subscribers.filter(s => s.plan === "family" && s.billing === "yearly");
-              const mrrPlus = (plusMonthly.length * 3) + (plusYearly.length * 2.40);
-              const mrrFamily = (familyMonthly.length * 5) + (familyYearly.length * 4);
+              const mrrPlus = (plusMonthly.length * 2.99) + (plusYearly.length * 2.39);
+              const mrrFamily = (familyMonthly.length * 4.99) + (familyYearly.length * 3.99);
               const totalMRR = mrrPlus + mrrFamily;
               return (
                 <div>
@@ -687,22 +687,22 @@ function AdminDashboard({ onLogout }) {
                     <div style={{ ...card, flex: 1, textAlign: "center" }}>
                       <div style={{ fontSize: 18, fontWeight: 900, color: C.green }}>{plusMonthly.length}</div>
                       <div style={{ color: C.muted, fontSize: 11 }}>Plus Monthly</div>
-                      <div style={{ color: C.green, fontSize: 11 }}>${(plusMonthly.length * 3).toFixed(2)}/mo</div>
+                      <div style={{ color: C.green, fontSize: 11 }}>${(plusMonthly.length * 2.99).toFixed(2)}/mo</div>
                     </div>
                     <div style={{ ...card, flex: 1, textAlign: "center" }}>
                       <div style={{ fontSize: 18, fontWeight: 900, color: C.green }}>{plusYearly.length}</div>
                       <div style={{ color: C.muted, fontSize: 11 }}>Plus Yearly</div>
-                      <div style={{ color: C.green, fontSize: 11 }}>${(plusYearly.length * 2.40).toFixed(2)}/mo</div>
+                      <div style={{ color: C.green, fontSize: 11 }}>${(plusYearly.length * 2.39).toFixed(2)}/mo</div>
                     </div>
                     <div style={{ ...card, flex: 1, textAlign: "center" }}>
                       <div style={{ fontSize: 18, fontWeight: 900, color: C.gold }}>{familyMonthly.length}</div>
                       <div style={{ color: C.muted, fontSize: 11 }}>Family Monthly</div>
-                      <div style={{ color: C.gold, fontSize: 11 }}>${(familyMonthly.length * 5).toFixed(2)}/mo</div>
+                      <div style={{ color: C.gold, fontSize: 11 }}>${(familyMonthly.length * 4.99).toFixed(2)}/mo</div>
                     </div>
                     <div style={{ ...card, flex: 1, textAlign: "center" }}>
                       <div style={{ fontSize: 18, fontWeight: 900, color: C.gold }}>{familyYearly.length}</div>
                       <div style={{ color: C.muted, fontSize: 11 }}>Family Yearly</div>
-                      <div style={{ color: C.gold, fontSize: 11 }}>${(familyYearly.length * 4).toFixed(2)}/mo</div>
+                      <div style={{ color: C.gold, fontSize: 11 }}>${(familyYearly.length * 3.99).toFixed(2)}/mo</div>
                     </div>
                   </div>
                 </div>
@@ -961,7 +961,7 @@ function UpgradeScreen({ user, profile, onClose }) {
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ color: C.green, fontWeight: 900, fontSize: 20 }}>
-                {yearly ? "$2.40" : "$3"}<span style={{ fontSize: 13 }}>/mo</span>
+                {yearly ? "$2.39" : "$2.99"}<span style={{ fontSize: 13 }}>/mo</span>
               </div>
               {yearly && <div style={{ color: C.muted, fontSize: 11 }}>$28.80 billed yearly</div>}
               <div style={{ color: C.green, fontSize: 11, fontWeight: 700 }}>30 days FREE</div>
@@ -982,7 +982,7 @@ function UpgradeScreen({ user, profile, onClose }) {
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ color: C.gold, fontWeight: 900, fontSize: 20 }}>
-                {yearly ? "$4" : "$5"}<span style={{ fontSize: 13 }}>/mo</span>
+                {yearly ? "$3.99" : "$4.99"}<span style={{ fontSize: 13 }}>/mo</span>
               </div>
               {yearly && <div style={{ color: C.muted, fontSize: 11 }}>$48.00 billed yearly</div>}
               <div style={{ color: C.gold, fontSize: 11, fontWeight: 700 }}>30 days FREE</div>
