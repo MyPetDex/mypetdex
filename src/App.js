@@ -3916,8 +3916,8 @@ function SettingsTab({ user, profile, onProfileUpdate, onLogout, isDemo }) {
           )}
         </div>
       </div>
-      <SiteReviewWidget user={user} profile={profile} />
-      <ReferralWidget profile={profile} />
+      {!isDemo && <SiteReviewWidget user={user} profile={profile} />}
+      {!isDemo && <ReferralWidget profile={profile} />}
       <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 18, padding: 22, marginBottom: 14 }}>
         <div style={{ color: "#1E293B", fontWeight: 800, fontSize: 15, marginBottom: 12 }}>Legal</div>
         <div onClick={() => setSection("privacy")} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${C.cardBorder}`, cursor: "pointer" }}>
