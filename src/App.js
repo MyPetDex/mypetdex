@@ -374,7 +374,8 @@ export default function App() {
   }} />;
   if (screen === "google-role") return <GoogleRoleScreen user={user} initialPlan={urlPlan} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("verify"); }} initialPlan={urlPlan} />;
-  if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} />;
+  if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onReset={() => setScreen("reset")} />;
+  if (screen === "reset") return <ResetPasswordScreen onBack={() => setScreen("login")} />;
   if (screen === "verify") return <VerifyEmail onVerified={async () => {
     const u = auth.currentUser;
     if (!u) return;
@@ -1518,7 +1519,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
-function LoginScreen({ onBack, onSuccess }) {
+function LoginScreen({ onBack, onSuccess, onReset }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -1548,17 +1549,54 @@ function LoginScreen({ onBack, onSuccess }) {
         <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="password" />
         <button style={{ ...btn(), width: "100%", marginTop: 8 }} onClick={login} disabled={loading}>{loading ? "Signing in..." : "Sign In"}</button>
         <div style={{ textAlign: "center", marginTop: 16 }}>
-          <button onClick={async () => {
-            if (!email) { setError("Enter your email address first"); return; }
-            try {
-              const { sendPasswordResetEmail } = await import("firebase/auth");
-              await sendPasswordResetEmail(auth, email);
-              setError("✅ Password reset email sent! Check your inbox.");
-            } catch(e) { setError("Could not send reset email. Check your email address."); }
-          }} style={{ background: "none", border: "none", color: C.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>
+          <button onClick={onReset} style={{ background: "none", border: "none", color: C.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>
             Forgot your password?
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+function ResetPasswordScreen({ onBack }) {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleReset = async () => {
+    if (!email) { setError("Please enter your email address"); return; }
+    setLoading(true);
+    try {
+      const { sendPasswordResetEmail } = await import("firebase/auth");
+      await sendPasswordResetEmail(auth, email);
+      setSent(true);
+      setError("");
+    } catch(e) {
+      setError("Could not send reset email. Please check your email address.");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg, padding: 16 }}>
+      <div style={{ ...card, maxWidth: 400, width: "100%", padding: 32 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
+        <img src="/logo.png" alt="MyPetDex" style={{ width: 56, height: 56, objectFit: "contain", display: "block", margin: "0 auto 16px" }} />
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 24, textAlign: "center", margin: "0 0 8px" }}>Reset Password</h2>
+        <p style={{ color: C.muted, fontSize: 14, textAlign: "center", marginBottom: 24 }}>Enter your email and we'll send you a reset link.</p>
+        {sent ? (
+          <div style={{ background: "#22c55e22", border: "1px solid #22c55e", borderRadius: 10, padding: "12px 16px", color: "#16a34a", fontSize: 14, textAlign: "center" }}>
+            ✅ Reset link sent! Check your inbox at {email}
+          </div>
+        ) : (
+          <>
+            {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
+            <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" />
+            <button style={{ ...btn(), width: "100%", marginTop: 16 }} onClick={handleReset} disabled={loading}>
+              {loading ? "Sending..." : "Send Reset Link 🐾"}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
