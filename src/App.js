@@ -393,7 +393,7 @@ export default function App() {
     } catch (e) {
       if (e.code !== "auth/popup-closed-by-user") console.error("Apple sign in error:", e);
     }
-  }} />;
+  }} urlRole={urlRole} />;
   if (screen === "google-role")
   if (screen === "google-role") return <GoogleRoleScreen user={user} initialPlan={urlPlan} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} />;
@@ -1400,9 +1400,10 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
 }
 
 // ─── Landing ─────────────────────────────────────────────────────────────────
-function Landing({ onRegister, onLogin, onGoogle, onApple }) {
+function Landing({ onRegister, onLogin, onGoogle, onApple, urlRole }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
+      {(urlRole === "provider" || urlRole === "shelter") && (() => { setTimeout(() => onRegister(), 0); return null; })()}
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
 
       {/* Top Sign In link */}
