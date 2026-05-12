@@ -1540,8 +1540,12 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
       <div style={{ width: "100%", maxWidth: 460 }}>
         <button onClick={() => step === 2 ? setStep(1) : onBack()} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
-        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 8px" }}>Create Account</h2>
-        <p style={{ color: C.muted, fontSize: 14, marginBottom: 16 }}>Join the MyPetDex community</p>
+         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 8px" }}>
+          {initialRole === "provider" ? "🛎️ Service Provider Signup" : initialRole === "shelter" ? "🏠 Shelter Signup" : "Create Account"}
+        </h2>
+        <p style={{ color: C.muted, fontSize: 14, marginBottom: 16 }}>
+          {initialRole === "provider" ? "Join MyPetDex as a service provider — free to join!" : initialRole === "shelter" ? "Register your shelter — always free on MyPetDex!" : "Join the MyPetDex community"}
+        </p>
         <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
           <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>🔒 Your data is encrypted using industry-standard protocols and never shared with third parties.</p>
         </div>
