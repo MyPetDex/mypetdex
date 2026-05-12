@@ -783,14 +783,13 @@ function SmartDatePicker({ label, value, onChange }) {
   const years = Array.from({ length: 21 }, (_, i) => currentYear - 5 + i);
   const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
 
-  const parsed = value ? value.split("-") : ["", "", ""];
+  const parsed = value && value.includes("-") ? value.split("-") : ["", "", ""];
   const selYear = parsed[0] || "";
   const selMonth = parsed[1] || "";
   const selDay = parsed[2] || "";
 
   const update = (y, m, d) => {
     if (y && m && d) onChange(`${y}-${m}-${d}`);
-    else onChange("");
   };
 
   return (
