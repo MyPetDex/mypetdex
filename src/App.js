@@ -1303,6 +1303,8 @@ function GoogleRoleScreen({ user, initialPlan = "free", initialRole = "", onSucc
         pendingPlan: (role === "owner" && (initialPlan === "plus" || initialPlan === "family")) ? initialPlan : null,
         welcomeEmailSent: false,
         refCode, referredBy: referredBy || null, referralCount: 0,
+        ...(role === "provider" ? { businessName: bizForm.businessName, service: bizForm.service, priceRange: bizForm.priceRange, phone: bizForm.phone, website: bizForm.website, address: bizForm.address, state: bizForm.state, city: bizForm.city, googleReview: bizForm.googleReview, bio: bizForm.bio, status: "pending" } : {}),
+        ...(role === "shelter" ? { shelterName: bizForm.shelterName, ein: bizForm.ein, license: bizForm.license, phone: bizForm.phone, website: bizForm.website, address: bizForm.address, state: bizForm.state, city: bizForm.city, googleReview: bizForm.googleReview, status: "pending" } : {}),
       };
       await setDoc(doc(db, "users", user.uid), profile);
       if (referredBy) {
@@ -1368,14 +1370,22 @@ function GoogleRoleScreen({ user, initialPlan = "free", initialRole = "", onSucc
     </div>
   );
 
+  const [bizForm, setBizForm] = useState({ businessName:"", service:"Grooming", priceRange:"", phone:"", website:"", address:"", state:"", city:"", googleReview:"", bio:"", shelterName:"", ein:"", license:"" });
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
       <div style={{ width: "100%", maxWidth: 460 }}>
         <img src="/logo.png" alt="MyPetDex" style={{ width: 72, height: 72, objectFit: "contain", marginBottom: 8 }} />
-        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 24, margin: "0 0 8px", textAlign: "center" }}>Welcome, {user?.displayName?.split(" ")[0] || "Friend"}!</h2>
-        <p style={{ color: C.muted, fontSize: 14, marginBottom: 24, textAlign: "center" }}>One last step — how will you use MyPetDex?</p>
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 24, margin: "0 0 8px", textAlign: "center" }}>
+          {initialRole === "provider" ? "🛎️ Your Business Details" : initialRole === "shelter" ? "🏠 Your Shelter Details" : `Welcome, ${user?.displayName?.split(" ")[0] || "Friend"}!`}
+        </h2>
+        <p style={{ color: C.muted, fontSize: 14, marginBottom: 24, textAlign: "center" }}>
+          {initialRole === "provider" ? "Tell us about your business" : initialRole === "shelter" ? "Tell us about your shelter" : "One last step — how will you use MyPetDex?"}
+        </p>
         {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
+
+        {/* Role picker — only shown when no initialRole */}
         {step === 1 && !initialRole && <>
           <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
             {roleCard("owner", "🐾", "Pet Owner", "Manage my pets")}
@@ -1383,16 +1393,46 @@ function GoogleRoleScreen({ user, initialPlan = "free", initialRole = "", onSucc
             {roleCard("shelter", "🏠", "Shelter", "Post adoptions")}
           </div>
         </>}
-        {step === 2 && role === "owner" && <>
-          <p style={{ color: C.muted, fontSize: 13, marginBottom: 16 }}>Tell us about your pet:</p>
+
+        {/* Pet details — owner step 2 OR owner with initialRole */}
+        {((step === 2 && role === "owner") || (initialRole === "owner" && step === 1)) && <>
+          <p style={{ color: C.muted, fontSize: 13, marginBottom: 16 }}>Tell us about your pet (optional):</p>
           <Field label="Pet Name" value={petForm.name} onChange={v => setPetForm(f=>({...f,name:v}))} placeholder="Buddy" />
           <Field label="Pet Type" as="select" value={petForm.type} onChange={v => setPetForm(f=>({...f,type:v}))} options={["Dog","Cat"]} />
           <Field label="Breed" as="select" value={petForm.breed} onChange={v => setPetForm(f=>({...f,breed:v}))} options={petForm.type === "Cat" ? CAT_BREEDS : DOG_BREEDS} />
           <Field label="Age" value={petForm.age} onChange={v => setPetForm(f=>({...f,age:v}))} placeholder="e.g. 2 years" />
-          <button onClick={() => setStep(1)} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:13, fontFamily:font, marginBottom:12 }}>← Back</button>
+          {!initialRole && <button onClick={() => setStep(1)} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:13, fontFamily:font, marginBottom:12 }}>← Back</button>}
         </>}
-        <button style={{ ...btn(C.green), width: "100%" }} onClick={submit} disabled={loading}>
-          {loading ? "Setting up your account..." : step === 1 && role === "owner" ? "Next →" : "Get Started →"}
+
+        {/* Provider details */}
+        {(initialRole === "provider" || (role === "provider" && step === 1)) && <>
+          <Field label="Business Name" value={bizForm.businessName} onChange={v => setBizForm(f=>({...f,businessName:v}))} placeholder="Happy Paws Grooming" />
+          <Field label="Service Type" as="select" value={bizForm.service} onChange={v => setBizForm(f=>({...f,service:v}))} options={["Grooming","Dog Walking","Veterinary","Training","Boarding","Daycare","Other"]} />
+          <Field label="Price Range" value={bizForm.priceRange} onChange={v => setBizForm(f=>({...f,priceRange:v}))} placeholder="e.g. $40-$80" />
+          <Field label="Phone Number" value={bizForm.phone} onChange={v => setBizForm(f=>({...f,phone:v}))} placeholder="+1 (555) 000-0000" />
+          <Field label="Website (optional)" value={bizForm.website} onChange={v => setBizForm(f=>({...f,website:v}))} placeholder="https://yourwebsite.com" />
+          <Field label="Street Address (optional)" value={bizForm.address} onChange={v => setBizForm(f=>({...f,address:v}))} placeholder="123 Main St" />
+          <Field label="State" as="select" value={bizForm.state} onChange={v => setBizForm(f=>({...f,state:v}))} options={US_STATES} />
+          <Field label="City" value={bizForm.city} onChange={v => setBizForm(f=>({...f,city:v}))} placeholder="Newark" />
+          <Field label="Google Review Link (optional)" value={bizForm.googleReview} onChange={v => setBizForm(f=>({...f,googleReview:v}))} placeholder="https://maps.google.com/..." />
+          <Field label="About Your Business" as="textarea" value={bizForm.bio} onChange={v => setBizForm(f=>({...f,bio:v}))} placeholder="Tell pet owners what makes you special..." />
+        </>}
+
+        {/* Shelter details */}
+        {(initialRole === "shelter" || (role === "shelter" && step === 1)) && <>
+          <Field label="Shelter Name" value={bizForm.shelterName} onChange={v => setBizForm(f=>({...f,shelterName:v}))} placeholder="Second Chance Animal Shelter" />
+          <Field label="EIN Number" value={bizForm.ein} onChange={v => setBizForm(f=>({...f,ein:v}))} placeholder="xx-xxxxxxx" />
+          <Field label="State License #" value={bizForm.license} onChange={v => setBizForm(f=>({...f,license:v}))} placeholder="NJ-2024-xxxxx" />
+          <Field label="Phone Number" value={bizForm.phone} onChange={v => setBizForm(f=>({...f,phone:v}))} placeholder="+1 (555) 000-0000" />
+          <Field label="Website (optional)" value={bizForm.website} onChange={v => setBizForm(f=>({...f,website:v}))} placeholder="https://yourshelter.org" />
+          <Field label="Street Address" value={bizForm.address} onChange={v => setBizForm(f=>({...f,address:v}))} placeholder="123 Main St" />
+          <Field label="State" as="select" value={bizForm.state} onChange={v => setBizForm(f=>({...f,state:v}))} options={US_STATES} />
+          <Field label="City" value={bizForm.city} onChange={v => setBizForm(f=>({...f,city:v}))} placeholder="Camden" />
+          <Field label="Google Review Link (optional)" value={bizForm.googleReview} onChange={v => setBizForm(f=>({...f,googleReview:v}))} placeholder="https://maps.google.com/..." />
+        </>}
+
+        <button style={{ ...btn(C.green), width: "100%", marginTop: 8 }} onClick={submit} disabled={loading}>
+          {loading ? "Setting up your account..." : !initialRole && step === 1 && role === "owner" ? "Next →" : "Get Started →"}
         </button>
         <button onClick={onLogout} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 13, fontFamily: font, marginTop: 16, width: "100%", textAlign: "center" }}>Sign out</button>
       </div>
