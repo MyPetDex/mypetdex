@@ -1483,7 +1483,7 @@ function OwnerLanding({ onRegister, onLogin, onGoogle, onApple }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      <div style={{ position: "absolute", top: 20, right: 24 }}>
+      <div style={{ alignSelf: "flex-end", marginBottom: 8 }}>
         <span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span>
         <button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button>
       </div>
@@ -1540,7 +1540,7 @@ function ShelterLanding({ onRegister, onLogin, onGoogle, onApple }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      <div style={{ position: "absolute", top: 20, right: 24 }}>
+      <div style={{ alignSelf: "flex-end", marginBottom: 8 }}>
         <span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span>
         <button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button>
       </div>
