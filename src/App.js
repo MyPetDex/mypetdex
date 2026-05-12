@@ -4020,7 +4020,7 @@ function SettingsTab({ user, profile, onProfileUpdate, onLogout, isDemo }) {
             <span style={{ color: C.muted, fontSize: 13 }}>Plan</span>
             <span style={{ color: C.green, fontSize: 13, fontWeight: 700, marginLeft: 8, textTransform: "capitalize" }}>{profile?.plan || "free"}{profile?.billing ? " · " + profile.billing : ""}</span>
           </div>
-          {profile?.plan && profile.plan !== "free" && (
+          {profile?.plan && profile.plan !== "free" && profile?.stripeCustomerId && (
             <button onClick={async () => {
               try {
                 const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/createPortalSession", {
