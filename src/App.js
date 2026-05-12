@@ -1456,6 +1456,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
     petName:"", petType:"Dog", petBreed:"", petAge:"", petWeight:"",
     state:"", city:"",
     businessName:"", service:"", priceRange:"", googleReview:"", bio:"",
+    phone:"", website:"", address:"",
     shelterName:"", ein:"", license:"",
   });
   const set = k => v => setForm(f => ({ ...f, [k]: v }));
@@ -1575,9 +1576,12 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
           <Field label="Business Name" value={form.businessName} onChange={set("businessName")} placeholder="Happy Paws Grooming" required />
           <Field label="Service Type" as="select" value={form.service} onChange={set("service")} options={["Grooming","Dog Walking","Veterinary","Training","Boarding","Daycare","Other"]} />
           <Field label="Price Range" value={form.priceRange} onChange={set("priceRange")} placeholder="e.g. $40-$80" />
+          <Field label="Phone Number" value={form.phone} onChange={set("phone")} placeholder="+1 (555) 000-0000" />
+          <Field label="Website (optional)" value={form.website} onChange={set("website")} placeholder="https://yourwebsite.com" />
+          <Field label="Street Address (optional)" value={form.address} onChange={set("address")} placeholder="123 Main St" />
           <Field label="State" as="select" value={form.state} onChange={set("state")} options={US_STATES} />
           <Field label="City" value={form.city} onChange={set("city")} placeholder="Newark" />
-          <Field label="Google Review Link" value={form.googleReview} onChange={set("googleReview")} placeholder="https://maps.google.com/..." />
+          <Field label="Google Review Link (optional)" value={form.googleReview} onChange={set("googleReview")} placeholder="https://maps.google.com/..." />
           <Field label="About Your Business" as="textarea" value={form.bio} onChange={set("bio")} placeholder="Tell pet owners what makes you special..." />
           <div style={{ ...card, background: "#EEF4FF", marginBottom: 16 }}>
             <p style={{ color: C.gold, fontSize: 12, fontWeight: 700, margin: 0 }}>🎉 6-Month Free Trial — then only 5% commission on bookings. No monthly fees!</p>
@@ -1589,8 +1593,12 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
           <Field label="Shelter Name" value={form.shelterName} onChange={set("shelterName")} placeholder="Second Chance Animal Shelter" required />
           <Field label="EIN Number" value={form.ein} onChange={set("ein")} placeholder="xx-xxxxxxx" />
           <Field label="State License #" value={form.license} onChange={set("license")} placeholder="NJ-2024-xxxxx" />
+          <Field label="Phone Number" value={form.phone} onChange={set("phone")} placeholder="+1 (555) 000-0000" />
+          <Field label="Website (optional)" value={form.website} onChange={set("website")} placeholder="https://yourshelter.org" />
+          <Field label="Street Address" value={form.address} onChange={set("address")} placeholder="123 Main St" />
           <Field label="State" as="select" value={form.state} onChange={set("state")} options={US_STATES} />
           <Field label="City" value={form.city} onChange={set("city")} placeholder="Camden" />
+          <Field label="Google Review Link (optional)" value={form.googleReview} onChange={set("googleReview")} placeholder="https://maps.google.com/..." />
           <div style={{ ...card, background: "#EEF4FF", marginBottom: 16 }}>
             <p style={{ color: C.green, fontSize: 12, fontWeight: 700, margin: 0 }}>Shelter access is always FREE on MyPetDex!</p>
           </div>
