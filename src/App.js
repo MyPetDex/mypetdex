@@ -1450,7 +1450,7 @@ function Landing({ onRegister, onLogin, onGoogle, onApple }) {
 // ─── Register ────────────────────────────────────────────────────────────────
 function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole = "" }) {
   const [role, setRole] = useState(initialRole);
-  const [step, setStep] = useState(initialRole === "provider" || initialRole === "shelter" ? 2 : 1);
+  const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
