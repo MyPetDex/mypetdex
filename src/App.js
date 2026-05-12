@@ -1551,12 +1551,14 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
         </div>
         {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
         {step === 1 && <>
+          {!initialRole && <>
           <p style={{ ...label, marginBottom: 12 }}>I am a...</p>
           <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
             {roleCard("owner","🐾","Pet Owner","Manage my pets")}
             {roleCard("provider","🛎️","Service Provider","Offer pet services")}
             {roleCard("shelter","🏠","Shelter","Post adoptions")}
           </div>
+          </>}
           <Field label="Full Name" value={form.name} onChange={set("name")} placeholder="Jane Smith" required />
           <Field label="Email" type="email" value={form.email} onChange={set("email")} placeholder="you@email.com" required />
           <Field label="Password (min 8 characters + special character)" type="password" value={form.password} onChange={set("password")} placeholder="e.g. MyPet@2024" required />
