@@ -272,6 +272,8 @@ firebase emulators:start --only functions
 - ✅ Site reviews (moderated)
 - ✅ Feedback button (formsubmit.co → help@mypetdex.app)
 - ✅ Demo mode (demo@mypetdex.app)
+- ✅ Sign in with Apple (Landing + Login screens)
+- ✅ Stripe payment flow for Apple/Google signups
 
 ## 🔜 Coming Soon
 
@@ -289,25 +291,31 @@ firebase emulators:start --only functions
 - Website: home.mypetdex.app
 - App: app.mypetdex.app
 
-## 🔐 Sign in with Apple — In Progress (May 11 2026)
+## 🔐 Sign in with Apple — LIVE ✅ (May 11 2026)
 
 ### Apple Developer Credentials
 - Team ID: DP9NXZ77FA
 - Bundle ID: app.mypetdex
 - Key ID: 4J3RMYX8BK
 - Key file: ~/mypetdex/AuthKey_SignInWithApple.p8
+- Services ID (web): app.mypetdex.web
 - Firebase Apple provider: ENABLED ✅
 
 ### What's done:
-- App ID registered with Sign in with Apple + Push Notifications
-- Key created and downloaded
-- Firebase Apple auth provider enabled
+- ✅ Apple button on Landing and Login screens (Apple first, Google second)
+- ✅ Firebase configured with Services ID + Team ID + private key
+- ✅ Apple Developer Services ID registered with app.mypetdex.app domain
+- ✅ Full sign-in flow working in production
+- ✅ New Apple users go to role picker (GoogleRoleScreen)
+- ✅ Existing Apple users go straight to app
+- ✅ Stripe payment flow works for Apple/Google sign-ups with paid plans
+- ✅ Welcome email only sent AFTER Stripe payment confirmed (webhook)
+- ✅ Manage Subscription button only shows for users with stripeCustomerId
 
-### What's next (Step 3):
-- Install firebase/auth Apple provider in code
-- Add Sign in with Apple button to Landing and Login screens
-- Handle Apple sign-in flow in App.js
-- Test on iOS device
+### Payment Flow Fix (May 11 2026)
+- GoogleRoleScreen always sets plan: "free" + pendingPlan for paid plans
+- Welcome email skipped if pendingPlan exists — webhook sends paid email instead
+- Manage Subscription button hidden for users without stripeCustomerId
 
 ### Pricing (Updated May 11)
 - Plus Monthly: price_1TVxf1KrbYhlx0Wng1THRLur ($2.99)

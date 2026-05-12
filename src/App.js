@@ -1296,7 +1296,7 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
         uid: user.uid, email: user.email,
         name: user.displayName || "", role,
         plan: "free", createdAt: new Date().toISOString(),
-        pendingPlan: (initialPlan === "plus" || initialPlan === "family") ? initialPlan : null,
+        pendingPlan: (role === "owner" && (initialPlan === "plus" || initialPlan === "family")) ? initialPlan : null,
         welcomeEmailSent: false,
         refCode, referredBy: referredBy || null, referralCount: 0,
       };
@@ -1323,7 +1323,7 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
       }
       sessionStorage.removeItem("selectedPlan");
       // Only send welcome email if NOT going to Stripe — webhook handles paid plan emails
-      if (initialPlan !== "plus" && initialPlan !== "family") {
+      if (role !== "owner" || (initialPlan !== "plus" && initialPlan !== "family")) {
         try {
           const name = user.displayName?.split(" ")[0] || user.email?.split("@")[0];
           await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
@@ -1335,7 +1335,7 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
       }
 
       // Redirect to Stripe if pending paid plan
-      if (initialPlan === "plus" || initialPlan === "family") {
+      if (role === "owner" && (initialPlan === "plus" || initialPlan === "family")) {
         const PRICES = {
           plus: "price_1TVxf1KrbYhlx0Wng1THRLur",
           family: "price_1TVxjIKrbYhlx0WnXcSBrbcG"
