@@ -2232,7 +2232,7 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab, onAddP
             <Avatar emoji={pet.type === "Cat" ? "🐱" : "🐶"} size={60} img={pet.photoURL} />
             <div style={{ flex: 1 }}>
               <div style={{ color: C.text, fontWeight: 900, fontSize: 18 }}>{pet.name}</div>
-              <div style={{ color: C.muted, fontSize: 13 }}>{pet.breed} · {pet.age} · {pet.weight}</div>
+              <div style={{ color: C.muted, fontSize: 13 }}>{pet.breed}{pet.age ? ` · Age: ${pet.age}` : ""}{pet.weight ? ` · ${pet.weight} lbs` : ""}</div>
               <Badge text={"📍 " + (profile?.city || "--") + ", " + (profile?.state || "--")} color={C.muted} />
             </div>
             <div style={{ color: C.muted, fontSize: 18 }}>›</div>
