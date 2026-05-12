@@ -784,11 +784,12 @@ function SmartDatePicker({ label, value, onChange }) {
   const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
 
   const parsed = value && value.includes("-") ? value.split("-") : ["", "", ""];
-  const selYear = parsed[0] || "";
-  const selMonth = parsed[1] || "";
-  const selDay = parsed[2] || "";
+  const [selYear, setSelYear] = useState(parsed[0] || "");
+  const [selMonth, setSelMonth] = useState(parsed[1] || "");
+  const [selDay, setSelDay] = useState(parsed[2] || "");
 
   const update = (y, m, d) => {
+    setSelYear(y); setSelMonth(m); setSelDay(d);
     if (y && m && d) onChange(`${y}-${m}-${d}`);
   };
 
