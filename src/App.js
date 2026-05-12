@@ -395,7 +395,7 @@ export default function App() {
     }
   }} urlRole={urlRole} />;
   if (screen === "google-role")
-  if (screen === "google-role") return <GoogleRoleScreen user={user} initialPlan={urlPlan} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
+  if (screen === "google-role") return <GoogleRoleScreen user={user} initialPlan={urlPlan} initialRole={urlRole} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} onApple={async () => { try { const provider = new OAuthProvider("apple.com"); provider.addScope("email"); provider.addScope("name"); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") console.error("Apple sign in error:", e); } }} onGoogle={async () => { try { const provider = new GoogleAuthProvider(); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { console.error("Google sign in error:", e); } }} />;
   if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onReset={() => setScreen("reset")} onApple={async () => {
     try {
@@ -1280,8 +1280,8 @@ function VerifyEmail({ onVerified, onLogout }) {
 }
 
 // ─── Google Role Picker ───────────────────────────────────────────────────────
-function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
-  const [role, setRole] = useState("");
+function GoogleRoleScreen({ user, initialPlan = "free", initialRole = "", onSuccess, onLogout }) {
+  const [role, setRole] = useState(initialRole);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -1375,7 +1375,7 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 24, margin: "0 0 8px", textAlign: "center" }}>Welcome, {user?.displayName?.split(" ")[0] || "Friend"}!</h2>
         <p style={{ color: C.muted, fontSize: 14, marginBottom: 24, textAlign: "center" }}>One last step — how will you use MyPetDex?</p>
         {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
-        {step === 1 && <>
+        {step === 1 && !initialRole && <>
           <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
             {roleCard("owner", "🐾", "Pet Owner", "Manage my pets")}
             {roleCard("provider", "🛎️", "Service Provider", "Offer pet services")}
