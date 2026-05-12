@@ -210,6 +210,9 @@ export default function App() {
   const urlPlanFromURL = new URLSearchParams(window.location.search).get("plan");
   if (urlPlanFromURL) sessionStorage.setItem("selectedPlan", urlPlanFromURL);
   const urlPlan = sessionStorage.getItem("selectedPlan") || "free";
+  const urlRoleFromURL = new URLSearchParams(window.location.search).get("role");
+  if (urlRoleFromURL) sessionStorage.setItem("selectedRole", urlRoleFromURL);
+  const urlRole = sessionStorage.getItem("selectedRole") || "";
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
 
@@ -393,7 +396,7 @@ export default function App() {
   }} />;
   if (screen === "google-role")
   if (screen === "google-role") return <GoogleRoleScreen user={user} initialPlan={urlPlan} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
-  if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("verify"); }} initialPlan={urlPlan} />;
+  if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} />;
   if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onReset={() => setScreen("reset")} onApple={async () => {
     try {
       const provider = new OAuthProvider("apple.com");
@@ -1445,9 +1448,9 @@ function Landing({ onRegister, onLogin, onGoogle, onApple }) {
 }
 
 // ─── Register ────────────────────────────────────────────────────────────────
-function RegisterScreen({ onBack, onSuccess, initialPlan = "free" }) {
-  const [role, setRole] = useState("");
-  const [step, setStep] = useState(1);
+function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole = "" }) {
+  const [role, setRole] = useState(initialRole);
+  const [step, setStep] = useState(initialRole === "provider" || initialRole === "shelter" ? 2 : 1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
