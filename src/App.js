@@ -1322,14 +1322,17 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
         });
       }
       sessionStorage.removeItem("selectedPlan");
-      try {
-        const name = user.displayName?.split(" ")[0] || user.email?.split("@")[0];
-        await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role, email: user.email, name, profile })
-        });
-        await updateDoc(doc(db, "users", user.uid), { welcomeEmailSent: true });
-      } catch (emailErr) { console.error("Welcome email error:", emailErr); }
+      // Only send welcome email if NOT going to Stripe — webhook handles paid plan emails
+      if (initialPlan !== "plus" && initialPlan !== "family") {
+        try {
+          const name = user.displayName?.split(" ")[0] || user.email?.split("@")[0];
+          await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/sendVerifiedEmail", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ role, email: user.email, name, profile })
+          });
+          await updateDoc(doc(db, "users", user.uid), { welcomeEmailSent: true });
+        } catch (emailErr) { console.error("Welcome email error:", emailErr); }
+      }
 
       // Redirect to Stripe if pending paid plan
       if (initialPlan === "plus" || initialPlan === "family") {
