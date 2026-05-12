@@ -1896,12 +1896,13 @@ function FeedbackButton({ user }) {
       {/* Floating button */}
       <button onClick={() => setOpen(true)} style={{
         position: "fixed", bottom: 90, right: 16, zIndex: 998,
-        background: C.green, color: "#fff", border: "none", borderRadius: "50px",
-        padding: "10px 16px", fontFamily: font, fontWeight: 800, fontSize: 13,
+        background: C.green, color: "#fff", border: "none",
+        borderRadius: "50%", width: 44, height: 44,
         cursor: "pointer", boxShadow: "0 4px 16px rgba(59,130,246,0.4)",
-        display: "flex", alignItems: "center", gap: 6
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 20
       }}>
-        💬 Feedback
+        💬
       </button>
 
       {/* Modal overlay */}
