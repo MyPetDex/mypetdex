@@ -394,7 +394,6 @@ export default function App() {
       if (e.code !== "auth/popup-closed-by-user") console.error("Apple sign in error:", e);
     }
   }} urlRole={urlRole} />;
-  if (screen === "google-role")
   if (screen === "google-role") return <GoogleRoleScreen user={user} initialPlan={urlPlan} initialRole={urlRole} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
   if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} onApple={async () => { try { const provider = new OAuthProvider("apple.com"); provider.addScope("email"); provider.addScope("name"); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") console.error("Apple sign in error:", e); } }} onGoogle={async () => { try { const provider = new GoogleAuthProvider(); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { console.error("Google sign in error:", e); } }} />;
   if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onReset={() => setScreen("reset")} onApple={async () => {
@@ -437,7 +436,7 @@ export default function App() {
     // Force token refresh first
     try { await u.getIdToken(true); } catch(e) { console.error("Token refresh error:", e); }
     // Load profile from Firestore first (with retry - wait longer to ensure data is fresh)
-    let userData = { email: u.email, role: "owner", plan: "free" };
+    let userData = { email: u.email, role: urlRole || "owner", plan: "free" };
     for (let i = 0; i < 5; i++) {
       try {
         await new Promise(r => setTimeout(r, 1500));
@@ -506,8 +505,10 @@ export default function App() {
         console.error("Welcome email error:", emailErr);
       }
     }
+    sessionStorage.removeItem("selectedRole");
+    sessionStorage.removeItem("selectedPlan");
     setScreen("app");
-  }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
+  }} onLogout={async () => { await signOut(auth); sessionStorage.removeItem("selectedRole"); setScreen("landing"); }} />;
   if (screen === "app") return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
 }
 function SubscriberList({ subscribers, C, card }) {
