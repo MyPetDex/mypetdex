@@ -1288,6 +1288,7 @@ function GoogleRoleScreen({ user, initialPlan = "free", initialRole = "", onSucc
 
   const [step, setStep] = useState(1);
   const [petForm, setPetForm] = useState({ name:"", type:"Dog", breed:"", age:"" });
+  const [displayName, setDisplayName] = useState(user?.displayName || "");
 
   const submit = async () => {
     if (!role) { setError("Please select your role to continue"); return; }
@@ -1298,7 +1299,7 @@ function GoogleRoleScreen({ user, initialPlan = "free", initialRole = "", onSucc
       const referredBy = getReferralCodeFromURL();
       const profile = {
         uid: user.uid, email: user.email,
-        name: user.displayName || "", role,
+        name: displayName || user.displayName || "", role,
         plan: "free", createdAt: new Date().toISOString(),
         pendingPlan: (role === "owner" && (initialPlan === "plus" || initialPlan === "family")) ? initialPlan : null,
         welcomeEmailSent: false,
@@ -1384,6 +1385,8 @@ function GoogleRoleScreen({ user, initialPlan = "free", initialRole = "", onSucc
           {initialRole === "provider" ? "Tell us about your business" : initialRole === "shelter" ? "Tell us about your shelter" : "One last step — how will you use MyPetDex?"}
         </p>
         {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
+
+        <Field label="Full Name" value={displayName} onChange={setDisplayName} placeholder="Your full name" />
 
         {/* Role picker — only shown when no initialRole */}
         {step === 1 && !initialRole && <>
