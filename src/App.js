@@ -212,7 +212,7 @@ export default function App() {
   const urlPlan = sessionStorage.getItem("selectedPlan") || "free";
   const urlRoleFromURL = new URLSearchParams(window.location.search).get("role");
   if (urlRoleFromURL) sessionStorage.setItem("selectedRole", urlRoleFromURL);
-  const urlRole = sessionStorage.getItem("selectedRole") || "";
+  const urlRole = sessionStorage.getItem("selectedRole") || "owner";
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
 
