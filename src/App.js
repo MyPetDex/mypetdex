@@ -1402,23 +1402,35 @@ function GoogleRoleScreen({ user, initialPlan = "free", initialRole = "", onSucc
 
 // ─── Landing ─────────────────────────────────────────────────────────────────
 // ─── Shared auth buttons ──────────────────────────────────────────────────────
-function AuthButtons({ onApple, onGoogle, onEmail, emailLabel = "Create Free Account →" }) {
+function AuthButtons({ onApple, onGoogle, onEmail, emailLabel = "Create Free Account →", confirmLabel = "I confirm I am signing up as a Pet Owner and agree to the Terms of Service." }) {
+  const [confirmed, setConfirmed] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+  const guard = (fn) => () => {
+    if (!confirmed) { setShowWarning(true); return; }
+    setShowWarning(false);
+    fn();
+  };
   return (
     <>
-      <button onClick={onApple} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", maxWidth: 340, padding: "13px 20px", background: "#000", border: "1.5px solid #000", borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: "#fff", cursor: "pointer", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16, background: "#EEF4FF", borderRadius: 10, padding: "10px 14px", maxWidth: 340, width: "100%" }}>
+        <input type="checkbox" id="roleConfirm" checked={confirmed} onChange={e => { setConfirmed(e.target.checked); setShowWarning(false); }} style={{ marginTop: 2, cursor: "pointer", width: 16, height: 16, flexShrink: 0 }} />
+        <label htmlFor="roleConfirm" style={{ color: "#1E293B", fontSize: 12, cursor: "pointer", fontFamily: font, lineHeight: 1.5 }}>{confirmLabel}</label>
+      </div>
+      {showWarning && <p style={{ color: "#E05C5C", fontSize: 12, marginBottom: 8, maxWidth: 340, textAlign: "center" }}>Please confirm your account type before signing up.</p>}
+      <button onClick={guard(onApple)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", maxWidth: 340, padding: "13px 20px", background: confirmed ? "#000" : "#94a3b8", border: "none", borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: "#fff", cursor: confirmed ? "pointer" : "not-allowed", marginBottom: 12 }}>
         <svg width="18" height="18" viewBox="0 0 814 1000" fill="white"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.3-57.2-155.3-127.1C46.8 790.4 0 663.4 0 541.8c0-194.3 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>
-        Continue with Apple
+        Sign up with Apple
       </button>
-      <button onClick={onGoogle} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", maxWidth: 340, padding: "13px 20px", background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: "#1E293B", cursor: "pointer", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+      <button onClick={guard(onGoogle)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", maxWidth: 340, padding: "13px 20px", background: "#fff", border: `1.5px solid ${confirmed ? "#E2E8F0" : "#cbd5e1"}`, borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: confirmed ? "#1E293B" : "#94a3b8", cursor: confirmed ? "pointer" : "not-allowed", marginBottom: 12 }}>
         <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-        Continue with Google
+        Sign up with Google
       </button>
       <div style={{ display: "flex", alignItems: "center", width: "100%", maxWidth: 340, margin: "4px 0 12px" }}>
         <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
         <span style={{ color: C.muted, fontSize: 12, margin: "0 12px" }}>or</span>
         <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
       </div>
-      <button style={{ ...btn(C.green), width: "100%", maxWidth: 340 }} onClick={onEmail}>{emailLabel}</button>
+      <button style={{ ...btn(confirmed ? C.green : "#94a3b8"), width: "100%", maxWidth: 340, cursor: confirmed ? "pointer" : "not-allowed" }} onClick={guard(onEmail)}>{emailLabel}</button>
     </>
   );
 }
@@ -1441,7 +1453,7 @@ function OwnerLanding({ onRegister, onLogin, onGoogle, onApple }) {
           <span key={f} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "4px 12px", fontSize: 12, color: C.text, fontWeight: 600 }}>{f}</span>
         ))}
       </div>
-      <AuthButtons onApple={onApple} onGoogle={onGoogle} onEmail={onRegister} emailLabel="Create Free Account →" />
+      <AuthButtons onApple={onApple} onGoogle={onGoogle} onEmail={onRegister} emailLabel="Create Free Account →" confirmLabel="I confirm I am signing up as a Pet Owner and agree to the Terms of Service." />
       <p style={{ color: C.muted, fontSize: 11, marginTop: 16, textAlign: "center" }}>Free plan available · Plus $2.99/mo · Family $4.99/mo</p>
       <div style={{ marginTop: 12, background: C.card, borderRadius: 12, padding: "10px 18px", border: `1px solid ${C.cardBorder}`, maxWidth: 340 }}>
         <p style={{ color: C.muted, fontSize: 11, margin: 0, textAlign: "center" }}>🔒 Your data is encrypted and never shared with third parties.</p>
@@ -1469,7 +1481,7 @@ function ProviderLanding({ onRegister, onLogin, onGoogle, onApple }) {
           <span key={f} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "4px 12px", fontSize: 12, color: C.text, fontWeight: 600 }}>{f}</span>
         ))}
       </div>
-      <AuthButtons onApple={onApple} onGoogle={onGoogle} onEmail={onRegister} emailLabel="Create Provider Account →" />
+      <AuthButtons onApple={onApple} onGoogle={onGoogle} onEmail={onRegister} emailLabel="Join as Provider →" confirmLabel="I confirm I am signing up as a Service Provider and agree to the Terms of Service." />
       <div style={{ marginTop: 16, background: "#FFF9E6", borderRadius: 12, padding: "10px 18px", border: "1px solid #F59E0B", maxWidth: 340 }}>
         <p style={{ color: "#92400E", fontSize: 11, margin: 0, textAlign: "center", fontWeight: 700 }}>🎉 Free for 6 months — then only 5% commission on bookings. No monthly fees ever!</p>
       </div>
@@ -1499,7 +1511,7 @@ function ShelterLanding({ onRegister, onLogin, onGoogle, onApple }) {
           <span key={f} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "4px 12px", fontSize: 12, color: C.text, fontWeight: 600 }}>{f}</span>
         ))}
       </div>
-      <AuthButtons onApple={onApple} onGoogle={onGoogle} onEmail={onRegister} emailLabel="Register Your Shelter →" />
+      <AuthButtons onApple={onApple} onGoogle={onGoogle} onEmail={onRegister} emailLabel="Register Your Shelter →" confirmLabel="I confirm I am registering as an Animal Shelter and agree to the Terms of Service." />
       <div style={{ marginTop: 16, background: "#F0FDF4", borderRadius: 12, padding: "10px 18px", border: "1px solid #22c55e", maxWidth: 340 }}>
         <p style={{ color: "#166534", fontSize: 11, margin: 0, textAlign: "center", fontWeight: 700 }}>✅ Shelter access is always FREE on MyPetDex — forever!</p>
       </div>
@@ -1980,7 +1992,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
       {/* User info */}
       <div style={{ background: C.bg, borderRadius: 10, padding: "10px 12px", marginBottom: 20 }}>
         <div style={{ color: C.text, fontWeight: 800, fontSize: 13 }}>Hi, {currentProfile?.name?.split(" ")[0] || "Friend"} 👋</div>
-        <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>{currentProfile?.plan ? currentProfile.plan.charAt(0).toUpperCase() + currentProfile.plan.slice(1) + " Plan" : "Free Plan"}</div>
+        <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>{currentProfile?.role === "provider" ? "Service Provider" : currentProfile?.role === "shelter" ? "Animal Shelter" : currentProfile?.plan ? currentProfile.plan.charAt(0).toUpperCase() + currentProfile.plan.slice(1) + " Plan" : "Free Plan"}</div>
       </div>
 
       {/* Nav items */}
