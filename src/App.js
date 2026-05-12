@@ -1330,6 +1330,24 @@ function GoogleRoleScreen({ user, initialPlan = "free", onSuccess, onLogout }) {
         });
         await updateDoc(doc(db, "users", user.uid), { welcomeEmailSent: true });
       } catch (emailErr) { console.error("Welcome email error:", emailErr); }
+
+      // Redirect to Stripe if pending paid plan
+      if (initialPlan === "plus" || initialPlan === "family") {
+        const PRICES = {
+          plus: "price_1TVxf1KrbYhlx0Wng1THRLur",
+          family: "price_1TVxjIKrbYhlx0WnXcSBrbcG"
+        };
+        try {
+          const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/createCheckoutSession", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ priceId: PRICES[initialPlan], userId: user.uid, email: user.email, plan: initialPlan, billing: "monthly" })
+          });
+          const data = await res.json();
+          if (data.url) { window.location.href = data.url; return; }
+        } catch(e) { console.error("Checkout redirect error:", e); }
+      }
+
       onSuccess(profile);
     } catch (e) { setError("Something went wrong. Please try again."); }
     setLoading(false);
