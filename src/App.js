@@ -395,7 +395,7 @@ export default function App() {
     }
   }} urlRole={urlRole} />;
   if (screen === "google-role") return <GoogleRoleScreen user={user} initialPlan={urlPlan} initialRole={urlRole} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
-  if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} onApple={async () => { try { const provider = new OAuthProvider("apple.com"); provider.addScope("email"); provider.addScope("name"); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") console.error("Apple sign in error:", e); } }} onGoogle={async () => { try { const provider = new GoogleAuthProvider(); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { console.error("Google sign in error:", e); } }} />;
+  if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); p.skipVerify ? setScreen("app") : setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} onApple={async () => { try { const provider = new OAuthProvider("apple.com"); provider.addScope("email"); provider.addScope("name"); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") console.error("Apple sign in error:", e); } }} onGoogle={async () => { try { const provider = new GoogleAuthProvider(); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { console.error("Google sign in error:", e); } }} />;
   if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onReset={() => setScreen("reset")} onApple={async () => {
     try {
       const provider = new OAuthProvider("apple.com");
@@ -1303,6 +1303,7 @@ function GoogleRoleScreen({ user, initialPlan = "free", initialRole = "", onSucc
         plan: "free", createdAt: new Date().toISOString(),
         pendingPlan: (role === "owner" && (initialPlan === "plus" || initialPlan === "family")) ? initialPlan : null,
         welcomeEmailSent: false,
+        skipVerify: true,
         refCode, referredBy: referredBy || null, referralCount: 0,
         ...(role === "provider" ? { businessName: bizForm.businessName, service: bizForm.service, priceRange: bizForm.priceRange, phone: bizForm.phone, website: bizForm.website, address: bizForm.address, state: bizForm.state, city: bizForm.city, googleReview: bizForm.googleReview, bio: bizForm.bio, status: "pending" } : {}),
         ...(role === "shelter" ? { shelterName: bizForm.shelterName, ein: bizForm.ein, license: bizForm.license, phone: bizForm.phone, website: bizForm.website, address: bizForm.address, state: bizForm.state, city: bizForm.city, googleReview: bizForm.googleReview, status: "pending" } : {}),
@@ -2051,13 +2052,8 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
           </>}
         </>}
 
-        {isOwner && <>
-          {expandItem("ai", "🤖", "AI Tools")}
-          {expanded.ai && <>
-            {navItem("ai", "💬", "PetDex AI Assistant", true)}
-            {navItem("recipes", "🍽️", "Pet Recipes", true)}
-          </>}
-        </>}
+        {isOwner && navItem("ai", "🤖", "AI Assistant")}
+        {isOwner && navItem("recipes", "🍽️", "Pet Recipes")}
 
         {isOwner && navItem("adoption", "❤️", "Adopt a Pet")}
 
@@ -2115,7 +2111,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
         {/* Top bar - mobile only */}
         <div style={{ background: C.card, borderBottom: `1px solid ${C.cardBorder}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 100 }}>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.text, display: isMobile ? "block" : "none" }}>☰</button>
-          <span style={{ color: C.green, fontWeight: 900, fontSize: 18, paddingLeft: 8 }}>MyPetDex</span>
+          <span onClick={() => setTab("home")} style={{ color: C.green, fontWeight: 900, fontSize: 18, flex: 1, textAlign: "center", cursor: "pointer" }}>MyPetDex</span>
         </div>
 
         {isDemo && <div style={{ background: C.gold + "22", borderBottom: "1px solid " + C.gold, padding: "8px 16px", textAlign: "center", fontSize: 12, color: C.gold, fontWeight: 700 }}>👀 Demo Mode — browse only, editing disabled</div>}
