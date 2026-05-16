@@ -3020,8 +3020,10 @@ function ServicesTab({ profile, user, serviceFilter }) {
     daycare: "Daycare",
     vets: "Veterinary"
   };
-  const [filterState, setFilterState] = useState(profile?.state || "");
+  const [filterState, setFilterState] = useState("");
   const [filterService, setFilterService] = useState(serviceMap[serviceFilter] || "");
+  const [searched, setSearched] = useState(false);
+  const [zipCode, setZipCode] = useState("");
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -3046,11 +3048,19 @@ function ServicesTab({ profile, user, serviceFilter }) {
       </h2>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Verified providers in your area</p>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
-        <div><span style={label}>Zip Code</span><input type="text" placeholder="Enter zip code..." value={filterState} onChange={e => setFilterState(e.target.value)} style={{ ...input }} maxLength={5} /></div>
+        <div><span style={label}>Zip Code</span><input type="text" placeholder="Enter zip code..." value={zipCode} onChange={e => setZipCode(e.target.value)} style={{ ...input }} maxLength={5} /></div>
         <div style={{position:"relative"}}><span style={label}>Service</span><select value={filterService} onChange={e => setFilterService(e.target.value)} style={{ ...input, appearance: "none", paddingRight: "32px" }}><option value="">All Services</option>{["Grooming","Dog Walking","Veterinary","Training","Boarding","Daycare","Other"].map(s => <option key={s} value={s}>{s}</option>)}</select><span style={{position:"absolute",right:10,top:"60%",pointerEvents:"none",color:"#64748b",fontSize:12}}>▼</span></div>
       </div>
       {loading && <Spinner />}
-      {!loading && filtered.length === 0 && (
+      {!searched && (
+        <div style={{ ...card, textAlign: "center", padding: 40 }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🛎️</div>
+          <div style={{ color: C.text, fontWeight: 800, fontSize: 16, marginBottom: 8 }}>Find Service Providers Near You</div>
+          <div style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>Enter your zip code to discover groomers, walkers, vets and more in your area</div>
+          <button onClick={() => setSearched(true)} style={{ ...btn(C.green), fontSize: 15, padding: "13px 28px" }}>🔍 Find Service Providers Near Me</button>
+        </div>
+      )}
+      {searched && !loading && filtered.length === 0 && (
         <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>🛎️</div>
           <div style={{ color: C.text, fontWeight: 800 }}>No approved providers found</div>
