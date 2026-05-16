@@ -3214,10 +3214,12 @@ Guidelines:
         )}
         <div ref={messagesEndRef} />
       </div>
-      <div style={{ display: "flex", gap: 10, paddingTop: 12, borderTop: "1px solid " + C.cardBorder }}>
+      <div style={{ paddingTop: 12, borderTop: "1px solid " + C.cardBorder }}>
+        <span style={{ fontSize: 11, color: C.muted, display: "block", textAlign: "right", marginBottom: 6 }}>{msgCount}/{dailyLimit} messages used today</span>
+        <div style={{ display: "flex", gap: 10 }}>
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder={"Ask about " + (pets[0]?.name || "your pet") + "..."} style={{ background: C.inputBg, border: "1.5px solid " + C.cardBorder, borderRadius: 24, padding: "12px 18px", color: C.text, fontFamily: font, fontSize: 14, flex: 1, boxSizing: "border-box", outline: "none" }} />
-        <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>{msgCount}/{dailyLimit}</span>
         <button onClick={sendMessage} disabled={loading || !input.trim()} style={{ ...btn(C.green), borderRadius: "50%", width: 46, height: 46, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, opacity: loading || !input.trim() ? 0.5 : 1, flexShrink: 0 }}>↑</button>
+        </div>
       </div>
     </div>
   );
