@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { hasFeature, UpgradePrompt } from './planUtils';
-import { auth, db, GoogleAuthProvider, signInWithPopup, signInWithProvider, getRedirectResult, requestNotificationPermission } from "./firebase";
+import { auth, db, GoogleAuthProvider, signInWithProvider, getRedirectResult, requestNotificationPermission } from "./firebase";
 
 import {
   createUserWithEmailAndPassword,
