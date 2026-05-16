@@ -3020,7 +3020,7 @@ function ServicesTab({ profile, user, serviceFilter }) {
     daycare: "Daycare",
     vets: "Veterinary"
   };
-  const [filterState, setFilterState] = useState("");
+  const [filterState] = useState("");
   const [filterService, setFilterService] = useState(serviceMap[serviceFilter] || "");
   const [searched, setSearched] = useState(false);
   const [zipCode, setZipCode] = useState("");
