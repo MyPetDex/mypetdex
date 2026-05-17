@@ -1449,11 +1449,7 @@ function GoogleRoleScreen({ user, initialPlan = "free", initialRole = "", onSucc
 function AuthButtons({ onApple, onGoogle, onEmail, emailLabel = "Create Free Account →", confirmLabel = "I confirm I am signing up as a Pet Owner and agree to the Terms of Service." }) {
   const [confirmed, setConfirmed] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
-  const guard = (fn) => () => {
-    if (!confirmed) { setShowWarning(true); return; }
-    setShowWarning(false);
-    fn();
-  };
+
   return (
     <>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16, background: "#EEF4FF", borderRadius: 10, padding: "10px 14px", maxWidth: 340, width: "100%" }}>
