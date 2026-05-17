@@ -246,13 +246,15 @@ export default function App() {
     return () => document.head.removeChild(style);
   }, []);
   useEffect(() => {
+    setLoading(true);
     getRedirectResult(auth).then(async (result) => {
-      if (!result) return;
+      if (!result) { setLoading(false); return; }
       const u = result.user;
       const snap = await getDoc(doc(db, "users", u.uid));
       if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
       else { setUser(u); setScreen("google-role"); }
-    }).catch((e) => console.error("Redirect result error:", e));
+      setLoading(false);
+    }).catch((e) => { console.error("Redirect result error:", e); setLoading(false); });
   }, []);
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
