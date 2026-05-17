@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { hasFeature, UpgradePrompt } from './planUtils';
-import { auth, db, GoogleAuthProvider, signInWithProvider, getRedirectResult, requestNotificationPermission } from "./firebase";
+import { auth, db, GoogleAuthProvider, signInWithPopup, requestNotificationPermission } from "./firebase";
 
 import {
   createUserWithEmailAndPassword,
@@ -246,17 +246,6 @@ export default function App() {
     return () => document.head.removeChild(style);
   }, []);
   useEffect(() => {
-    setLoading(true);
-    getRedirectResult(auth).then(async (result) => {
-      if (!result) { setLoading(false); return; }
-      const u = result.user;
-      const snap = await getDoc(doc(db, "users", u.uid));
-      if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
-      else { setUser(u); setScreen("google-role"); }
-      setLoading(false);
-    }).catch((e) => { console.error("Redirect result error:", e); setLoading(false); });
-  }, []);
-  useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
@@ -374,7 +363,7 @@ export default function App() {
   if (screen === "landing") return <Landing onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} onGoogle={async () => {
     try {
       const provider = new GoogleAuthProvider();
-      const result = await signInWithProvider(auth, provider);
+      const result = await signInWithPopup(auth, provider);
       const u = result.user;
       const snap = await getDoc(doc(db, "users", u.uid));
       if (snap.exists()) {
@@ -391,7 +380,7 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
-      const result = await signInWithProvider(auth, provider);
+      const result = await signInWithPopup(auth, provider);
       const u = result.user;
       const snap = await getDoc(doc(db, "users", u.uid));
       if (snap.exists()) {
@@ -406,13 +395,13 @@ export default function App() {
     }
   }} urlRole={urlRole} />;
   if (screen === "google-role") return <GoogleRoleScreen user={user} initialPlan={urlPlan} initialRole={urlRole} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
-  if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); p.skipVerify ? setScreen("app") : setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} onApple={async () => { try { const provider = new OAuthProvider("apple.com"); provider.addScope("email"); provider.addScope("name"); const result = await signInWithProvider(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") console.error("Apple sign in error:", e); } }} onGoogle={async () => { try { const provider = new GoogleAuthProvider(); const result = await signInWithProvider(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { console.error("Google sign in error:", e); } }} />;
+  if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); p.skipVerify ? setScreen("app") : setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} onApple={async () => { try { const provider = new OAuthProvider("apple.com"); provider.addScope("email"); provider.addScope("name"); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") console.error("Apple sign in error:", e); } }} onGoogle={async () => { try { const provider = new GoogleAuthProvider(); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { console.error("Google sign in error:", e); } }} />;
   if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onReset={() => setScreen("reset")} onApple={async () => {
     try {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
-      const result = await signInWithProvider(auth, provider);
+      const result = await signInWithPopup(auth, provider);
       const u = result.user;
       const snap = await getDoc(doc(db, "users", u.uid));
       if (snap.exists()) {
@@ -428,7 +417,7 @@ export default function App() {
   }} onGoogle={async () => {
     try {
       const provider = new GoogleAuthProvider();
-      const result = await signInWithProvider(auth, provider);
+      const result = await signInWithPopup(auth, provider);
       const u = result.user;
       const snap = await getDoc(doc(db, "users", u.uid));
       if (snap.exists()) {
