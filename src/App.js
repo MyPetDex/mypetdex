@@ -215,6 +215,13 @@ export default function App() {
   const urlRole = sessionStorage.getItem("selectedRole") || "owner";
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
+  const [authError, setAuthError] = useState("");
+  const authErrTimer = useRef(null);
+  const showAuthError = (msg) => {
+    setAuthError(msg);
+    if (authErrTimer.current) clearTimeout(authErrTimer.current);
+    authErrTimer.current = setTimeout(() => setAuthError(""), 6000);
+  };
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -359,8 +366,20 @@ export default function App() {
     </div>
   );
 
-  if (screen === "admin") return <AdminDashboard onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
-  if (screen === "landing") return <Landing onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} onGoogle={async () => {
+  // ── Auth error toast shown on top of any screen ──────────────────────────────
+  const wrap = (el) => (
+    <>
+      {authError && (
+        <div style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", background: C.danger, color: "#fff", padding: "13px 24px", borderRadius: 14, fontFamily: font, fontWeight: 700, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.25)", maxWidth: "88vw", textAlign: "center", lineHeight: 1.4 }}>
+          {authError}
+        </div>
+      )}
+      {el}
+    </>
+  );
+
+  if (screen === "admin") return wrap(<AdminDashboard onLogout={async () => { await signOut(auth); setScreen("landing"); }} />);
+  if (screen === "landing") return wrap(<Landing onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} onGoogle={async () => {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
@@ -370,11 +389,15 @@ export default function App() {
         setProfile(snap.data());
         setScreen("app");
       } else {
-        // New Google user — save to state and go to role picker
         setUser(u);
         setScreen("google-role");
       }
-    } catch (e) { console.error("Google sign in error:", e); }
+    } catch (e) {
+      if (e.code !== "auth/popup-closed-by-user") {
+        console.error("Google sign in error:", e);
+        showAuthError("Google sign-in failed. Please try again or use email to sign in.");
+      }
+    }
   }} onApple={async () => {
     try {
       const provider = new OAuthProvider("apple.com");
@@ -391,12 +414,15 @@ export default function App() {
         setScreen("google-role");
       }
     } catch (e) {
-      if (e.code !== "auth/popup-closed-by-user") console.error("Apple sign in error:", e);
+      if (e.code !== "auth/popup-closed-by-user") {
+        console.error("Apple sign in error:", e);
+        showAuthError("Apple Sign-In isn't configured yet — please use Google or email to sign in.");
+      }
     }
-  }} urlRole={urlRole} />;
-  if (screen === "google-role") return <GoogleRoleScreen user={user} initialPlan={urlPlan} initialRole={urlRole} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
-  if (screen === "register") return <RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); p.skipVerify ? setScreen("app") : setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} onApple={async () => { try { const provider = new OAuthProvider("apple.com"); provider.addScope("email"); provider.addScope("name"); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") console.error("Apple sign in error:", e); } }} onGoogle={async () => { try { const provider = new GoogleAuthProvider(); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { console.error("Google sign in error:", e); } }} />;
-  if (screen === "login") return <LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onReset={() => setScreen("reset")} onApple={async () => {
+  }} urlRole={urlRole} />);
+  if (screen === "google-role") return wrap(<GoogleRoleScreen user={user} initialPlan={urlPlan} initialRole={urlRole} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />);
+  if (screen === "register") return wrap(<RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); p.skipVerify ? setScreen("app") : setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} onApple={async () => { try { const provider = new OAuthProvider("apple.com"); provider.addScope("email"); provider.addScope("name"); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") { console.error("Apple sign in error:", e); showAuthError("Apple Sign-In isn't configured yet — please use Google or email to sign in."); } } }} onGoogle={async () => { try { const provider = new GoogleAuthProvider(); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") { console.error("Google sign in error:", e); showAuthError("Google sign-in failed. Please try again or use email to sign in."); } } }} />);
+  if (screen === "login") return wrap(<LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onReset={() => setScreen("reset")} onApple={async () => {
     try {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
@@ -412,7 +438,10 @@ export default function App() {
         setScreen("google-role");
       }
     } catch (e) {
-      if (e.code !== "auth/popup-closed-by-user") console.error("Apple sign in error:", e);
+      if (e.code !== "auth/popup-closed-by-user") {
+        console.error("Apple sign in error:", e);
+        showAuthError("Apple Sign-In isn't configured yet — please use Google or email to sign in.");
+      }
     }
   }} onGoogle={async () => {
     try {
@@ -427,10 +456,15 @@ export default function App() {
         setUser(u);
         setScreen("google-role");
       }
-    } catch (e) { console.error("Google sign in error:", e); }
-  }} />;
-  if (screen === "reset") return <ResetPasswordScreen onBack={() => setScreen("login")} />;
-  if (screen === "verify") return <VerifyEmail onVerified={async () => {
+    } catch (e) {
+      if (e.code !== "auth/popup-closed-by-user") {
+        console.error("Google sign in error:", e);
+        showAuthError("Google sign-in failed. Please try again or use email to sign in.");
+      }
+    }
+  }} />);
+  if (screen === "reset") return wrap(<ResetPasswordScreen onBack={() => setScreen("login")} />);
+  if (screen === "verify") return wrap(<VerifyEmail onVerified={async () => {
     const u = auth.currentUser;
     if (!u) return;
     // Force token refresh first
@@ -508,8 +542,8 @@ export default function App() {
     sessionStorage.removeItem("selectedRole");
     sessionStorage.removeItem("selectedPlan");
     setScreen("app");
-  }} onLogout={async () => { await signOut(auth); sessionStorage.removeItem("selectedRole"); setScreen("landing"); }} />;
-  if (screen === "app") return <MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />;
+  }} onLogout={async () => { await signOut(auth); sessionStorage.removeItem("selectedRole"); setScreen("landing"); }} />);
+  if (screen === "app") return wrap(<MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />);
 }
 function SubscriberList({ subscribers, C, card }) {
   const [subFilter, setSubFilter] = useState("all");
