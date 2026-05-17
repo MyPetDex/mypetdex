@@ -4,6 +4,14 @@
   "framework": "create-react-app",
   "rewrites": [
     { "source": "/pet/:id", "destination": "/pet.html" },
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://mypetdex-c4315.firebaseapp.com/__/auth/:path*"
+    },
+    {
+      "source": "/__/firebase/:path*",
+      "destination": "https://mypetdex-c4315.firebaseapp.com/__/firebase/:path*"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
