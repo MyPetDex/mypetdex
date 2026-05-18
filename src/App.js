@@ -2538,6 +2538,7 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
   const [vForm, setVForm] = useState({ name:"", date:"", nextDue:"", vet:"", notes:"" });
   const [rForm, setRForm] = useState({ title:"", date:"", time:"", repeat:"None", notes:"" });
   const [addingV, setAddingV] = useState(false);
+  const [vError, setVError] = useState("");
   const [addingR, setAddingR] = useState(false);
   const [editingReminderId, setEditingReminderId] = useState(null);
   const [savingPhoto, setSavingPhoto] = useState(false);
@@ -2572,7 +2573,18 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
   };
 
   const saveVaccine = async () => {
-    if (!vForm.name) return;
+    if (!vForm.name) { setVError("Please select a vaccine name."); return; }
+    if (vForm.date) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const given = new Date(vForm.date);
+      if (given > today) { setVError("\"Date Given\" cannot be in the future — enter the date the vaccine was actually administered."); return; }
+    }
+    if (vForm.nextDue && vForm.date) {
+      const given = new Date(vForm.date);
+      const nextDue = new Date(vForm.nextDue);
+      if (nextDue <= given) { setVError("\"Next Due Date\" must be after the date given."); return; }
+    }
+    setVError("");
     const newV = { ...vForm, id: Date.now().toString() };
     const updated = [...vaccines, newV];
     setVaccines(updated);
@@ -2688,9 +2700,10 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
               <SmartDatePicker label="Next Due Date" value={vForm.nextDue} onChange={setV("nextDue")} />
               <Field label="Veterinarian" value={vForm.vet} onChange={setV("vet")} placeholder="Dr. Smith" />
               <Field label="Notes" as="textarea" value={vForm.notes} onChange={setV("notes")} placeholder="Any notes..." />
+              {vError && <div style={{ color: C.danger, fontSize: 13, marginBottom: 10, padding: "8px 12px", background: C.danger + "11", borderRadius: 8 }}>⚠️ {vError}</div>}
               <div style={{ display: "flex", gap: 10 }}>
                 <button style={btn(C.green)} onClick={saveVaccine}>💾 Save</button>
-                <button style={{ ...btn(C.cardBorder, C.muted) }} onClick={() => setAddingV(false)}>Cancel</button>
+                <button style={{ ...btn(C.cardBorder, C.muted) }} onClick={() => { setAddingV(false); setVError(""); }}>Cancel</button>
               </div>
             </div>
           )}
