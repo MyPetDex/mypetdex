@@ -206,13 +206,16 @@ function compressImage(file, callback) {
 export default function App() {
   const [user, setUser] = useState(null); // eslint-disable-line no-unused-vars
   const [profile, setProfile] = useState(null);
-  const [screen, setScreen] = useState("landing");
   const urlPlanFromURL = new URLSearchParams(window.location.search).get("plan");
   if (urlPlanFromURL) sessionStorage.setItem("selectedPlan", urlPlanFromURL);
   const urlPlan = sessionStorage.getItem("selectedPlan") || "free";
   const urlRoleFromURL = new URLSearchParams(window.location.search).get("role");
   if (urlRoleFromURL) sessionStorage.setItem("selectedRole", urlRoleFromURL);
   const urlRole = sessionStorage.getItem("selectedRole") || "owner";
+  // Show role picker on fresh open; skip if URL has ?role= or role already chosen this session
+  const [screen, setScreen] = useState(() =>
+    (urlRoleFromURL || sessionStorage.getItem("selectedRole")) ? "landing" : "role-pick"
+  );
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
   const [authError, setAuthError] = useState("");
@@ -378,6 +381,10 @@ export default function App() {
     </>
   );
 
+  if (screen === "role-pick") return wrap(<RolePickerScreen onSelectRole={(role) => {
+    sessionStorage.setItem("selectedRole", role);
+    setScreen("landing");
+  }} onLogin={() => setScreen("login")} />);
   if (screen === "admin") return wrap(<AdminDashboard onLogout={async () => { await signOut(auth); setScreen("landing"); }} />);
   if (screen === "landing") return wrap(<Landing onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} onGoogle={async () => {
     try {
@@ -542,7 +549,7 @@ export default function App() {
     sessionStorage.removeItem("selectedRole");
     sessionStorage.removeItem("selectedPlan");
     setScreen("app");
-  }} onLogout={async () => { await signOut(auth); sessionStorage.removeItem("selectedRole"); setScreen("landing"); }} />);
+  }} onLogout={async () => { await signOut(auth); sessionStorage.removeItem("selectedRole"); sessionStorage.removeItem("selectedPlan"); setScreen("role-pick"); }} />);
   if (screen === "app") return wrap(<MainApp user={user} profile={profile} tab={tab} setTab={setTab} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />);
 }
 function SubscriberList({ subscribers, C, card }) {
@@ -1590,6 +1597,75 @@ function ShelterLanding({ onRegister, onLogin, onGoogle, onApple }) {
         <p style={{ color: "#166534", fontSize: 11, margin: 0, textAlign: "center", fontWeight: 700 }}>✅ Shelter access is always FREE on MyPetDex — forever!</p>
       </div>
       <div style={{ marginTop: 10, background: C.card, borderRadius: 12, padding: "10px 18px", border: `1px solid ${C.cardBorder}`, maxWidth: 340 }}>
+        <p style={{ color: C.muted, fontSize: 11, margin: 0, textAlign: "center" }}>🔒 Your data is encrypted and never shared with third parties.</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Role Picker ──────────────────────────────────────────────────────────────
+function RolePickerScreen({ onSelectRole, onLogin }) {
+  const roles = [
+    {
+      id: "owner",
+      emoji: "🐾",
+      title: "Pet Owner",
+      desc: "Manage health records, reminders, AI tips & more",
+      color: C.green,
+      light: "#EEF4FF",
+    },
+    {
+      id: "provider",
+      emoji: "🛎️",
+      title: "Service Provider",
+      desc: "Grow your pet business & get discovered locally",
+      color: C.gold,
+      light: "#FFF9E6",
+    },
+    {
+      id: "shelter",
+      emoji: "🏠",
+      title: "Animal Shelter",
+      desc: "List adoptable pets & connect with loving families",
+      color: "#22c55e",
+      light: "#F0FDF4",
+    },
+  ];
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: "24px 20px" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+
+      {/* Header */}
+      <img src="/logo.png" alt="MyPetDex" style={{ width: 80, height: 80, objectFit: "contain", marginBottom: 10 }} />
+      <h1 style={{ color: C.green, fontWeight: 900, fontSize: 34, margin: "0 0 6px", letterSpacing: -1 }}>MyPetDex</h1>
+      <p style={{ color: C.muted, fontSize: 15, margin: "0 0 32px", textAlign: "center" }}>Welcome! How are you joining today?</p>
+
+      {/* Role cards */}
+      <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 14 }}>
+        {roles.map(r => (
+          <button key={r.id} onClick={() => onSelectRole(r.id)} style={{ display: "flex", alignItems: "center", gap: 18, background: C.card, border: `2px solid ${C.cardBorder}`, borderRadius: 18, padding: "18px 20px", cursor: "pointer", textAlign: "left", fontFamily: font, transition: "border-color 0.15s, box-shadow 0.15s", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = r.color; e.currentTarget.style.boxShadow = `0 4px 16px ${r.color}33`; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)"; }}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: r.light, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>
+              {r.emoji}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: C.text, fontWeight: 900, fontSize: 17, marginBottom: 3 }}>{r.title}</div>
+              <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.4 }}>{r.desc}</div>
+            </div>
+            <div style={{ color: C.muted, fontSize: 20, flexShrink: 0 }}>›</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Sign in link */}
+      <div style={{ marginTop: 32, textAlign: "center" }}>
+        <span style={{ color: C.muted, fontSize: 14 }}>Already have an account? </span>
+        <button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button>
+      </div>
+
+      <div style={{ marginTop: 20, background: C.card, borderRadius: 12, padding: "10px 18px", border: `1px solid ${C.cardBorder}`, maxWidth: 400, width: "100%" }}>
         <p style={{ color: C.muted, fontSize: 11, margin: 0, textAlign: "center" }}>🔒 Your data is encrypted and never shared with third parties.</p>
       </div>
     </div>
