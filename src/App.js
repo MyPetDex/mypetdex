@@ -4015,6 +4015,15 @@ function AdoptionTab({ profile }) {
         </button>
       </div>
 
+      {/* Cat adoption coming soon banner */}
+      {filterType === "Cat" && (
+        <div style={{ ...card, marginBottom: 18, background: "linear-gradient(135deg, #fff7ed, #fef3c7)", border: "1.5px solid #f59e0b33", textAlign: "center", padding: "18px 20px" }}>
+          <div style={{ fontSize: 32, marginBottom: 6 }}>🐱</div>
+          <div style={{ fontWeight: 900, fontSize: 15, color: "#92400e", marginBottom: 4 }}>Cat Adoption — Featured Listings Coming Soon!</div>
+          <div style={{ color: "#b45309", fontSize: 13 }}>We're onboarding cat-friendly shelters to MyPetDex. In the meantime, search below to find cats available near you.</div>
+        </div>
+      )}
+
       {/* MyPetDex shelter listings */}
       {shelterListings.length > 0 && (
         <div style={{ marginBottom: 20 }}>
