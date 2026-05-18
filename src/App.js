@@ -259,6 +259,7 @@ export default function App() {
   // Handle Apple sign-in redirect result on page load
   useEffect(() => {
     getRedirectResult(auth).then(async (result) => {
+      sessionStorage.removeItem("appleRedirectPending");
       if (result?.user) {
         const u = result.user;
         const snap = await getDoc(doc(db, "users", u.uid));
@@ -271,6 +272,7 @@ export default function App() {
         }
       }
     }).catch((e) => {
+      sessionStorage.removeItem("appleRedirectPending");
       if (e.code !== "auth/popup-closed-by-user") {
         console.error("Apple redirect error:", e);
       }
@@ -359,6 +361,8 @@ export default function App() {
           setLoading(false);
         }
       } else {
+        // If we're coming back from an Apple redirect, wait for getRedirectResult
+        if (sessionStorage.getItem("appleRedirectPending")) return;
         setUser(null);
         setProfile(null);
         // Show role picker on fresh open; go to landing if role already chosen this session
@@ -436,6 +440,7 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
+      sessionStorage.setItem("appleRedirectPending", "true");
       await signInWithRedirect(auth, provider);
     } catch (e) {
       console.error("Apple sign in error:", e);
@@ -449,6 +454,7 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
+      sessionStorage.setItem("appleRedirectPending", "true");
       await signInWithRedirect(auth, provider);
     } catch (e) {
       console.error("Apple sign in error:", e);
