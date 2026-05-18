@@ -442,11 +442,22 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
-      sessionStorage.setItem("appleRedirectPending", "true");
-      await signInWithRedirect(auth, provider);
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      if (isSafari) {
+        sessionStorage.setItem("appleRedirectPending", "true");
+        await signInWithRedirect(auth, provider);
+      } else {
+        const result = await signInWithPopup(auth, provider);
+        const u = result.user;
+        const snap = await getDoc(doc(db, "users", u.uid));
+        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
+        else { setUser(u); setScreen("google-role"); }
+      }
     } catch (e) {
-      console.error("Apple sign in error:", e);
-      showAuthError("Apple Sign-In failed. Please try again or use Google or email.");
+      if (e.code !== "auth/popup-closed-by-user") {
+        console.error("Apple sign in error:", e);
+        showAuthError("Apple Sign-In failed. Please try again or use Google or email.");
+      }
     }
   }} urlRole={urlRole} onBack={() => { sessionStorage.removeItem("selectedRole"); sessionStorage.removeItem("selectedPlan"); setScreen("role-pick"); }} />);
   if (screen === "google-role") return wrap(<GoogleRoleScreen user={user} initialPlan={urlPlan} initialRole={urlRole} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />);
@@ -456,11 +467,22 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
-      sessionStorage.setItem("appleRedirectPending", "true");
-      await signInWithRedirect(auth, provider);
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      if (isSafari) {
+        sessionStorage.setItem("appleRedirectPending", "true");
+        await signInWithRedirect(auth, provider);
+      } else {
+        const result = await signInWithPopup(auth, provider);
+        const u = result.user;
+        const snap = await getDoc(doc(db, "users", u.uid));
+        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
+        else { setUser(u); setScreen("google-role"); }
+      }
     } catch (e) {
-      console.error("Apple sign in error:", e);
-      showAuthError("Apple Sign-In failed. Please try again or use Google or email.");
+      if (e.code !== "auth/popup-closed-by-user") {
+        console.error("Apple sign in error:", e);
+        showAuthError("Apple Sign-In failed. Please try again or use Google or email.");
+      }
     }
   }} onGoogle={async () => {
     try {
