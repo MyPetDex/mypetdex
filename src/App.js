@@ -3116,31 +3116,52 @@ function ProviderCard({ p, user, profile }) {
   return (
     <div style={{ ...card, marginBottom: 14 }}>
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-        <Avatar emoji="🛎️" size={50} />
-        <div style={{ flex: 1 }}>
-          <div style={{ color: C.text, fontWeight: 900, fontSize: 16 }}>{p.businessName || p.name}</div>
-          <div style={{ color: C.muted, fontSize: 13 }}>📍 {p.city}, {p.state}</div>
+        <div style={{ width: 50, height: 50, borderRadius: 14, background: p.isVerified ? C.green + "22" : C.inputBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0, border: `1.5px solid ${p.isVerified ? C.green + "44" : C.cardBorder}` }}>
+          {SERVICE_ICONS[p.service] || "🛎️"}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <div style={{ color: C.text, fontWeight: 900, fontSize: 15 }}>{p.businessName || p.name}</div>
+            {p.isVerified
+              ? <span style={{ background: C.green + "22", color: C.green, fontSize: 10, fontWeight: 800, padding: "2px 7px", borderRadius: 20 }}>⭐ On MyPetDex</span>
+              : <span style={{ background: C.inputBg, color: C.muted, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20, border: `1px solid ${C.cardBorder}` }}>📍 Local Business</span>
+            }
+          </div>
+          <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>📍 {p.city}, {p.state}</div>
+          {p.address && !p.isVerified && <div style={{ color: C.muted, fontSize: 11, marginTop: 1 }}>{p.address}</div>}
           <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-            {p.service && <Badge text={p.service} color={C.green} />}
+            {p.service && <Badge text={`${SERVICE_ICONS[p.service] || ""} ${p.service}`} color={C.green} />}
             {p.priceRange && <Badge text={p.priceRange} color={C.gold} />}
           </div>
           {p.bio && <div style={{ color: C.muted, fontSize: 12, marginTop: 6, fontStyle: "italic" }}>"{p.bio}"</div>}
+          {/* MyPetDex reviews */}
           {avgRating && (
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
-              <StarRating rating={Math.round(avgRating)} size={16} />
-              <span style={{ color: C.gold, fontSize: 13, fontWeight: 700 }}>{avgRating}</span>
-              <span style={{ color: C.muted, fontSize: 12 }}>({reviews.length} review{reviews.length !== 1 ? "s" : ""})</span>
+              <StarRating rating={Math.round(avgRating)} size={14} />
+              <span style={{ color: C.gold, fontSize: 12, fontWeight: 700 }}>{avgRating}</span>
+              <span style={{ color: C.muted, fontSize: 11 }}>({reviews.length} review{reviews.length !== 1 ? "s" : ""})</span>
+            </div>
+          )}
+          {/* Google rating for seeded providers */}
+          {!p.isVerified && p.googleRating && (
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 5 }}>
+              <span style={{ fontSize: 12 }}>⭐</span>
+              <span style={{ color: C.gold, fontSize: 12, fontWeight: 700 }}>{p.googleRating}</span>
+              <span style={{ color: C.muted, fontSize: 11 }}>Google ({p.googleReviewCount?.toLocaleString() || 0} reviews)</span>
             </div>
           )}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-        <button style={{ ...btn(C.green), fontSize: 13, padding: "9px 18px" }}>📅 Book Now</button>
+      <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+        {p.isVerified && <button style={{ ...btn(C.green), fontSize: 13, padding: "9px 18px" }}>📅 Book Now</button>}
+        {p.website && <a href={p.website} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.muted), fontSize: 13, padding: "9px 18px", textDecoration: "none" }}>🌐 Website</a>}
+        {p.googleMapsUrl && <a href={p.googleMapsUrl} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.muted), fontSize: 13, padding: "9px 18px", textDecoration: "none" }}>🗺️ Maps</a>}
         {p.googleReview && <a href={p.googleReview} target="_blank" rel="noreferrer" style={{ ...btn(C.cardBorder, C.muted), fontSize: 13, padding: "9px 18px", textDecoration: "none" }}>🌐 Google</a>}
-        <button onClick={() => setShowReviews(!showReviews)} style={{ ...btn(C.cardBorder, C.muted), fontSize: 13, padding: "9px 18px" }}>
+        {p.phone && <a href={`tel:${p.phone}`} style={{ ...btn(C.cardBorder, C.muted), fontSize: 13, padding: "9px 18px", textDecoration: "none" }}>📞 Call</a>}
+        {p.isVerified && <button onClick={() => setShowReviews(!showReviews)} style={{ ...btn(C.cardBorder, C.muted), fontSize: 13, padding: "9px 18px" }}>
           ⭐ Reviews {reviews.length > 0 ? "(" + reviews.length + ")" : ""}
-        </button>
-        {user && !myReview && (
+        </button>}
+        {p.isVerified && user && !myReview && (
           <button onClick={() => setShowReviewForm(!showReviewForm)} style={{ ...btn("transparent", C.green), border: "1px solid " + C.green, fontSize: 13, padding: "9px 18px" }}>
             ✍️ Review
           </button>
@@ -3192,6 +3213,8 @@ function ProviderCard({ p, user, profile }) {
   );
 }
 
+const SERVICE_ICONS = { "Grooming": "✂️", "Dog Walking": "🐕", "Veterinary": "🏥", "Boarding": "🏨", "Training": "🎓", "Daycare": "🌞", "Other": "🛎️" };
+
 function ServicesTab({ profile, user, serviceFilter }) {
   const serviceMap = {
     groomers: "Grooming",
@@ -3200,54 +3223,96 @@ function ServicesTab({ profile, user, serviceFilter }) {
     daycare: "Daycare",
     vets: "Veterinary"
   };
-  const [filterState] = useState("");
   const [filterService, setFilterService] = useState(serviceMap[serviceFilter] || "");
+  const [filterCity, setFilterCity] = useState("");
+  const [filterState, setFilterState] = useState("");
   const [searched, setSearched] = useState(false);
-  const [zipCode, setZipCode] = useState("");
-  const [providers, setProviders] = useState([]);
+  const [realProviders, setRealProviders] = useState([]);
+  const [seedProviders, setSeedProviders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, "users"), where("role", "==", "provider"), where("status", "==", "approved"));
-    const unsub = onSnapshot(q, snap => {
-      setProviders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
+    // Load real sign-up providers
+    const q1 = query(collection(db, "users"), where("role", "==", "provider"), where("status", "==", "approved"));
+    const unsub1 = onSnapshot(q1, snap => {
+      setRealProviders(snap.docs.map(d => ({ id: d.id, ...d.data(), isVerified: true })));
     });
-    return unsub;
+    // Load seeded providers from Google Places
+    const q2 = query(collection(db, "seedProviders"));
+    getDocs(q2).then(snap => {
+      setSeedProviders(snap.docs.map(d => ({ id: d.id, ...d.data(), isVerified: false })));
+      setLoading(false);
+    }).catch(() => setLoading(false));
+    return unsub1;
   }, []);
 
-  const filtered = providers.filter(p =>
-    (!filterState || p.state === filterState) &&
-    (!filterService || p.service === filterService)
-  );
+  const allProviders = [...realProviders, ...seedProviders];
+  const filtered = allProviders.filter(p => {
+    const svcMatch = !filterService || p.service === filterService;
+    const cityMatch = !filterCity || (p.city || "").toLowerCase().includes(filterCity.toLowerCase());
+    const stateMatch = !filterState || (p.state || "").toLowerCase() === filterState.toLowerCase();
+    return svcMatch && cityMatch && stateMatch;
+  });
+
+  // Real providers first, then seeded
+  const sorted = [...filtered].sort((a, b) => (b.isVerified ? 1 : 0) - (a.isVerified ? 1 : 0));
+
+  const serviceTypes = ["Grooming","Dog Walking","Veterinary","Boarding","Training","Daycare","Other"];
 
   return (
     <div>
       <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>
-        {filterService ? filterService + "s Near You" : "Services Near You"} 🛎️
+        {filterService ? `${SERVICE_ICONS[filterService] || "🛎️"} ${filterService} Near You` : "Services Near You 🛎️"}
       </h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>Verified providers in your area</p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
-        <div><span style={label}>Zip Code</span><input type="text" placeholder="Enter zip code..." value={zipCode} onChange={e => setZipCode(e.target.value)} style={{ ...input }} maxLength={5} /></div>
-        <div style={{position:"relative"}}><span style={label}>Service</span><select value={filterService} onChange={e => setFilterService(e.target.value)} style={{ ...input, appearance: "none", paddingRight: "32px" }}><option value="">All Services</option>{["Grooming","Dog Walking","Veterinary","Training","Boarding","Daycare","Other"].map(s => <option key={s} value={s}>{s}</option>)}</select><span style={{position:"absolute",right:10,top:"60%",pointerEvents:"none",color:"#64748b",fontSize:12}}>▼</span></div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>
+        {loading ? "Loading providers..." : `${allProviders.length} providers across 20 cities`}
+      </p>
+
+      {/* Filters */}
+      <div style={{ ...card, marginBottom: 18, padding: "14px 16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+          <div>
+            <span style={label}>City</span>
+            <input type="text" placeholder="e.g. New York" value={filterCity} onChange={e => { setFilterCity(e.target.value); setSearched(true); }} style={{ ...input }} />
+          </div>
+          <div>
+            <span style={label}>State</span>
+            <input type="text" placeholder="e.g. NY" value={filterState} onChange={e => { setFilterState(e.target.value); setSearched(true); }} style={{ ...input }} maxLength={2} />
+          </div>
+        </div>
+        <div style={{ position: "relative" }}>
+          <span style={label}>Service Type</span>
+          <select value={filterService} onChange={e => { setFilterService(e.target.value); setSearched(true); }} style={{ ...input, appearance: "none", paddingRight: "32px" }}>
+            <option value="">All Services</option>
+            {serviceTypes.map(s => <option key={s} value={s}>{SERVICE_ICONS[s]} {s}</option>)}
+          </select>
+          <span style={{ position: "absolute", right: 10, top: "60%", pointerEvents: "none", color: "#64748b", fontSize: 12 }}>▼</span>
+        </div>
+        {!searched && <button onClick={() => setSearched(true)} style={{ ...btn(C.green), width: "100%", marginTop: 10, fontSize: 15, padding: "13px 28px" }}>🔍 Find Service Providers</button>}
       </div>
+
       {loading && <Spinner />}
-      {!searched && (
-        <div style={{ ...card, textAlign: "center", padding: 40 }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🛎️</div>
-          <div style={{ color: C.text, fontWeight: 800, fontSize: 16, marginBottom: 8 }}>Find Service Providers Near You</div>
-          <div style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>Enter your zip code to discover groomers, walkers, vets and more in your area</div>
-          <button onClick={() => setSearched(true)} style={{ ...btn(C.green), fontSize: 15, padding: "13px 28px" }}>🔍 Find Service Providers Near Me</button>
+
+      {/* Service type quick-pick chips */}
+      {!loading && !searched && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
+          {serviceTypes.slice(0, 4).map(s => (
+            <button key={s} onClick={() => { setFilterService(s); setSearched(true); }} style={{ ...btn(C.inputBg, C.text), border: `1px solid ${C.cardBorder}`, fontSize: 13, padding: "8px 14px", borderRadius: 20 }}>
+              {SERVICE_ICONS[s]} {s}
+            </button>
+          ))}
         </div>
       )}
-      {searched && !loading && filtered.length === 0 && (
+
+      {searched && !loading && sorted.length === 0 && (
         <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>🛎️</div>
-          <div style={{ color: C.text, fontWeight: 800 }}>No approved providers found</div>
-          <div style={{ fontSize: 13, marginTop: 6 }}>Try a different state or service type</div>
+          <div style={{ color: C.text, fontWeight: 800 }}>No providers found</div>
+          <div style={{ fontSize: 13, marginTop: 6 }}>Try a different city, state, or service type</div>
         </div>
       )}
-      {filtered.map(p => <ProviderCard key={p.id} p={p} user={user} profile={profile} />)}
+
+      {searched && sorted.map(p => <ProviderCard key={p.id} p={p} user={user} profile={profile} />)}
     </div>
   );
 }
