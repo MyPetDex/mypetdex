@@ -9,6 +9,8 @@ import {
   signOut,
   onAuthStateChanged,
   OAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
 } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import {
@@ -254,6 +256,27 @@ export default function App() {
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
+  // Handle Apple sign-in redirect result on page load
+  useEffect(() => {
+    getRedirectResult(auth).then(async (result) => {
+      if (result?.user) {
+        const u = result.user;
+        const snap = await getDoc(doc(db, "users", u.uid));
+        if (snap.exists()) {
+          setProfile(snap.data());
+          setScreen("app");
+        } else {
+          setUser(u);
+          setScreen("google-role");
+        }
+      }
+    }).catch((e) => {
+      if (e.code !== "auth/popup-closed-by-user") {
+        console.error("Apple redirect error:", e);
+      }
+    });
+  }, []);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -288,10 +311,13 @@ export default function App() {
           window.history.replaceState({}, '', window.location.pathname);
         } catch(e) { console.error('Plan update error:', e); }
       }
+      const isOAuthUser = firebaseUser.providerData?.some(p =>
+          p.providerId === 'google.com' || p.providerId === 'apple.com'
+        );
       if (firebaseUser.email === 'mypetdexapp@gmail.com') {
           setScreen('admin');
           setLoading(false);
-        } else if (!firebaseUser.emailVerified && firebaseUser.email !== 'demo@mypetdex.app') {
+        } else if (!firebaseUser.emailVerified && !isOAuthUser && firebaseUser.email !== 'demo@mypetdex.app') {
           setScreen('verify');
           setLoading(false);
         } else {
@@ -410,21 +436,10 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
-      const result = await signInWithPopup(auth, provider);
-      const u = result.user;
-      const snap = await getDoc(doc(db, "users", u.uid));
-      if (snap.exists()) {
-        setProfile(snap.data());
-        setScreen("app");
-      } else {
-        setUser(u);
-        setScreen("google-role");
-      }
+      await signInWithRedirect(auth, provider);
     } catch (e) {
-      if (e.code !== "auth/popup-closed-by-user") {
-        console.error("Apple sign in error:", e);
-        showAuthError("Apple Sign-In isn't configured yet — please use Google or email to sign in.");
-      }
+      console.error("Apple sign in error:", e);
+      showAuthError("Apple Sign-In failed. Please try again or use Google or email.");
     }
   }} urlRole={urlRole} onBack={() => { sessionStorage.removeItem("selectedRole"); sessionStorage.removeItem("selectedPlan"); setScreen("role-pick"); }} />);
   if (screen === "google-role") return wrap(<GoogleRoleScreen user={user} initialPlan={urlPlan} initialRole={urlRole} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />);
@@ -434,21 +449,10 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
-      const result = await signInWithPopup(auth, provider);
-      const u = result.user;
-      const snap = await getDoc(doc(db, "users", u.uid));
-      if (snap.exists()) {
-        setProfile(snap.data());
-        setScreen("app");
-      } else {
-        setUser(u);
-        setScreen("google-role");
-      }
+      await signInWithRedirect(auth, provider);
     } catch (e) {
-      if (e.code !== "auth/popup-closed-by-user") {
-        console.error("Apple sign in error:", e);
-        showAuthError("Apple Sign-In isn't configured yet — please use Google or email to sign in.");
-      }
+      console.error("Apple sign in error:", e);
+      showAuthError("Apple Sign-In failed. Please try again or use Google or email.");
     }
   }} onGoogle={async () => {
     try {
