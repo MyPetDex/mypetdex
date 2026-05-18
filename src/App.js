@@ -1529,14 +1529,24 @@ function AuthButtons({ onApple, onGoogle, onEmail, emailLabel = "Create Free Acc
 
 // ─── Pet Owner Landing ────────────────────────────────────────────────────────
 function OwnerLanding({ onRegister, onLogin, onGoogle, onApple, onBack }) {
+  const [selectedPlan, setSelectedPlan] = useState("free");
+  const plans = [
+    { id: "free",   label: "Free",   price: "$0",       sub: "1 pet · No AI",           color: C.muted },
+    { id: "plus",   label: "Plus",   price: "$2.99/mo", sub: "3 pets · AI · 30-day trial", color: C.green },
+    { id: "family", label: "Family", price: "$4.99/mo", sub: "Unlimited · AI · 30-day trial", color: C.gold },
+  ];
+  const handleRegister = () => { sessionStorage.setItem("selectedPlan", selectedPlan); onRegister(); };
+  const handleGoogle  = () => { sessionStorage.setItem("selectedPlan", selectedPlan); onGoogle(); };
+  const handleApple   = () => { sessionStorage.setItem("selectedPlan", selectedPlan); onApple(); };
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", maxWidth: 400, marginBottom: 8 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font }}>← Change role</button>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>← Not a pet owner?</button>
         <span><span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span><button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button></span>
       </div>
       <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, objectFit: "contain", marginBottom: 8 }} />
+      <div style={{ background: C.green, color: "#fff", borderRadius: 20, padding: "4px 16px", fontSize: 12, fontWeight: 700, marginBottom: 8 }}>🐾 For Pet Owners</div>
       <h1 style={{ color: C.green, fontWeight: 900, fontSize: 38, margin: 0, letterSpacing: -1, textAlign: "center" }}>MyPetDex</h1>
       <p style={{ color: C.muted, fontSize: 16, textAlign: "center", maxWidth: 320, marginBottom: 4 }}>Everything your pet needs — in one simple app.</p>
       <p style={{ color: "#64748b", fontSize: 13, textAlign: "center", maxWidth: 300, marginBottom: 20 }}>Health records · Reminders · AI Assistant · Nutrition · Adoption</p>
@@ -1545,7 +1555,22 @@ function OwnerLanding({ onRegister, onLogin, onGoogle, onApple, onBack }) {
           <span key={f} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "4px 12px", fontSize: 12, color: C.text, fontWeight: 600 }}>{f}</span>
         ))}
       </div>
-      <AuthButtons onApple={onApple} onGoogle={onGoogle} onEmail={onRegister} emailLabel="Create Free Account →" confirmLabel="I confirm I am signing up as a Pet Owner and agree to the Terms of Service." />
+      <div style={{ width: "100%", maxWidth: 340, marginBottom: 16 }}>
+        <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 10, textAlign: "center" }}>Choose your plan</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {plans.map(p => (
+            <div key={p.id} onClick={() => setSelectedPlan(p.id)} style={{ flex: 1, background: C.card, border: `2px solid ${selectedPlan === p.id ? p.color : C.cardBorder}`, borderRadius: 12, padding: "10px 6px", textAlign: "center", cursor: "pointer", transition: "border 0.15s" }}>
+              <div style={{ color: p.color, fontWeight: 900, fontSize: 13 }}>{p.label}</div>
+              <div style={{ color: C.text, fontWeight: 800, fontSize: 12, marginTop: 2 }}>{p.price}</div>
+              <div style={{ color: C.muted, fontSize: 10, marginTop: 3, lineHeight: 1.3 }}>{p.sub}</div>
+            </div>
+          ))}
+        </div>
+        {selectedPlan !== "free" && <div style={{ textAlign: "center", color: C.green, fontSize: 12, fontWeight: 700, marginTop: 8 }}>🎁 30-day free trial — no credit card needed to start</div>}
+      </div>
+      <AuthButtons onApple={handleApple} onGoogle={handleGoogle} onEmail={handleRegister}
+        emailLabel={selectedPlan === "free" ? "Create Free Account →" : `Start ${selectedPlan === "plus" ? "Plus" : "Family"} Free Trial →`}
+        confirmLabel="I confirm I am signing up as a Pet Owner and agree to the Terms of Service." />
       <p style={{ color: C.muted, fontSize: 11, marginTop: 16, textAlign: "center" }}>Free plan available · Plus $2.99/mo · Family $4.99/mo</p>
       <div style={{ marginTop: 12, background: C.card, borderRadius: 12, padding: "10px 18px", border: `1px solid ${C.cardBorder}`, maxWidth: 340 }}>
         <p style={{ color: C.muted, fontSize: 11, margin: 0, textAlign: "center" }}>🔒 Your data is encrypted and never shared with third parties.</p>
@@ -1560,7 +1585,7 @@ function ProviderLanding({ onRegister, onLogin, onGoogle, onApple, onBack }) {
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", maxWidth: 400, marginBottom: 8 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font }}>← Change role</button>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>← Not a service provider?</button>
         <span><span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span><button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button></span>
       </div>
       <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, objectFit: "contain", marginBottom: 8 }} />
@@ -1590,7 +1615,7 @@ function ShelterLanding({ onRegister, onLogin, onGoogle, onApple, onBack }) {
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", maxWidth: 400, marginBottom: 8 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font }}>← Change role</button>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>← Not an animal shelter?</button>
         <span><span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span><button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button></span>
       </div>
       <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, objectFit: "contain", marginBottom: 8 }} />
@@ -1813,9 +1838,8 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
           <Field label="Email" type="email" value={form.email} onChange={set("email")} placeholder="you@email.com" required />
           <Field label="Password (min 8 characters + special character)" type="password" value={form.password} onChange={set("password")} placeholder="e.g. MyPet@2024" required />
           <Field label="Confirm Password" type="password" value={form.confirmPassword} onChange={set("confirmPassword")} placeholder="Re-enter your password" required />
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16, background: C.inputBg, borderRadius: 10, padding: "10px 14px" }}><input type="checkbox" id="ageCheck" checked={ageConfirmed} onChange={e => setAgeConfirmed(e.target.checked)} style={{ marginTop: 2, cursor: "pointer", width: 16, height: 16 }} /><label htmlFor="ageCheck" style={{ color: C.muted, fontSize: 13, cursor: "pointer", fontFamily: font }}>I confirm I am <strong>13 years of age or older</strong> and agree to the Terms of Service and Privacy Policy.</label></div>
           <button style={{ ...btn(), width: "100%" }} onClick={() => { if ((!role && !initialRole) || !form.name || !form.email || !form.password) { setError("Please fill in all fields and select a role"); return; }
-                  if (!ageConfirmed) { setError("You must confirm you are 13 years of age or older"); return; }
+
                   if (form.password.length < 8) { setError("Password must be at least 8 characters"); return; }
                   if (!/[!@#$%^&*(),.?":{}|<>]/.test(form.password)) { setError("Password must include at least one special character (e.g. @, #, !)"); return; }
                   if (form.password !== form.confirmPassword) { setError("Passwords do not match"); return; } setError(""); setStep(2); }}>Continue</button>
