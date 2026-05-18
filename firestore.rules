@@ -56,6 +56,12 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && resource.data.uid == request.auth.uid);
     }
 
+    // Seeded providers from Google Places — any signed-in user can read
+    match /seedProviders/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // Shop products — readable by all verified users, writable by admin only
     match /shopProducts/{docId} {
       allow read: if isSignedIn();

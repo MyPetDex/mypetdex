@@ -3222,7 +3222,7 @@ const SERVICE_TYPES_LIST = [
   { label: "Daycare",     emoji: "🌞",  color: "#ec4899", desc: "Full & half-day care" },
 ];
 const SERVICE_ICONS = Object.fromEntries(SERVICE_TYPES_LIST.map(s => [s.label, s.emoji]));
-const COVERED_CITIES = ["New York, NY","Los Angeles, CA","Chicago, IL","Houston, TX","Phoenix, AZ","Miami, FL","Atlanta, GA","Boston, MA","Seattle, WA","Denver, CO","Dallas, TX","San Diego, CA","Nashville, TN","Portland, OR","Las Vegas, NV","Austin, TX","San Francisco, CA","Charlotte, NC","Tampa, FL","Minneapolis, MN"];
+const COVERED_CITIES = ["New York, NY","Los Angeles, CA","Chicago, IL","Houston, TX","Philadelphia, PA","Phoenix, AZ","Miami, FL","Atlanta, GA","Boston, MA","Seattle, WA","Denver, CO","Dallas, TX","San Diego, CA","Nashville, TN","Portland, OR","Las Vegas, NV","Austin, TX","San Francisco, CA","Charlotte, NC","Tampa, FL","Minneapolis, MN","Newark, NJ","Jersey City, NJ","Edison, NJ","East Brunswick, NJ","Hoboken, NJ","Pittsburgh, PA","Orlando, FL","Jacksonville, FL","Raleigh, NC","Richmond, VA","Columbus, OH","Indianapolis, IN","Kansas City, MO","St. Louis, MO","Detroit, MI","San Antonio, TX","Salt Lake City, UT","Sacramento, CA","New Orleans, LA","Memphis, TN","Louisville, KY","Oklahoma City, OK"];
 
 function ServicesTab({ profile, user, serviceFilter }) {
   const serviceMap = { groomers:"Grooming", walkers:"Dog Walking", sitters:"Boarding", daycare:"Daycare", vets:"Veterinary" };
