@@ -270,12 +270,14 @@ export default function App() {
           setUser(u);
           setScreen("google-role");
         }
+        setLoading(false);
       }
     }).catch((e) => {
       sessionStorage.removeItem("appleRedirectPending");
       if (e.code !== "auth/popup-closed-by-user") {
         console.error("Apple redirect error:", e);
       }
+      setLoading(false);
     });
   }, []);
 
