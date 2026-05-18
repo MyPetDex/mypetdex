@@ -3213,33 +3213,30 @@ function ProviderCard({ p, user, profile }) {
   );
 }
 
-const SERVICE_ICONS = { "Grooming": "✂️", "Dog Walking": "🐕", "Veterinary": "🏥", "Boarding": "🏨", "Training": "🎓", "Daycare": "🌞", "Other": "🛎️" };
+const SERVICE_TYPES_LIST = [
+  { label: "Grooming",    emoji: "✂️",  color: "#8b5cf6", desc: "Baths, cuts & styling" },
+  { label: "Dog Walking", emoji: "🐕",  color: "#10b981", desc: "Daily walks & exercise" },
+  { label: "Veterinary",  emoji: "🏥",  color: "#ef4444", desc: "Clinics & animal hospitals" },
+  { label: "Boarding",    emoji: "🏨",  color: "#f59e0b", desc: "Overnight & pet hotels" },
+  { label: "Training",    emoji: "🎓",  color: "#3b82f6", desc: "Obedience & behaviour" },
+  { label: "Daycare",     emoji: "🌞",  color: "#ec4899", desc: "Full & half-day care" },
+];
+const SERVICE_ICONS = Object.fromEntries(SERVICE_TYPES_LIST.map(s => [s.label, s.emoji]));
+const COVERED_CITIES = ["New York, NY","Los Angeles, CA","Chicago, IL","Houston, TX","Phoenix, AZ","Miami, FL","Atlanta, GA","Boston, MA","Seattle, WA","Denver, CO","Dallas, TX","San Diego, CA","Nashville, TN","Portland, OR","Las Vegas, NV","Austin, TX","San Francisco, CA","Charlotte, NC","Tampa, FL","Minneapolis, MN"];
 
 function ServicesTab({ profile, user, serviceFilter }) {
-  const serviceMap = {
-    groomers: "Grooming",
-    walkers: "Dog Walking",
-    sitters: "Boarding",
-    daycare: "Daycare",
-    vets: "Veterinary"
-  };
+  const serviceMap = { groomers:"Grooming", walkers:"Dog Walking", sitters:"Boarding", daycare:"Daycare", vets:"Veterinary" };
   const [filterService, setFilterService] = useState(serviceMap[serviceFilter] || "");
   const [filterCity, setFilterCity] = useState("");
-  const [filterState, setFilterState] = useState("");
   const [searched, setSearched] = useState(false);
   const [realProviders, setRealProviders] = useState([]);
   const [seedProviders, setSeedProviders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load real sign-up providers
     const q1 = query(collection(db, "users"), where("role", "==", "provider"), where("status", "==", "approved"));
-    const unsub1 = onSnapshot(q1, snap => {
-      setRealProviders(snap.docs.map(d => ({ id: d.id, ...d.data(), isVerified: true })));
-    });
-    // Load seeded providers from Google Places
-    const q2 = query(collection(db, "seedProviders"));
-    getDocs(q2).then(snap => {
+    const unsub1 = onSnapshot(q1, snap => setRealProviders(snap.docs.map(d => ({ id: d.id, ...d.data(), isVerified: true }))));
+    getDocs(query(collection(db, "seedProviders"))).then(snap => {
       setSeedProviders(snap.docs.map(d => ({ id: d.id, ...d.data(), isVerified: false })));
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -3247,68 +3244,131 @@ function ServicesTab({ profile, user, serviceFilter }) {
   }, []);
 
   const allProviders = [...realProviders, ...seedProviders];
+  const cityInput = filterCity.trim().toLowerCase();
   const filtered = allProviders.filter(p => {
     const svcMatch = !filterService || p.service === filterService;
-    const cityMatch = !filterCity || (p.city || "").toLowerCase().includes(filterCity.toLowerCase());
-    const stateMatch = !filterState || (p.state || "").toLowerCase() === filterState.toLowerCase();
-    return svcMatch && cityMatch && stateMatch;
+    const cityMatch = !cityInput ||
+      (p.city || "").toLowerCase().includes(cityInput) ||
+      (p.state || "").toLowerCase().includes(cityInput) ||
+      `${p.city} ${p.state}`.toLowerCase().includes(cityInput);
+    return svcMatch && cityMatch;
+  });
+  // Verified first, then by Google rating
+  const sorted = [...filtered].sort((a, b) => {
+    if (b.isVerified !== a.isVerified) return (b.isVerified ? 1 : 0) - (a.isVerified ? 1 : 0);
+    return (b.googleRating || 0) - (a.googleRating || 0);
   });
 
-  // Real providers first, then seeded
-  const sorted = [...filtered].sort((a, b) => (b.isVerified ? 1 : 0) - (a.isVerified ? 1 : 0));
-
-  const serviceTypes = ["Grooming","Dog Walking","Veterinary","Boarding","Training","Daycare","Other"];
+  const doSearch = () => setSearched(true);
+  const reset = () => { setFilterCity(""); setFilterService(""); setSearched(false); };
+  const cityNotCovered = searched && cityInput && sorted.length === 0 &&
+    !COVERED_CITIES.some(c => c.toLowerCase().includes(cityInput));
 
   return (
     <div>
-      <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>
-        {filterService ? `${SERVICE_ICONS[filterService] || "🛎️"} ${filterService} Near You` : "Services Near You 🛎️"}
-      </h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 18 }}>
-        {loading ? "Loading providers..." : `${allProviders.length} providers across 20 cities`}
-      </p>
-
-      {/* Filters */}
-      <div style={{ ...card, marginBottom: 18, padding: "14px 16px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-          <div>
-            <span style={label}>City</span>
-            <input type="text" placeholder="e.g. New York" value={filterCity} onChange={e => { setFilterCity(e.target.value); setSearched(true); }} style={{ ...input }} />
-          </div>
-          <div>
-            <span style={label}>State</span>
-            <input type="text" placeholder="e.g. NY" value={filterState} onChange={e => { setFilterState(e.target.value); setSearched(true); }} style={{ ...input }} maxLength={2} />
-          </div>
-        </div>
-        <div style={{ position: "relative" }}>
-          <span style={label}>Service Type</span>
-          <select value={filterService} onChange={e => { setFilterService(e.target.value); setSearched(true); }} style={{ ...input, appearance: "none", paddingRight: "32px" }}>
-            <option value="">All Services</option>
-            {serviceTypes.map(s => <option key={s} value={s}>{SERVICE_ICONS[s]} {s}</option>)}
-          </select>
-          <span style={{ position: "absolute", right: 10, top: "60%", pointerEvents: "none", color: "#64748b", fontSize: 12 }}>▼</span>
-        </div>
-        {!searched && <button onClick={() => setSearched(true)} style={{ ...btn(C.green), width: "100%", marginTop: 10, fontSize: 15, padding: "13px 28px" }}>🔍 Find Service Providers</button>}
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>
+          {filterService ? `${SERVICE_ICONS[filterService]} ${filterService} Near You` : "Find Pet Services 🛎️"}
+        </h2>
+        <p style={{ color: C.muted, fontSize: 13 }}>
+          {loading ? "Loading providers..." : `${allProviders.length}+ providers across 20 US cities`}
+        </p>
       </div>
+
+      {/* Search bar */}
+      <div style={{ ...card, marginBottom: 16, padding: "14px 16px" }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: filterService ? 10 : 0 }}>
+          <div style={{ flex: 1, position: "relative" }}>
+            <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 16, pointerEvents: "none" }}>📍</span>
+            <input
+              type="text"
+              placeholder="City or state — e.g. Miami or NY"
+              value={filterCity}
+              onChange={e => setFilterCity(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && doSearch()}
+              style={{ ...input, paddingLeft: 36, marginBottom: 0 }}
+            />
+          </div>
+          <button onClick={doSearch} style={{ ...btn(C.green), padding: "0 18px", flexShrink: 0 }}>🔍</button>
+        </div>
+        {filterService && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ background: C.green + "18", border: `1px solid ${C.green}44`, borderRadius: 20, padding: "4px 12px", fontSize: 12, color: C.green, fontWeight: 700 }}>
+              {SERVICE_ICONS[filterService]} {filterService}
+            </div>
+            <button onClick={() => setFilterService("")} style={{ background: "none", border: "none", color: C.muted, fontSize: 12, cursor: "pointer", padding: 0 }}>✕ Clear</button>
+          </div>
+        )}
+      </div>
+
+      {/* Service type cards */}
+      {!searched && !loading && (
+        <>
+          <div style={{ color: C.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Browse by Service</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
+            {SERVICE_TYPES_LIST.map(s => (
+              <button key={s.label} onClick={() => { setFilterService(s.label); doSearch(); }}
+                style={{ background: filterService === s.label ? s.color + "22" : C.card, border: `1.5px solid ${filterService === s.label ? s.color : C.cardBorder}`, borderRadius: 14, padding: "14px 10px", cursor: "pointer", textAlign: "center", transition: "all 0.15s" }}>
+                <div style={{ fontSize: 22, marginBottom: 4 }}>{s.emoji}</div>
+                <div style={{ color: C.text, fontWeight: 800, fontSize: 12 }}>{s.label}</div>
+                <div style={{ color: C.muted, fontSize: 10, marginTop: 2 }}>{s.desc}</div>
+              </button>
+            ))}
+          </div>
+          <div style={{ color: C.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Available Cities</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
+            {COVERED_CITIES.map(c => (
+              <button key={c} onClick={() => { setFilterCity(c.split(",")[0]); doSearch(); }}
+                style={{ background: C.inputBg, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "5px 12px", fontSize: 12, color: C.muted, cursor: "pointer", fontFamily: font }}>
+                {c}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {loading && <Spinner />}
 
-      {/* Service type quick-pick chips */}
-      {!loading && !searched && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
-          {serviceTypes.slice(0, 4).map(s => (
-            <button key={s} onClick={() => { setFilterService(s); setSearched(true); }} style={{ ...btn(C.inputBg, C.text), border: `1px solid ${C.cardBorder}`, fontSize: 13, padding: "8px 14px", borderRadius: 20 }}>
-              {SERVICE_ICONS[s]} {s}
-            </button>
-          ))}
+      {/* Results header */}
+      {searched && !loading && sorted.length > 0 && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ color: C.text, fontWeight: 800, fontSize: 14 }}>
+            {sorted.length} provider{sorted.length !== 1 ? "s" : ""} found
+            {filterCity ? ` in "${filterCity}"` : ""}
+            {filterService ? ` · ${filterService}` : ""}
+          </div>
+          <button onClick={reset} style={{ background: "none", border: "none", color: C.green, fontSize: 12, cursor: "pointer", fontFamily: font, fontWeight: 700 }}>← New Search</button>
         </div>
       )}
 
+      {/* Empty state */}
       {searched && !loading && sorted.length === 0 && (
-        <div style={{ ...card, textAlign: "center", color: C.muted, padding: 40 }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🛎️</div>
-          <div style={{ color: C.text, fontWeight: 800 }}>No providers found</div>
-          <div style={{ fontSize: 13, marginTop: 6 }}>Try a different city, state, or service type</div>
+        <div style={{ ...card, textAlign: "center", padding: "36px 24px" }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>📍</div>
+          <div style={{ color: C.text, fontWeight: 900, fontSize: 16, marginBottom: 8 }}>
+            {cityNotCovered ? "No providers in this area yet" : "No providers found"}
+          </div>
+          <div style={{ color: C.muted, fontSize: 13, marginBottom: 16, lineHeight: 1.6 }}>
+            {cityNotCovered
+              ? `We currently cover 20 major US cities. "${filterCity}" isn't in our directory yet — but we're expanding soon!`
+              : "Try adjusting your city or service type."}
+          </div>
+          {cityNotCovered && (
+            <div style={{ background: C.inputBg, borderRadius: 12, padding: "12px 16px", marginBottom: 16, textAlign: "left" }}>
+              <div style={{ color: C.muted, fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Currently available in:</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                {COVERED_CITIES.slice(0, 10).map(c => (
+                  <button key={c} onClick={() => { setFilterCity(c.split(",")[0]); doSearch(); }}
+                    style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "3px 10px", fontSize: 11, color: C.text, cursor: "pointer", fontFamily: font }}>
+                    {c}
+                  </button>
+                ))}
+                <span style={{ color: C.muted, fontSize: 11, padding: "3px 4px" }}>+10 more</span>
+              </div>
+            </div>
+          )}
+          <button onClick={reset} style={{ ...btn(C.green), fontSize: 13 }}>🔄 Start Over</button>
         </div>
       )}
 
