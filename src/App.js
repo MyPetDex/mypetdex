@@ -6,6 +6,7 @@ import { auth, db, GoogleAuthProvider, signInWithPopup, requestNotificationPermi
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
   signOut,
   onAuthStateChanged,
   OAuthProvider,
@@ -1837,11 +1838,18 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
           <Field label="Email" type="email" value={form.email} onChange={set("email")} placeholder="you@email.com" required />
           <Field label="Password (min 8 characters + special character)" type="password" value={form.password} onChange={set("password")} placeholder="e.g. MyPet@2024" required />
           <Field label="Confirm Password" type="password" value={form.confirmPassword} onChange={set("confirmPassword")} placeholder="Re-enter your password" required />
-          <button style={{ ...btn(), width: "100%" }} onClick={() => { if ((!role && !initialRole) || !form.name || !form.email || !form.password) { setError("Please fill in all fields and select a role"); return; }
-
-                  if (form.password.length < 8) { setError("Password must be at least 8 characters"); return; }
-                  if (!/[!@#$%^&*(),.?":{}|<>]/.test(form.password)) { setError("Password must include at least one special character (e.g. @, #, !)"); return; }
-                  if (form.password !== form.confirmPassword) { setError("Passwords do not match"); return; } setError(""); setStep(2); }}>Continue</button>
+          <button style={{ ...btn(), width: "100%" }} disabled={loading} onClick={async () => {
+            if ((!role && !initialRole) || !form.name || !form.email || !form.password) { setError("Please fill in all fields and select a role"); return; }
+            if (form.password.length < 8) { setError("Password must be at least 8 characters"); return; }
+            if (!/[!@#$%^&*(),.?":{}|<>]/.test(form.password)) { setError("Password must include at least one special character (e.g. @, #, !)"); return; }
+            if (form.password !== form.confirmPassword) { setError("Passwords do not match"); return; }
+            setLoading(true); setError("");
+            try {
+              const methods = await fetchSignInMethodsForEmail(auth, form.email);
+              if (methods.length > 0) { setError("This email is already registered! Please sign in instead."); setLoading(false); return; }
+            } catch(e) { setError("Could not verify email. Please check it and try again."); setLoading(false); return; }
+            setLoading(false); setError(""); setStep(2);
+          }}>{loading ? "Checking..." : "Continue"}</button>
           {initialRole && <>
             <div style={{ display: "flex", alignItems: "center", width: "100%", margin: "16px 0" }}>
               <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
