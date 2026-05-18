@@ -4,6 +4,7 @@
   "framework": "create-react-app",
   "rewrites": [
     { "source": "/pet/:id", "destination": "/pet.html" },
+    { "source": "/services", "destination": "/services-section.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
