@@ -8,7 +8,6 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  sendEmailVerification,
   OAuthProvider,
 } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
@@ -1273,8 +1272,9 @@ function VerifyEmail({ onVerified, onLogout }) {
     if (!user) { setMessage("No signed-in user."); return; }
     setSending(true); setMessage("");
     try {
-      await sendEmailVerification(user, { url: "https://app.mypetdex.app" });
-      setMessage("Verification email sent. Check your inbox.");
+      const sendVerification = httpsCallable(getFunctions(), "sendBrandedVerificationEmail");
+      await sendVerification({});
+      setMessage("Verification email sent! Check your inbox.");
     } catch (e) {
       setMessage("Could not send verification email. Try again later.");
     }
@@ -1742,15 +1742,23 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
           }));
         }
       }
-      // Send verification email immediately
+      // Send branded verification email via Cloud Function
       try {
-        const verifyUrl = (initialPlan === "plus" || initialPlan === "family")
+        const continueUrl = (initialPlan === "plus" || initialPlan === "family")
           ? "https://app.mypetdex.app?payment=pending&plan=" + initialPlan
           : "https://app.mypetdex.app";
-        await sendEmailVerification(cred.user, { url: verifyUrl });
-        console.log("Verification email sent to:", cred.user.email);
+        const sendVerification = httpsCallable(getFunctions(), "sendBrandedVerificationEmail");
+        await sendVerification({
+          role,
+          name: form.name || form.contactName || "",
+          businessName: form.businessName || "",
+          shelterName: form.shelterName || "",
+          plan: initialPlan || "free",
+          continueUrl,
+        });
+        console.log("Branded verification email sent to:", cred.user.email);
       } catch (verErr) {
-        console.error("Verification email error:", verErr.code, verErr.message);
+        console.error("Verification email error:", verErr.message);
       }
       onSuccess(profile);
     } catch (e) {

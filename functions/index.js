@@ -635,6 +635,96 @@ exports.getPublicStats = onRequest({ cors: true }, async (req, res) => {
   }
 });
 
+// ─── Send Branded Verification Email ─────────────────────────────────────────
+// Called right after email/password signup. Generates a real Firebase
+// verification link and sends it inside our branded HTML email via SendGrid.
+exports.sendBrandedVerificationEmail = onCall({ cors: true, secrets: [sendgridKey] }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new Error("Unauthorized");
+
+  const { role, name, businessName, shelterName, plan, continueUrl } = request.data;
+
+  try {
+    const userRecord = await admin.auth().getUser(uid);
+    const email = userRecord.email;
+    if (!email) throw new Error("No email address on account");
+
+    // If role/name not provided (e.g. resend from verify screen), pull from Firestore
+    let finalRole = role;
+    let finalName = name;
+    let finalBusinessName = businessName;
+    let finalShelterName = shelterName;
+    let finalPlan = plan;
+    if (!finalRole) {
+      const userDoc = await db.collection("users").doc(uid).get();
+      if (userDoc.exists) {
+        const d = userDoc.data();
+        finalRole = d.role || "owner";
+        finalName = finalName || d.name || "";
+        finalBusinessName = finalBusinessName || d.businessName || "";
+        finalShelterName = finalShelterName || d.shelterName || "";
+        finalPlan = finalPlan || d.pendingPlan || d.plan || "free";
+      }
+    }
+
+    // Generate the real Firebase email verification link
+    const verificationLink = await admin.auth().generateEmailVerificationLink(email, {
+      url: continueUrl || "https://app.mypetdex.app",
+    });
+
+    sgMail.setApiKey(sendgridKey.value());
+
+    let displayName = finalName || email.split("@")[0];
+    if (finalRole === "provider") displayName = finalBusinessName || displayName;
+    if (finalRole === "shelter") displayName = finalShelterName || displayName;
+
+    await sgMail.send({
+      to: email,
+      from: { email: FROM_EMAIL, name: FROM_NAME },
+      subject: "Verify your MyPetDex email 🐾",
+      html: verificationEmailHTML(displayName, finalRole, finalPlan || "free", verificationLink),
+    });
+
+    console.log(`Branded verification email sent to ${email} (${finalRole}, ${finalPlan || "free"})`);
+    return { success: true };
+  } catch (err) {
+    console.error("sendBrandedVerificationEmail error:", err);
+    throw new Error("Failed to send verification email. Please try again.");
+  }
+});
+
+function verificationEmailHTML(name, role, plan, verifyLink) {
+  const roleEmoji = { owner: "🐾", provider: "🛎️", shelter: "🏠" }[role] || "🐾";
+  const roleLabel = { owner: "Pet Owner", provider: "Service Provider", shelter: "Animal Shelter" }[role] || "Member";
+
+  const planNote = (role === "owner" && (plan === "plus" || plan === "family"))
+    ? `<div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:12px;padding:14px;text-align:center;margin-bottom:16px;">
+        <p style="color:#3B82F6;font-weight:800;font-size:13px;margin:0 0 4px;">🎁 Your 30-day free ${plan === "plus" ? "Plus" : "Family"} trial is waiting!</p>
+        <p style="color:#64748B;font-size:12px;margin:0;">Verify your email to activate it — no credit card needed during the trial.</p>
+      </div>`
+    : "";
+
+  const roleNote = role === "provider"
+    ? `<p style="color:#64748B;font-size:13px;">Once verified, you can complete your provider profile and start getting discovered by pet owners in your area.</p>`
+    : role === "shelter"
+    ? `<p style="color:#64748B;font-size:13px;">Once verified, you can submit your shelter documents and start listing adoptable pets for loving families to find.</p>`
+    : `<p style="color:#64748B;font-size:13px;">Once verified, you'll have full access to pet profiles, health records, reminders, AI tips, and more.</p>`;
+
+  return emailBase(`
+    <div class="card">
+      <h1>${roleEmoji} One quick step, ${name}!</h1>
+      <p>Thanks for joining MyPetDex as a <strong>${roleLabel}</strong>. Just verify your email address to activate your account.</p>
+      ${planNote}
+      ${roleNote}
+      <hr class="divider">
+      <center><a href="${verifyLink}" class="btn">✅ Verify My Email →</a></center>
+      <p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:16px;">This link expires in 24 hours. If you didn't sign up for MyPetDex, you can safely ignore this email.</p>
+      <hr class="divider">
+      <p style="text-align:center;font-size:13px;">Questions? <a href="mailto:help@mypetdex.app" style="color:#3B82F6;">help@mypetdex.app</a></p>
+    </div>
+  `);
+}
+
 // ─── Delete Account + All User Data ──────────────────────────────────────────
 // Called from the app when the user taps "Delete Account".
 // Deletes all Firestore data then removes the Firebase Auth account.
