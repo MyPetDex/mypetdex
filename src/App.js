@@ -1721,7 +1721,6 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [form, setForm] = useState({
     name:"", email:"", password:"", confirmPassword:"",
     petName:"", petType:"Dog", petBreed:"", petAge:"", petWeight:"",
