@@ -426,7 +426,7 @@ export default function App() {
         showAuthError("Apple Sign-In isn't configured yet — please use Google or email to sign in.");
       }
     }
-  }} urlRole={urlRole} />);
+  }} urlRole={urlRole} onBack={() => { sessionStorage.removeItem("selectedRole"); sessionStorage.removeItem("selectedPlan"); setScreen("role-pick"); }} />);
   if (screen === "google-role") return wrap(<GoogleRoleScreen user={user} initialPlan={urlPlan} initialRole={urlRole} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />);
   if (screen === "register") return wrap(<RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); p.skipVerify ? setScreen("app") : setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} onApple={async () => { try { const provider = new OAuthProvider("apple.com"); provider.addScope("email"); provider.addScope("name"); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") { console.error("Apple sign in error:", e); showAuthError("Apple Sign-In isn't configured yet — please use Google or email to sign in."); } } }} onGoogle={async () => { try { const provider = new GoogleAuthProvider(); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") { console.error("Google sign in error:", e); showAuthError("Google sign-in failed. Please try again or use email to sign in."); } } }} />);
   if (screen === "login") return wrap(<LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onReset={() => setScreen("reset")} onApple={async () => {
@@ -1528,13 +1528,13 @@ function AuthButtons({ onApple, onGoogle, onEmail, emailLabel = "Create Free Acc
 }
 
 // ─── Pet Owner Landing ────────────────────────────────────────────────────────
-function OwnerLanding({ onRegister, onLogin, onGoogle, onApple }) {
+function OwnerLanding({ onRegister, onLogin, onGoogle, onApple, onBack }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      <div style={{ alignSelf: "flex-end", marginBottom: 8 }}>
-        <span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span>
-        <button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", maxWidth: 400, marginBottom: 8 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font }}>← Change role</button>
+        <span><span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span><button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button></span>
       </div>
       <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, objectFit: "contain", marginBottom: 8 }} />
       <h1 style={{ color: C.green, fontWeight: 900, fontSize: 38, margin: 0, letterSpacing: -1, textAlign: "center" }}>MyPetDex</h1>
@@ -1555,13 +1555,13 @@ function OwnerLanding({ onRegister, onLogin, onGoogle, onApple }) {
 }
 
 // ─── Provider Landing ─────────────────────────────────────────────────────────
-function ProviderLanding({ onRegister, onLogin, onGoogle, onApple }) {
+function ProviderLanding({ onRegister, onLogin, onGoogle, onApple, onBack }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      <div style={{ alignSelf: "flex-end", marginBottom: 8 }}>
-        <span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span>
-        <button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", maxWidth: 400, marginBottom: 8 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font }}>← Change role</button>
+        <span><span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span><button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button></span>
       </div>
       <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, objectFit: "contain", marginBottom: 8 }} />
       <div style={{ background: C.green, color: "#fff", borderRadius: 20, padding: "4px 16px", fontSize: 12, fontWeight: 700, marginBottom: 8 }}>🛎️ For Service Providers</div>
@@ -1585,13 +1585,13 @@ function ProviderLanding({ onRegister, onLogin, onGoogle, onApple }) {
 }
 
 // ─── Shelter Landing ──────────────────────────────────────────────────────────
-function ShelterLanding({ onRegister, onLogin, onGoogle, onApple }) {
+function ShelterLanding({ onRegister, onLogin, onGoogle, onApple, onBack }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      <div style={{ alignSelf: "flex-end", marginBottom: 8 }}>
-        <span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span>
-        <button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", maxWidth: 400, marginBottom: 8 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font }}>← Change role</button>
+        <span><span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span><button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button></span>
       </div>
       <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, objectFit: "contain", marginBottom: 8 }} />
       <div style={{ background: "#22c55e", color: "#fff", borderRadius: 20, padding: "4px 16px", fontSize: 12, fontWeight: 700, marginBottom: 8 }}>🏠 For Animal Shelters</div>
@@ -1684,10 +1684,10 @@ function RolePickerScreen({ onSelectRole, onLogin }) {
 }
 
 // ─── Landing Router ───────────────────────────────────────────────────────────
-function Landing({ onRegister, onLogin, onGoogle, onApple, urlRole }) {
-  if (urlRole === "provider") return <ProviderLanding onRegister={onRegister} onLogin={onLogin} onGoogle={onGoogle} onApple={onApple} />;
-  if (urlRole === "shelter") return <ShelterLanding onRegister={onRegister} onLogin={onLogin} onGoogle={onGoogle} onApple={onApple} />;
-  return <OwnerLanding onRegister={onRegister} onLogin={onLogin} onGoogle={onGoogle} onApple={onApple} />;
+function Landing({ onRegister, onLogin, onGoogle, onApple, urlRole, onBack }) {
+  if (urlRole === "provider") return <ProviderLanding onRegister={onRegister} onLogin={onLogin} onGoogle={onGoogle} onApple={onApple} onBack={onBack} />;
+  if (urlRole === "shelter") return <ShelterLanding onRegister={onRegister} onLogin={onLogin} onGoogle={onGoogle} onApple={onApple} onBack={onBack} />;
+  return <OwnerLanding onRegister={onRegister} onLogin={onLogin} onGoogle={onGoogle} onApple={onApple} onBack={onBack} />;
 }
 
 // ─── Register ────────────────────────────────────────────────────────────────
