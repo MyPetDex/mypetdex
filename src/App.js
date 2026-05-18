@@ -336,7 +336,8 @@ export default function App() {
       } else {
         setUser(null);
         setProfile(null);
-        setScreen('landing');
+        // Show role picker on fresh open; go to landing if role already chosen this session
+        setScreen(sessionStorage.getItem("selectedRole") ? "landing" : "role-pick");
         setLoading(false);
       }
     });
