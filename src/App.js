@@ -6,7 +6,6 @@ import { auth, db, GoogleAuthProvider, signInWithPopup, requestNotificationPermi
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  fetchSignInMethodsForEmail,
   signOut,
   onAuthStateChanged,
   OAuthProvider,
@@ -1722,6 +1721,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingCred, setPendingCred] = useState(null); // created at Step 1
   const [form, setForm] = useState({
     name:"", email:"", password:"", confirmPassword:"",
     petName:"", petType:"Dog", petBreed:"", petAge:"", petWeight:"",
@@ -1733,10 +1733,10 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
   const set = k => v => setForm(f => ({ ...f, [k]: v }));
 
   const submit = async () => {
-    if (!form.email || !form.password) { setError("Please fill in all required fields"); return; }
     setLoading(true); setError("");
     try {
-      const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
+      // Account already created at Step 1 — just use the stored credential
+      const cred = pendingCred;
       const { password, confirmPassword, ...formWithoutPassword } = form;
       // Always start on free plan — Stripe will upgrade after payment
       const refCode = generateRefCode(form.name, cred.user.uid);
@@ -1845,11 +1845,18 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
             if (form.password !== form.confirmPassword) { setError("Passwords do not match"); return; }
             setLoading(true); setError("");
             try {
-              const methods = await fetchSignInMethodsForEmail(auth, form.email);
-              if (methods.length > 0) { setError("This email is already registered! Please sign in instead."); setLoading(false); return; }
-            } catch(e) { setError("Could not verify email. Please check it and try again."); setLoading(false); return; }
-            setLoading(false); setError(""); setStep(2);
-          }}>{loading ? "Checking..." : "Continue"}</button>
+              const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
+              setPendingCred(cred);
+              setLoading(false); setError(""); setStep(2);
+            } catch(e) {
+              if (e.code === "auth/email-already-in-use") {
+                setError("This email is already registered! Please sign in instead.");
+              } else {
+                setError(e.message);
+              }
+              setLoading(false);
+            }
+          }}>{loading ? "Creating account..." : "Continue"}</button>
           {initialRole && <>
             <div style={{ display: "flex", alignItems: "center", width: "100%", margin: "16px 0" }}>
               <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
