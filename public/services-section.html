@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pet Services Directory — MyPetDex</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Nunito', sans-serif; background: #F5F8FF; color: #1E293B; }
+
+    /* ── Hero Stats Banner ─────────────────────────────────────── */
+    .services-hero {
+      background: linear-gradient(135deg, #3B82F6 0%, #6366f1 100%);
+      padding: 64px 24px;
+      text-align: center;
+      color: #fff;
+    }
+    .services-hero .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 30px;
+      padding: 6px 18px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      margin-bottom: 20px;
+    }
+    .services-hero h1 {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 900;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .services-hero p {
+      font-size: 17px;
+      opacity: 0.88;
+      max-width: 540px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+    }
+    .stats-grid {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 16px;
+      padding: 20px 28px;
+      min-width: 140px;
+      flex: 1;
+    }
+    .stat-card .number {
+      font-size: 32px;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-card .stat-label {
+      font-size: 13px;
+      opacity: 0.85;
+      font-weight: 700;
+    }
+    .hero-cta {
+      display: inline-block;
+      margin-top: 36px;
+      background: #fff;
+      color: #3B82F6;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 16px;
+      padding: 15px 36px;
+      border-radius: 50px;
+      text-decoration: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .hero-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.18); }
+
+    /* ── Service Types Grid ────────────────────────────────────── */
+    .services-section {
+      padding: 64px 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .section-label {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #94A3B8;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      text-align: center;
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 900;
+      color: #1E293B;
+      margin-bottom: 10px;
+    }
+    .section-sub {
+      text-align: center;
+      font-size: 15px;
+      color: #64748B;
+      margin-bottom: 40px;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .service-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    @media (max-width: 600px) { .service-grid { grid-template-columns: repeat(2, 1fr); } }
+    .service-card {
+      background: #fff;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 18px;
+      padding: 24px 16px;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+      display: block;
+    }
+    .service-card:hover {
+      transform: translateY(-3px);
+      border-color: #3B82F6;
+      box-shadow: 0 8px 24px rgba(59,130,246,0.12);
+    }
+    .service-card .emoji { font-size: 32px; margin-bottom: 10px; }
+    .service-card .svc-name { font-size: 15px; font-weight: 900; color: #1E293B; margin-bottom: 4px; }
+    .service-card .svc-desc { font-size: 12px; color: #94A3B8; }
+    .service-card .svc-count { display: inline-block; margin-top: 10px; background: #F0F9FF; color: #3B82F6; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 20px; }
+
+    .find-btn {
+      display: block;
+      width: fit-content;
+      margin: 0 auto;
+      background: linear-gradient(135deg, #3B82F6, #6366f1);
+      color: #fff;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 16px;
+      padding: 15px 40px;
+      border-radius: 50px;
+      text-decoration: none;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .find-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(99,102,241,0.4); }
+
+    /* ── Provider Onboarding CTA ───────────────────────────────── */
+    .provider-section {
+      background: #1E293B;
+      padding: 64px 24px;
+    }
+    .provider-inner {
+      max-width: 800px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+    @media (max-width: 700px) { .provider-inner { grid-template-columns: 1fr; text-align: center; } }
+    .provider-text .badge-dark {
+      display: inline-block;
+      background: rgba(99,102,241,0.25);
+      border: 1px solid rgba(99,102,241,0.4);
+      color: #A5B4FC;
+      border-radius: 30px;
+      padding: 5px 16px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      margin-bottom: 18px;
+    }
+    .provider-text h2 {
+      font-size: clamp(22px, 3.5vw, 32px);
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+    .provider-text h2 span { color: #818CF8; }
+    .provider-text p {
+      font-size: 15px;
+      color: #94A3B8;
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+    .provider-join-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #6366f1, #8B5CF6);
+      color: #fff;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 15px;
+      padding: 14px 32px;
+      border-radius: 50px;
+      text-decoration: none;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+      transition: transform 0.15s;
+      margin-right: 12px;
+    }
+    .provider-join-btn:hover { transform: translateY(-2px); }
+    .provider-learn {
+      color: #64748B;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      vertical-align: middle;
+    }
+    .provider-learn:hover { color: #94A3B8; }
+    .perks-list { list-style: none; }
+    .perks-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 16px;
+      color: #CBD5E1;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .perks-list li .icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: rgba(99,102,241,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .perks-list li strong { color: #fff; display: block; font-size: 14px; }
+
+    /* ── Cities Banner ─────────────────────────────────────────── */
+    .cities-section {
+      padding: 48px 24px;
+      background: #fff;
+      text-align: center;
+    }
+    .cities-section h3 {
+      font-size: 18px;
+      font-weight: 900;
+      color: #1E293B;
+      margin-bottom: 6px;
+    }
+    .cities-section p {
+      font-size: 14px;
+      color: #94A3B8;
+      margin-bottom: 24px;
+    }
+    .city-chips {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .city-chip {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 30px;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: #475569;
+      font-weight: 700;
+    }
+    .more-chip {
+      background: linear-gradient(135deg, #3B82F6, #6366f1);
+      color: #fff;
+      border: none;
+      border-radius: 30px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ HERO STATS BANNER ═══════════════════════════════════════ -->
+<section class="services-hero">
+  <div class="badge">🐾 Live Directory</div>
+  <h1>Real Pet Services,<br/>Near You — Right Now</h1>
+  <p>MyPetDex connects pet owners with trusted groomers, vets, walkers, trainers and more across the United States.</p>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="number">2,960+</div>
+      <div class="stat-label">Service Providers</div>
+    </div>
+    <div class="stat-card">
+      <div class="number">60</div>
+      <div class="stat-label">Cities Covered</div>
+    </div>
+    <div class="stat-card">
+      <div class="number">6</div>
+      <div class="stat-label">Service Types</div>
+    </div>
+    <div class="stat-card">
+      <div class="number">Free</div>
+      <div class="stat-label">For Pet Owners</div>
+    </div>
+  </div>
+  <a href="https://app.mypetdex.app" class="hero-cta">🔍 Find Services Near Me →</a>
+</section>
+
+<!-- ═══ SERVICE TYPES ════════════════════════════════════════════ -->
+<section class="services-section">
+  <div class="section-label">What We Cover</div>
+  <h2 class="section-title">Every Service Your Pet Needs</h2>
+  <p class="section-sub">Browse hundreds of real local businesses — verified ratings, contact info, and direct links.</p>
+  <div class="service-grid">
+    <a href="https://app.mypetdex.app" class="service-card">
+      <div class="emoji">✂️</div>
+      <div class="svc-name">Grooming</div>
+      <div class="svc-desc">Baths, cuts & styling</div>
+      <div class="svc-count">500+ providers</div>
+    </a>
+    <a href="https://app.mypetdex.app" class="service-card">
+      <div class="emoji">🐕</div>
+      <div class="svc-name">Dog Walking</div>
+      <div class="svc-desc">Daily walks & exercise</div>
+      <div class="svc-count">200+ providers</div>
+    </a>
+    <a href="https://app.mypetdex.app" class="service-card">
+      <div class="emoji">🏥</div>
+      <div class="svc-name">Veterinary</div>
+      <div class="svc-desc">Clinics & hospitals</div>
+      <div class="svc-count">600+ providers</div>
+    </a>
+    <a href="https://app.mypetdex.app" class="service-card">
+      <div class="emoji">🏨</div>
+      <div class="svc-name">Boarding</div>
+      <div class="svc-desc">Overnight & pet hotels</div>
+      <div class="svc-count">450+ providers</div>
+    </a>
+    <a href="https://app.mypetdex.app" class="service-card">
+      <div class="emoji">🎓</div>
+      <div class="svc-name">Training</div>
+      <div class="svc-desc">Obedience & behaviour</div>
+      <div class="svc-count">400+ providers</div>
+    </a>
+    <a href="https://app.mypetdex.app" class="service-card">
+      <div class="emoji">🌞</div>
+      <div class="svc-name">Daycare</div>
+      <div class="svc-desc">Full & half-day care</div>
+      <div class="svc-count">500+ providers</div>
+    </a>
+  </div>
+  <a href="https://app.mypetdex.app" class="find-btn">🐾 Browse All Services →</a>
+</section>
+
+<!-- ═══ PROVIDER ONBOARDING CTA ══════════════════════════════════ -->
+<section class="provider-section">
+  <div class="provider-inner">
+    <div class="provider-text">
+      <div class="badge-dark">🛎️ For Service Providers</div>
+      <h2>Grow Your Pet Business with <span>MyPetDex</span></h2>
+      <p>We're onboarding groomers, walkers, vets, trainers and boarding facilities across the US. Get your business in front of thousands of pet owners — completely free to join.</p>
+      <a href="https://app.mypetdex.app" class="provider-join-btn">Join as a Provider →</a>
+      <a href="mailto:mypetdexapp@gmail.com" class="provider-learn">Have questions?</a>
+    </div>
+    <ul class="perks-list">
+      <li>
+        <div class="icon">📍</div>
+        <div><strong>Free Listing</strong>Get discovered by pet owners searching in your city — no subscription needed to get started.</div>
+      </li>
+      <li>
+        <div class="icon">⭐</div>
+        <div><strong>Verified Profile</strong>Stand out with a ⭐ On MyPetDex badge, reviews, and direct booking from pet owners.</div>
+      </li>
+      <li>
+        <div class="icon">📅</div>
+        <div><strong>Booking Requests</strong>Receive booking requests directly through your profile — manage everything in one place.</div>
+      </li>
+      <li>
+        <div class="icon">📈</div>
+        <div><strong>Growing Network</strong>Join 2,960+ providers already listed. We're expanding to more cities every week.</div>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══ CITIES COVERAGE ══════════════════════════════════════════ -->
+<section class="cities-section">
+  <h3>📍 Now Covering 60+ US Cities</h3>
+  <p>And expanding every week — is your city next?</p>
+  <div class="city-chips">
+    <span class="city-chip">New York, NY</span>
+    <span class="city-chip">Los Angeles, CA</span>
+    <span class="city-chip">Chicago, IL</span>
+    <span class="city-chip">Miami, FL</span>
+    <span class="city-chip">Houston, TX</span>
+    <span class="city-chip">Philadelphia, PA</span>
+    <span class="city-chip">Newark, NJ</span>
+    <span class="city-chip">Jersey City, NJ</span>
+    <span class="city-chip">East Brunswick, NJ</span>
+    <span class="city-chip">Boston, MA</span>
+    <span class="city-chip">Seattle, WA</span>
+    <span class="city-chip">Atlanta, GA</span>
+    <span class="city-chip">Denver, CO</span>
+    <span class="city-chip">Nashville, TN</span>
+    <span class="city-chip">Austin, TX</span>
+    <span class="city-chip">San Francisco, CA</span>
+    <span class="city-chip">Phoenix, AZ</span>
+    <span class="city-chip">Dallas, TX</span>
+    <span class="city-chip">Orlando, FL</span>
+    <span class="city-chip">Raleigh, NC</span>
+    <span class="more-chip">+40 more cities →</span>
+  </div>
+</section>
+
+</body>
+</html>
