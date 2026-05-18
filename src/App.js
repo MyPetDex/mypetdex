@@ -2610,17 +2610,21 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
     setSavingPhoto(false);
   };
 
+  const parseLocalDate = (str) => { const [y,m,d] = str.split("-"); return new Date(y, m-1, d); };
   const saveVaccine = async () => {
     if (!vForm.name) { setVError("Please select a vaccine name."); return; }
+    const today = new Date(); today.setHours(0,0,0,0);
     if (vForm.date) {
-      const today = new Date(); today.setHours(0,0,0,0);
-      const given = new Date(vForm.date);
+      const given = parseLocalDate(vForm.date);
       if (given > today) { setVError("\"Date Given\" cannot be in the future — enter the date the vaccine was actually administered."); return; }
     }
-    if (vForm.nextDue && vForm.date) {
-      const given = new Date(vForm.date);
-      const nextDue = new Date(vForm.nextDue);
-      if (nextDue <= given) { setVError("\"Next Due Date\" must be after the date given."); return; }
+    if (vForm.nextDue) {
+      const nextDue = parseLocalDate(vForm.nextDue);
+      if (nextDue <= today) { setVError("\"Next Due Date\" must be a future date."); return; }
+      if (vForm.date) {
+        const given = parseLocalDate(vForm.date);
+        if (nextDue <= given) { setVError("\"Next Due Date\" must be after the date given."); return; }
+      }
     }
     setVError("");
     const newV = { ...vForm, id: Date.now().toString() };
@@ -2722,7 +2726,7 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
                 <div>
                   <div style={{ color: C.text, fontWeight: 800 }}>💉 {v.name}</div>
                   {v.date && <div style={{ color: C.muted, fontSize: 12 }}>Given: {v.date}</div>}
-                  {v.nextDue && <div style={{ color: C.gold, fontSize: 12 }}>Next due: {v.nextDue}</div>}
+                  {v.nextDue && (() => { const nd = new Date(v.nextDue.replace(/-/g,"/")); const isPast = nd < new Date(); return <div style={{ color: isPast ? C.danger : C.gold, fontSize: 12, fontWeight: isPast ? 700 : 400 }}>{isPast ? "⚠️ Overdue: " : "Next due: "}{v.nextDue}</div>; })()}
                   {v.vet && <div style={{ color: C.muted, fontSize: 12 }}>Vet: {v.vet}</div>}
                   {v.notes && <div style={{ color: C.muted, fontSize: 12 }}>{v.notes}</div>}
                 </div>
