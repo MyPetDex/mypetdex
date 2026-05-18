@@ -9,9 +9,9 @@ import {
   signOut,
   onAuthStateChanged,
   sendEmailVerification,
-  deleteUser,
   OAuthProvider,
 } from "firebase/auth";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import {
   doc, setDoc, getDoc, getDocs, collection, addDoc,
   updateDoc, deleteDoc, onSnapshot, query, where
@@ -4175,16 +4175,13 @@ function DeleteAccountButton({ user, onLogout }) {
   const handleDelete = async () => {
     setDeleting(true); setError("");
     try {
-      await deleteDoc(doc(db, "users", user.uid));
-      await deleteUser(user);
+      const functions = getFunctions();
+      const deleteAccount = httpsCallable(functions, "deleteAccount");
+      await deleteAccount();
       onLogout();
     } catch (e) {
-      if (e.code === "auth/requires-recent-login") {
-        setError("For security, please sign in again before deleting. Signing you out now...");
-        setTimeout(async () => { await signOut(auth); onLogout(); }, 2000);
-      } else {
-        setError("Could not delete account. Please try again.");
-      }
+      console.error("Delete account error:", e);
+      setError("Could not delete account. Please try again or contact help@mypetdex.app");
     }
     setDeleting(false);
   };

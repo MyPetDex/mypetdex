@@ -1,5 +1,5 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onRequest } = require("firebase-functions/v2/https");
+const { onRequest, onCall } = require("firebase-functions/v2/https");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
@@ -632,5 +632,45 @@ exports.getPublicStats = onRequest({ cors: true }, async (req, res) => {
     res.json({ userCount: snap.data()?.userCount || 20 });
   } catch (err) {
     res.json({ userCount: 20 });
+  }
+});
+
+// ─── Delete Account + All User Data ──────────────────────────────────────────
+// Called from the app when the user taps "Delete Account".
+// Deletes all Firestore data then removes the Firebase Auth account.
+exports.deleteAccount = onCall({ cors: true }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new Error("Unauthorized");
+
+  console.log(`Deleting account and all data for user: ${uid}`);
+  try {
+    const batch = db.batch();
+
+    // Delete user profile
+    batch.delete(db.collection("users").doc(uid));
+
+    // Delete all pets
+    const petsSnap = await db.collection("pets").where("uid", "==", uid).get();
+    petsSnap.forEach(doc => batch.delete(doc.ref));
+
+    // Delete all saved recipes
+    const recipesSnap = await db.collection("savedRecipes").where("uid", "==", uid).get();
+    recipesSnap.forEach(doc => batch.delete(doc.ref));
+
+    // Delete all reviews written by this user
+    const reviewsSnap = await db.collection("reviews").where("uid", "==", uid).get();
+    reviewsSnap.forEach(doc => batch.delete(doc.ref));
+
+    await batch.commit();
+    console.log(`Firestore data deleted for ${uid}: ${petsSnap.size} pets, ${recipesSnap.size} recipes, ${reviewsSnap.size} reviews`);
+
+    // Delete Firebase Auth account
+    await admin.auth().deleteUser(uid);
+    console.log(`Firebase Auth account deleted for ${uid}`);
+
+    return { success: true };
+  } catch (err) {
+    console.error(`Error deleting account ${uid}:`, err);
+    throw new Error("Failed to delete account. Please try again.");
   }
 });
