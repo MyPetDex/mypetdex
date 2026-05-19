@@ -9,8 +9,6 @@ import {
   signOut,
   onAuthStateChanged,
   OAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
 } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import {
