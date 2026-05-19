@@ -2771,10 +2771,10 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
                   {r.repeat !== "None" && <Badge text={"🔁 " + r.repeat} color={C.gold} />}
                   {r.notes && <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>{r.notes}</div>}
                 </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              {!isDemo && <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={() => { setRForm({ title: r.title, date: r.date, time: r.time, repeat: r.repeat, notes: r.notes || "" }); setEditingReminderId(r.id); setAddingR(true); }} style={{ background: "none", border: "none", color: C.green, cursor: "pointer", fontSize: 16 }}>✏️</button>
                   <button onClick={() => deleteReminder(r.id)} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 16 }}>🗑️</button>
-                </div>
+                </div>}
               </div>
             </div>
           ))}
@@ -3292,6 +3292,21 @@ const SERVICE_TYPES_LIST = [
 ];
 const SERVICE_ICONS = Object.fromEntries(SERVICE_TYPES_LIST.map(s => [s.label, s.emoji]));
 const COVERED_CITIES = ["New York, NY","Los Angeles, CA","Chicago, IL","Houston, TX","Philadelphia, PA","Phoenix, AZ","Miami, FL","Atlanta, GA","Boston, MA","Seattle, WA","Denver, CO","Dallas, TX","San Diego, CA","Nashville, TN","Portland, OR","Las Vegas, NV","Austin, TX","San Francisco, CA","Charlotte, NC","Tampa, FL","Minneapolis, MN","Newark, NJ","Jersey City, NJ","Edison, NJ","East Brunswick, NJ","Hoboken, NJ","Pittsburgh, PA","Orlando, FL","Jacksonville, FL","Raleigh, NC","Richmond, VA","Columbus, OH","Indianapolis, IN","Kansas City, MO","St. Louis, MO","Detroit, MI","San Antonio, TX","Salt Lake City, UT","Sacramento, CA","New Orleans, LA","Memphis, TN","Louisville, KY","Oklahoma City, OK"];
+const COVERED_STATES = [
+  { abbr: "NY", name: "New York" }, { abbr: "CA", name: "California" },
+  { abbr: "IL", name: "Illinois" }, { abbr: "TX", name: "Texas" },
+  { abbr: "PA", name: "Pennsylvania" }, { abbr: "AZ", name: "Arizona" },
+  { abbr: "FL", name: "Florida" }, { abbr: "GA", name: "Georgia" },
+  { abbr: "MA", name: "Massachusetts" }, { abbr: "WA", name: "Washington" },
+  { abbr: "CO", name: "Colorado" }, { abbr: "TN", name: "Tennessee" },
+  { abbr: "OR", name: "Oregon" }, { abbr: "NV", name: "Nevada" },
+  { abbr: "NC", name: "North Carolina" }, { abbr: "MN", name: "Minnesota" },
+  { abbr: "NJ", name: "New Jersey" }, { abbr: "VA", name: "Virginia" },
+  { abbr: "OH", name: "Ohio" }, { abbr: "IN", name: "Indiana" },
+  { abbr: "MO", name: "Missouri" }, { abbr: "MI", name: "Michigan" },
+  { abbr: "UT", name: "Utah" }, { abbr: "LA", name: "Louisiana" },
+  { abbr: "KY", name: "Kentucky" }, { abbr: "OK", name: "Oklahoma" },
+];
 
 function ServicesTab({ profile, user, serviceFilter }) {
   const serviceMap = { groomers:"Grooming", walkers:"Dog Walking", sitters:"Boarding", daycare:"Daycare", vets:"Veterinary" };
@@ -3352,7 +3367,7 @@ function ServicesTab({ profile, user, serviceFilter }) {
             <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 16, pointerEvents: "none" }}>📍</span>
             <input
               type="text"
-              placeholder="City or state — e.g. Miami or NY"
+              placeholder="City or state — e.g. Miami, FL or NJ"
               value={filterCity}
               onChange={e => setFilterCity(e.target.value)}
               onKeyDown={e => e.key === "Enter" && doSearch()}
@@ -3385,12 +3400,15 @@ function ServicesTab({ profile, user, serviceFilter }) {
               </button>
             ))}
           </div>
-          <div style={{ color: C.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Available Cities</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
-            {COVERED_CITIES.map(c => (
-              <button key={c} onClick={() => { setFilterCity(c.split(",")[0]); doSearch(); }}
-                style={{ background: C.inputBg, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "5px 12px", fontSize: 12, color: C.muted, cursor: "pointer", fontFamily: font }}>
-                {c}
+          <div style={{ color: C.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Browse by State</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8, marginBottom: 20 }}>
+            {COVERED_STATES.map(s => (
+              <button key={s.abbr} onClick={() => { setFilterCity(s.abbr); doSearch(); }}
+                style={{ background: C.card, border: `1.5px solid ${C.cardBorder}`, borderRadius: 12, padding: "10px 8px", cursor: "pointer", textAlign: "center", fontFamily: font, transition: "all 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.green; e.currentTarget.style.background = C.green + "11"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.background = C.card; }}>
+                <div style={{ color: C.text, fontWeight: 800, fontSize: 15 }}>{s.abbr}</div>
+                <div style={{ color: C.muted, fontSize: 10, marginTop: 2, lineHeight: 1.2 }}>{s.name}</div>
               </button>
             ))}
           </div>
