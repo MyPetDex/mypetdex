@@ -450,17 +450,11 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      if (isSafari) {
-        sessionStorage.setItem("appleRedirectPending", "true");
-        await signInWithRedirect(auth, provider);
-      } else {
-        const result = await signInWithPopup(auth, provider);
-        const u = result.user;
-        const snap = await getDoc(doc(db, "users", u.uid));
-        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
-        else { setUser(u); setScreen("google-role"); }
-      }
+      const result = await signInWithPopup(auth, provider);
+      const u = result.user;
+      const snap = await getDoc(doc(db, "users", u.uid));
+      if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
+      else { setUser(u); setScreen("google-role"); }
     } catch (e) {
       if (e.code !== "auth/popup-closed-by-user") {
         console.error("Apple sign in error:", e);
@@ -475,17 +469,11 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      if (isSafari) {
-        sessionStorage.setItem("appleRedirectPending", "true");
-        await signInWithRedirect(auth, provider);
-      } else {
-        const result = await signInWithPopup(auth, provider);
-        const u = result.user;
-        const snap = await getDoc(doc(db, "users", u.uid));
-        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
-        else { setUser(u); setScreen("google-role"); }
-      }
+      const result = await signInWithPopup(auth, provider);
+      const u = result.user;
+      const snap = await getDoc(doc(db, "users", u.uid));
+      if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
+      else { setUser(u); setScreen("google-role"); }
     } catch (e) {
       if (e.code !== "auth/popup-closed-by-user") {
         console.error("Apple sign in error:", e);
