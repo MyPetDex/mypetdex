@@ -9,8 +9,6 @@ import {
   signOut,
   onAuthStateChanged,
   OAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
 } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import {
@@ -257,35 +255,6 @@ export default function App() {
     return () => document.head.removeChild(style);
   }, []);
 
-  // Handle Apple sign-in redirect result (Safari only)
-  // Uses localStorage because Safari clears sessionStorage on cross-origin navigation
-  useEffect(() => {
-    const hadPending = localStorage.getItem("appleRedirectPending");
-    if (!hadPending) return;
-    getRedirectResult(auth).then(async (result) => {
-      localStorage.removeItem("appleRedirectPending");
-      if (result?.user) {
-        const u = result.user;
-        const snap = await getDoc(doc(db, "users", u.uid));
-        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
-        else { setUser(u); setScreen("google-role"); }
-        setLoading(false);
-      } else {
-        // Redirect completed but no user — fall through to normal auth flow
-        setUser(null);
-        setProfile(null);
-        setScreen(sessionStorage.getItem("selectedRole") ? "landing" : "role-pick");
-        setLoading(false);
-      }
-    }).catch((e) => {
-      localStorage.removeItem("appleRedirectPending");
-      console.error("Apple redirect error:", e);
-      setUser(null);
-      setProfile(null);
-      setScreen(sessionStorage.getItem("selectedRole") ? "landing" : "role-pick");
-      setLoading(false);
-    });
-  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -369,8 +338,6 @@ export default function App() {
           setLoading(false);
         }
       } else {
-        // Don't interrupt while waiting for Apple redirect result
-        if (localStorage.getItem("appleRedirectPending")) return;
         setUser(null);
         setProfile(null);
         // Show role picker on fresh open; go to landing if role already chosen this session
@@ -448,12 +415,6 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      if (isSafari) {
-        localStorage.setItem("appleRedirectPending", "1");
-        await signInWithRedirect(auth, provider);
-        return;
-      }
       const result = await signInWithPopup(auth, provider);
       const u = result.user;
       const snap = await getDoc(doc(db, "users", u.uid));
@@ -473,12 +434,6 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      if (isSafari) {
-        localStorage.setItem("appleRedirectPending", "1");
-        await signInWithRedirect(auth, provider);
-        return;
-      }
       const result = await signInWithPopup(auth, provider);
       const u = result.user;
       const snap = await getDoc(doc(db, "users", u.uid));
