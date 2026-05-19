@@ -4378,11 +4378,16 @@ function BookingsTab() {
 
 // ─── Settings Tab ─────────────────────────────────────────────────────────────
 function DeleteAccountButton({ user, onLogout }) {
-  const [confirming, setConfirming] = useState(false);
+  const [step, setStep] = useState("idle"); // idle | warn | confirm
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
+  const [typed, setTyped] = useState("");
 
   const handleDelete = async () => {
+    if (typed.trim().toUpperCase() !== "DELETE") {
+      setError('Please type DELETE to confirm.');
+      return;
+    }
     setDeleting(true); setError("");
     try {
       const functions = getFunctions();
@@ -4392,26 +4397,58 @@ function DeleteAccountButton({ user, onLogout }) {
     } catch (e) {
       console.error("Delete account error:", e);
       setError("Could not delete account. Please try again or contact help@mypetdex.app");
+      setDeleting(false);
     }
-    setDeleting(false);
   };
 
-  if (!confirming) return (
-    <button onClick={() => setConfirming(true)} style={{ ...btn(C.danger + "11", C.danger), border: "1px solid " + C.danger + "44", width: "100%", marginBottom: 10 }}>
+  const reset = () => { setStep("idle"); setTyped(""); setError(""); };
+
+  // Step 1 — entry point
+  if (step === "idle") return (
+    <button onClick={() => setStep("warn")} style={{ ...btn(C.danger + "11", C.danger), border: "1px solid " + C.danger + "44", width: "100%", marginBottom: 10 }}>
       🗑️ Delete My Account
     </button>
   );
 
+  // Step 2 — what will be deleted + subscription warning
+  if (step === "warn") return (
+    <div style={{ ...card, border: "1.5px solid " + C.danger, marginBottom: 10 }}>
+      <div style={{ color: C.danger, fontWeight: 800, fontSize: 16, marginBottom: 12 }}>⚠️ Delete Account</div>
+      <div style={{ color: C.text, fontWeight: 600, fontSize: 13, marginBottom: 8 }}>The following will be permanently deleted:</div>
+      {["Your account and login credentials", "All pet profiles and health records", "All saved recipes and AI chat history", "All reviews you have written"].map(item => (
+        <div key={item} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
+          <span style={{ color: C.danger, fontSize: 12, marginTop: 1 }}>✕</span>
+          <span style={{ color: C.muted, fontSize: 13 }}>{item}</span>
+        </div>
+      ))}
+      <div style={{ background: "#FEF3C7", border: "1px solid #F59E0B", borderRadius: 8, padding: "10px 12px", margin: "14px 0", fontSize: 13, color: "#92400E" }}>
+        <strong>⚠️ Active subscription?</strong> Deleting your account does not automatically cancel your subscription. Please cancel your subscription first in <strong>Settings → Subscriptions</strong> (iOS) or <strong>Google Play → Subscriptions</strong> (Android) to avoid future charges.
+      </div>
+      <div style={{ color: C.muted, fontSize: 12, marginBottom: 16 }}>Your data will be permanently removed within 30 days. This action cannot be undone.</div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={() => setStep("confirm")} style={{ ...btn(C.danger, "#fff"), flex: 1 }}>Continue</button>
+        <button onClick={reset} style={{ ...btn(C.cardBorder, C.muted) }}>Cancel</button>
+      </div>
+    </div>
+  );
+
+  // Step 3 — type to confirm
   return (
     <div style={{ ...card, border: "1.5px solid " + C.danger, marginBottom: 10 }}>
-      <div style={{ color: C.danger, fontWeight: 800, fontSize: 15, marginBottom: 8 }}>⚠️ Delete Account</div>
-      <div style={{ color: C.muted, fontSize: 13, marginBottom: 14 }}>This will permanently delete your account and all your data. This cannot be undone!</div>
+      <div style={{ color: C.danger, fontWeight: 800, fontSize: 15, marginBottom: 10 }}>Final confirmation</div>
+      <div style={{ color: C.muted, fontSize: 13, marginBottom: 12 }}>Type <strong style={{ color: C.text }}>DELETE</strong> below to permanently delete your account.</div>
+      <input
+        value={typed}
+        onChange={e => { setTyped(e.target.value); setError(""); }}
+        placeholder="Type DELETE"
+        style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid " + (error ? C.danger : C.cardBorder), fontSize: 15, fontFamily: "monospace", boxSizing: "border-box", marginBottom: 10, color: C.text, background: C.card }}
+      />
       {error && <div style={{ color: C.danger, fontSize: 12, marginBottom: 10 }}>{error}</div>}
       <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={handleDelete} disabled={deleting} style={{ ...btn(C.danger, "#fff"), flex: 1 }}>
-          {deleting ? "Deleting..." : "Yes, Delete Everything"}
+        <button onClick={handleDelete} disabled={deleting} style={{ ...btn(C.danger, "#fff"), flex: 1, opacity: deleting ? 0.7 : 1 }}>
+          {deleting ? "Deleting…" : "Delete My Account"}
         </button>
-        <button onClick={() => setConfirming(false)} style={{ ...btn(C.cardBorder, C.muted) }}>Cancel</button>
+        <button onClick={reset} disabled={deleting} style={{ ...btn(C.cardBorder, C.muted) }}>Cancel</button>
       </div>
     </div>
   );
