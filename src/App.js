@@ -216,6 +216,7 @@ export default function App() {
     (urlRoleFromURL || sessionStorage.getItem("selectedRole")) ? "landing" : "role-pick"
   );
   const [loading, setLoading] = useState(true);
+  const [appleSignInPending, setAppleSignInPending] = useState(false);
   const [tab, setTab] = useState("home");
   const [authError, setAuthError] = useState("");
   const authErrTimer = useRef(null);
@@ -382,6 +383,15 @@ export default function App() {
           {authError}
         </div>
       )}
+      {appleSignInPending && (
+        <div style={{ position: "fixed", inset: 0, background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 10000, fontFamily: font }}>
+          <img src="/logo.png" alt="MyPetDex" style={{ width: 80, height: 80, borderRadius: 20, marginBottom: 20, boxShadow: "0 4px 24px rgba(59,130,246,0.18)" }} />
+          <div style={{ fontWeight: 800, fontSize: 24, color: C.text, letterSpacing: -0.5 }}>MyPetDex</div>
+          <div style={{ color: C.muted, marginTop: 10, fontSize: 15 }}>Signing in with Apple…</div>
+          <div style={{ marginTop: 28, width: 36, height: 36, border: `3px solid ${C.cardBorder}`, borderTopColor: C.green, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
       {el}
     </>
   );
@@ -415,12 +425,14 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
+      setAppleSignInPending(true);
       const result = await signInWithPopup(auth, provider);
       const u = result.user;
       const snap = await getDoc(doc(db, "users", u.uid));
       if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
       else { setUser(u); setScreen("google-role"); }
     } catch (e) {
+      setAppleSignInPending(false);
       if (e.code !== "auth/popup-closed-by-user") {
         console.error("Apple sign in error:", e);
         showAuthError("Apple Sign-In failed. Please try again or use Google or email.");
@@ -434,12 +446,14 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
+      setAppleSignInPending(true);
       const result = await signInWithPopup(auth, provider);
       const u = result.user;
       const snap = await getDoc(doc(db, "users", u.uid));
       if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
       else { setUser(u); setScreen("google-role"); }
     } catch (e) {
+      setAppleSignInPending(false);
       if (e.code !== "auth/popup-closed-by-user") {
         console.error("Apple sign in error:", e);
         showAuthError("Apple Sign-In failed. Please try again or use Google or email.");
