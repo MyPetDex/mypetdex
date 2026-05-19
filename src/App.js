@@ -2406,7 +2406,7 @@ function HomeTab({ profile, user, isOwner, isProvider, isShelter, setTab, onAddP
             <Avatar emoji={pet.type === "Cat" ? "🐱" : "🐶"} size={60} img={pet.photoURL} />
             <div style={{ flex: 1 }}>
               <div style={{ color: C.text, fontWeight: 900, fontSize: 18 }}>{pet.name}</div>
-              <div style={{ color: C.muted, fontSize: 13 }}>{pet.breed}{pet.age ? ` · Age: ${pet.age}` : ""}{pet.weight ? ` · ${pet.weight} lbs` : ""}</div>
+              <div style={{ color: C.muted, fontSize: 13 }}>{pet.breed}{pet.age ? ` · ${pet.age} yrs` : ""}{pet.weight ? ` · ${pet.weight} lbs` : ""}</div>
               <Badge text={"📍 " + (profile?.city || "--") + ", " + (profile?.state || "--")} color={C.muted} />
             </div>
             <div style={{ color: C.muted, fontSize: 18 }}>›</div>
@@ -2524,7 +2524,7 @@ function PetsTab({ user, profile, isDemo, onUpgrade, openAdd, onOpenAddDone }) {
             <Avatar emoji={pet.type === "Cat" ? "🐱" : "🐶"} size={52} img={pet.photoURL} />
             <div style={{ flex: 1 }}>
               <div style={{ color: C.text, fontWeight: 900, fontSize: 18 }}>{pet.name}</div>
-              <div style={{ color: C.muted, fontSize: 13 }}>{pet.breed} · {pet.age} · {pet.weight}</div>
+              <div style={{ color: C.muted, fontSize: 13 }}>{pet.breed}{pet.age ? ` · ${pet.age} yrs` : ""}{pet.weight ? ` · ${pet.weight} lbs` : ""}</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
                 {(pet.vaccines || []).slice(0,3).map(v => <Badge key={v.id} text={"💉 " + v.name} color={C.green} />)}
               </div>
@@ -2707,7 +2707,7 @@ function PetDetail({ pet, user, profile, isDemo, onBack, onDelete }) {
               <div style={{ color: C.text, fontWeight: 900, fontSize: 22 }}>{pet.name}</div>
               <button onClick={() => setShowQR(true)} style={{ ...btn(C.inputBg, C.green), padding:"4px 10px", fontSize:12, border:`1px solid ${C.green}33` }}>🔗 QR</button>
             </div>
-            <div style={{ color: C.muted, fontSize: 13 }}>{pet.breed} · {pet.age} · {pet.weight}</div>
+            <div style={{ color: C.muted, fontSize: 13 }}>{pet.breed}{pet.age ? ` · ${pet.age} yrs` : ""}{pet.weight ? ` · ${pet.weight} lbs` : ""}</div>
             {pet.feeding && <div style={{ color: C.green, fontSize: 12, marginTop: 4 }}>🍽️ {pet.feeding}</div>}
           </div>
         </div>
@@ -3982,7 +3982,7 @@ const petDailyCalories = Math.round(petRER * petMultiplier);
                     <Avatar emoji={pet.type === "Cat" ? "🐱" : "🐶"} size={52} img={pet.photoURL} />
                     <div>
                       <div style={{ color: C.text, fontWeight: 900, fontSize: 17 }}>{pet.name}</div>
-                      <div style={{ color: C.muted, fontSize: 13 }}>{pet.breed} · {pet.age} · {pet.weight}</div>
+                      <div style={{ color: C.muted, fontSize: 13 }}>{pet.breed}{pet.age ? ` · ${pet.age} yrs` : ""}{pet.weight ? ` · ${pet.weight} lbs` : ""}</div>
                     </div>
                     {selectedPet?.id === pet.id && <div style={{ marginLeft: "auto", color: C.green, fontSize: 22 }}>✓</div>}
                   </div>
