@@ -429,6 +429,7 @@ export default function App() {
       const result = await signInWithPopup(auth, provider);
       const u = result.user;
       const snap = await getDoc(doc(db, "users", u.uid));
+      setAppleSignInPending(false);
       if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
       else { setUser(u); setScreen("google-role"); }
     } catch (e) {
@@ -450,6 +451,7 @@ export default function App() {
       const result = await signInWithPopup(auth, provider);
       const u = result.user;
       const snap = await getDoc(doc(db, "users", u.uid));
+      setAppleSignInPending(false);
       if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
       else { setUser(u); setScreen("google-role"); }
     } catch (e) {
