@@ -271,6 +271,16 @@ export default function App() {
           setScreen("google-role");
         }
         setLoading(false);
+      } else {
+        // No redirect result — check if already logged in or unblock UI
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          setUser(null);
+          setProfile(null);
+          setScreen(sessionStorage.getItem("selectedRole") ? "landing" : "role-pick");
+          setLoading(false);
+        }
+        // If currentUser exists, onAuthStateChanged will handle it
       }
     }).catch((e) => {
       sessionStorage.removeItem("appleRedirectPending");
