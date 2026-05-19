@@ -258,20 +258,31 @@ export default function App() {
   }, []);
 
   // Handle Apple sign-in redirect result (Safari only)
+  // Uses localStorage because Safari clears sessionStorage on cross-origin navigation
   useEffect(() => {
-    if (!sessionStorage.getItem("appleRedirectPending")) return;
+    const hadPending = localStorage.getItem("appleRedirectPending");
+    if (!hadPending) return;
     getRedirectResult(auth).then(async (result) => {
-      sessionStorage.removeItem("appleRedirectPending");
+      localStorage.removeItem("appleRedirectPending");
       if (result?.user) {
         const u = result.user;
         const snap = await getDoc(doc(db, "users", u.uid));
         if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
         else { setUser(u); setScreen("google-role"); }
+        setLoading(false);
+      } else {
+        // Redirect completed but no user — fall through to normal auth flow
+        setUser(null);
+        setProfile(null);
+        setScreen(sessionStorage.getItem("selectedRole") ? "landing" : "role-pick");
+        setLoading(false);
       }
-      setLoading(false);
     }).catch((e) => {
-      sessionStorage.removeItem("appleRedirectPending");
+      localStorage.removeItem("appleRedirectPending");
       console.error("Apple redirect error:", e);
+      setUser(null);
+      setProfile(null);
+      setScreen(sessionStorage.getItem("selectedRole") ? "landing" : "role-pick");
       setLoading(false);
     });
   }, []);
@@ -359,7 +370,7 @@ export default function App() {
         }
       } else {
         // Don't interrupt while waiting for Apple redirect result
-        if (sessionStorage.getItem("appleRedirectPending")) return;
+        if (localStorage.getItem("appleRedirectPending")) return;
         setUser(null);
         setProfile(null);
         // Show role picker on fresh open; go to landing if role already chosen this session
@@ -439,7 +450,7 @@ export default function App() {
       provider.addScope("name");
       const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
       if (isSafari) {
-        sessionStorage.setItem("appleRedirectPending", "1");
+        localStorage.setItem("appleRedirectPending", "1");
         await signInWithRedirect(auth, provider);
         return;
       }
@@ -464,7 +475,7 @@ export default function App() {
       provider.addScope("name");
       const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
       if (isSafari) {
-        sessionStorage.setItem("appleRedirectPending", "1");
+        localStorage.setItem("appleRedirectPending", "1");
         await signInWithRedirect(auth, provider);
         return;
       }
