@@ -254,38 +254,6 @@ export default function App() {
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
-  // Handle Apple sign-in redirect result on page load
-  useEffect(() => {
-    const hadPendingFlag = !!sessionStorage.getItem("appleRedirectPending");
-    getRedirectResult(auth).then(async (result) => {
-      sessionStorage.removeItem("appleRedirectPending");
-      if (result?.user) {
-        const u = result.user;
-        const snap = await getDoc(doc(db, "users", u.uid));
-        if (snap.exists()) {
-          setProfile(snap.data());
-          setScreen("app");
-        } else {
-          setUser(u);
-          setScreen("google-role");
-        }
-        setLoading(false);
-      } else if (hadPendingFlag) {
-        // Expected a redirect but got no result — unblock UI
-        setUser(null);
-        setProfile(null);
-        setScreen(sessionStorage.getItem("selectedRole") ? "landing" : "role-pick");
-        setLoading(false);
-      }
-      // If no flag was set, onAuthStateChanged handles everything
-    }).catch((e) => {
-      sessionStorage.removeItem("appleRedirectPending");
-      if (e.code !== "auth/popup-closed-by-user") {
-        console.error("Apple redirect error:", e);
-      }
-      setLoading(false);
-    });
-  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -369,8 +337,6 @@ export default function App() {
           setLoading(false);
         }
       } else {
-        // If we're coming back from an Apple redirect, wait for getRedirectResult
-        if (sessionStorage.getItem("appleRedirectPending")) return;
         setUser(null);
         setProfile(null);
         // Show role picker on fresh open; go to landing if role already chosen this session
