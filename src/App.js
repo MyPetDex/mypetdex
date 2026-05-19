@@ -258,6 +258,7 @@ export default function App() {
   }, []);
   // Handle Apple sign-in redirect result on page load
   useEffect(() => {
+    const hadPendingFlag = !!sessionStorage.getItem("appleRedirectPending");
     getRedirectResult(auth).then(async (result) => {
       sessionStorage.removeItem("appleRedirectPending");
       if (result?.user) {
@@ -271,8 +272,14 @@ export default function App() {
           setScreen("google-role");
         }
         setLoading(false);
+      } else if (hadPendingFlag) {
+        // Expected a redirect but got no result — unblock UI
+        setUser(null);
+        setProfile(null);
+        setScreen(sessionStorage.getItem("selectedRole") ? "landing" : "role-pick");
+        setLoading(false);
       }
-      // If no redirect result, onAuthStateChanged handles everything
+      // If no flag was set, onAuthStateChanged handles everything
     }).catch((e) => {
       sessionStorage.removeItem("appleRedirectPending");
       if (e.code !== "auth/popup-closed-by-user") {
@@ -364,6 +371,8 @@ export default function App() {
           setLoading(false);
         }
       } else {
+        // If we're coming back from an Apple redirect, wait for getRedirectResult
+        if (sessionStorage.getItem("appleRedirectPending")) return;
         setUser(null);
         setProfile(null);
         // Show role picker on fresh open; go to landing if role already chosen this session
