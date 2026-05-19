@@ -882,8 +882,8 @@ function PetQRModal({ pet, onClose }) {
       <div style={{ background:C.card, borderRadius:24, padding:28, maxWidth:380, width:"100%", position:"relative", boxShadow:"0 20px 60px rgba(0,0,0,0.2)", textAlign:"center" }}>
         <button onClick={onClose} style={{ position:"absolute", top:16, right:16, background:"none", border:"none", fontSize:20, cursor:"pointer", color:C.muted }}>✕</button>
         <div style={{ fontSize:40, marginBottom:8 }}>🐾</div>
-        <div style={{ fontFamily:font, fontWeight:900, fontSize:20, color:C.text, marginBottom:4 }}>{pet.name}'s QR Code</div>
-        <div style={{ color:C.muted, fontSize:13, marginBottom:20 }}>Anyone can scan this to see {pet.name}'s emergency info — no app needed.</div>
+        <div style={{ fontFamily:font, fontWeight:900, fontSize:20, color:C.text, marginBottom:4 }}>{pet.name.trim()}'s QR Code</div>
+        <div style={{ color:C.muted, fontSize:13, marginBottom:20 }}>Anyone can scan this to see {pet.name.trim()}'s emergency info — no app needed.</div>
         <div style={{ display:"flex", justifyContent:"center", marginBottom:20, padding:16, background:C.inputBg, borderRadius:16 }}>
           <QRCodeSVG value={petUrl} size={180} fgColor={C.text} bgColor="transparent" />
         </div>
@@ -2039,7 +2039,7 @@ function ResetPasswordScreen({ onBack }) {
 
 // ─── Main App Shell ───────────────────────────────────────────────────────────
 
-function FeedbackButton({ user }) {
+function FeedbackButton({ user, tab }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ subject: "Bug Report", message: "" });
   const [sending, setSending] = useState(false);
@@ -2068,8 +2068,8 @@ function FeedbackButton({ user }) {
 
   return (
     <>
-      {/* Floating button */}
-      <button onClick={() => setOpen(true)} style={{
+      {/* Floating button — hidden on AI tab to avoid covering the send button */}
+      {tab !== "ai" && <button onClick={() => setOpen(true)} style={{
         position: "fixed", bottom: 90, right: 16, zIndex: 998,
         background: C.green, color: "#fff", border: "none",
         borderRadius: "50%", width: 44, height: 44,
@@ -2078,7 +2078,7 @@ function FeedbackButton({ user }) {
         fontSize: 20
       }}>
         💬
-      </button>
+      </button>}
 
       {/* Modal overlay */}
       {open && (
@@ -2303,7 +2303,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
           {tab === "listings" && isShelter && <ShelterListings user={user} isDemo={isDemo} />}
           {tab === "settings" && <SettingsTab user={user} profile={currentProfile} onProfileUpdate={setCurrentProfile} onLogout={onLogout} isDemo={isDemo} />}
         </div>
-        <FeedbackButton user={user} />
+        <FeedbackButton user={user} tab={tab} />
       </div></>
     </div>
   );
