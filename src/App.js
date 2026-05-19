@@ -2209,7 +2209,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
           </>}
         </>}
 
-        {isOwner && navItem("ai", "🤖", "PetDex AI Assistant")}
+        {isOwner && navItem("ai", "🤖", "MyPetDex AI Assistant")}
         {isOwner && navItem("recipes", "🍽️", "Pet Recipes")}
 
         {isOwner && navItem("adoption", "❤️", "Adopt a Pet")}
