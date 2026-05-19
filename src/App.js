@@ -3071,6 +3071,71 @@ function StarRating({ rating, onRate, size = 22 }) {
   );
 }
 
+// ─── Report Button (Apple 1.2 / Google UGC compliance) ───────────────────────
+function ReportButton({ contentId, contentType, reporterUid }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const REASONS = [
+    "Inaccurate or misleading information",
+    "Spam or fake listing",
+    "Inappropriate content",
+    "Suspected animal abuse or neglect",
+    "Other",
+  ];
+
+  const submit = async () => {
+    if (!reason) return;
+    setSubmitting(true);
+    try {
+      await addDoc(collection(db, "reports"), {
+        contentId,
+        contentType,
+        reason,
+        reporterUid: reporterUid || null,
+        createdAt: new Date().toISOString(),
+        status: "pending",
+      });
+      setSubmitted(true);
+    } catch (e) {
+      console.error("Report error:", e);
+    }
+    setSubmitting(false);
+  };
+
+  if (submitted) return (
+    <span style={{ fontSize: 12, color: C.muted, padding: "6px 10px" }}>✅ Reported — thank you</span>
+  );
+
+  if (!open) return (
+    <button onClick={() => setOpen(true)} style={{ background: "none", border: "none", color: C.muted, fontSize: 12, cursor: "pointer", padding: "6px 10px", display: "flex", alignItems: "center", gap: 4 }}>
+      🚩 Report
+    </button>
+  );
+
+  return (
+    <div style={{ marginTop: 10, background: C.inputBg, borderRadius: 10, padding: 14, border: "1px solid " + C.cardBorder }}>
+      <div style={{ color: C.text, fontWeight: 700, fontSize: 13, marginBottom: 8 }}>Report this listing</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+        {REASONS.map(r => (
+          <label key={r} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+            <input type="radio" name={"report-" + contentId} value={r} checked={reason === r} onChange={() => setReason(r)} style={{ accentColor: C.green }} />
+            <span style={{ color: C.muted, fontSize: 13 }}>{r}</span>
+          </label>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={submit} disabled={!reason || submitting} style={{ ...btn(C.danger, "#fff"), fontSize: 13, padding: "8px 16px", opacity: !reason ? 0.5 : 1 }}>
+          {submitting ? "Sending…" : "Submit Report"}
+        </button>
+        <button onClick={() => { setOpen(false); setReason(""); }} style={{ ...btn(C.cardBorder, C.muted), fontSize: 13, padding: "8px 14px" }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 function ProviderCard({ p, user, profile }) {
   const [reviews, setReviews] = useState([]);
   const [showReviews, setShowReviews] = useState(false);
@@ -3170,6 +3235,7 @@ function ProviderCard({ p, user, profile }) {
           </button>
         )}
       </div>
+      {user && <ReportButton contentId={p.id || p.uid} contentType="provider" reporterUid={user.uid} />}
       {showReviewForm && !myReview && (
         <div style={{ marginTop: 14, background: C.inputBg, borderRadius: 12, padding: 16, border: "1px solid " + C.cardBorder }}>
           <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 10 }}>Your Review</div>
@@ -4164,6 +4230,7 @@ function AdoptionTab({ profile }) {
                 <div style={{ color: C.muted, fontSize: 12 }}>{pet.type} · {pet.breed}</div>
                 <div style={{ color: C.muted, fontSize: 12 }}>{pet.city}, {pet.state}</div>
                 <div style={{ background: C.green + "22", borderRadius: 8, padding: "4px 8px", fontSize: 11, color: C.green, fontWeight: 700, marginTop: 6, display: "inline-block" }}>⭐ On MyPetDex</div>
+                <ReportButton contentId={pet.id} contentType="shelter_listing" reporterUid={profile?.uid} />
               </div>
             ))}
           </div>
