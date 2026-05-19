@@ -2132,7 +2132,7 @@ function MainApp({ user, profile, tab, setTab, onLogout }) {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [expanded, setExpanded] = useState({ services: false, ai: false, shop: false });
   const role = currentProfile?.role || "owner";
-  const isOwner = role === "owner";
+  const isOwner = role === "owner" || role === "petowner";
   const isProvider = role === "provider";
   const isShelter = role === "shelter";
   const isDemo = user?.email === 'demo@mypetdex.app';
