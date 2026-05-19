@@ -271,17 +271,8 @@ export default function App() {
           setScreen("google-role");
         }
         setLoading(false);
-      } else {
-        // No redirect result — check if already logged in or unblock UI
-        const currentUser = auth.currentUser;
-        if (!currentUser) {
-          setUser(null);
-          setProfile(null);
-          setScreen(sessionStorage.getItem("selectedRole") ? "landing" : "role-pick");
-          setLoading(false);
-        }
-        // If currentUser exists, onAuthStateChanged will handle it
       }
+      // If no redirect result, onAuthStateChanged handles everything
     }).catch((e) => {
       sessionStorage.removeItem("appleRedirectPending");
       if (e.code !== "auth/popup-closed-by-user") {
@@ -373,8 +364,6 @@ export default function App() {
           setLoading(false);
         }
       } else {
-        // If we're coming back from an Apple redirect, wait for getRedirectResult
-        if (sessionStorage.getItem("appleRedirectPending")) return;
         setUser(null);
         setProfile(null);
         // Show role picker on fresh open; go to landing if role already chosen this session
@@ -2567,7 +2556,16 @@ function PetsTab({ user, profile, isDemo, onUpgrade, openAdd, onOpenAddDone }) {
           {pet.nextVet && <div style={{ marginTop: 10, padding: "8px 12px", background: C.gold + "18", borderRadius: 10, color: C.gold, fontSize: 12, fontWeight: 700 }}>🗓️ Next vet: {pet.nextVet}</div>}
         </div>
       ))}
-      {adding && (
+      {adding && pets.length >= petLimit && (
+        <div style={{ ...card, textAlign: "center", padding: 24 }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>🐾</div>
+          <p style={{ color: C.text, fontWeight: 700, fontSize: 16, margin: "0 0 8px" }}>Pet limit reached</p>
+          <p style={{ color: C.muted, fontSize: 14, margin: "0 0 16px" }}>Your {profile?.plan || "free"} plan allows up to {petLimit} pet{petLimit === 1 ? "" : "s"}.</p>
+          <button style={btn(C.green, "#fff")} onClick={onUpgrade}>⬆️ Upgrade for More Pets</button>
+          <div style={{ marginTop: 12 }}><button style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14 }} onClick={() => setAdding(false)}>Cancel</button></div>
+        </div>
+      )}
+      {adding && pets.length < petLimit && (
         <div style={{ ...card }}>
           <h3 style={{ color: C.text, margin: "0 0 16px" }}>Add New Pet</h3>
           <div style={{ marginBottom: 20 }}>
