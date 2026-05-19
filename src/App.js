@@ -9,6 +9,8 @@ import {
   signOut,
   onAuthStateChanged,
   OAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
 } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import {
@@ -255,6 +257,25 @@ export default function App() {
     return () => document.head.removeChild(style);
   }, []);
 
+  // Handle Apple sign-in redirect result (Safari only)
+  useEffect(() => {
+    if (!sessionStorage.getItem("appleRedirectPending")) return;
+    getRedirectResult(auth).then(async (result) => {
+      sessionStorage.removeItem("appleRedirectPending");
+      if (result?.user) {
+        const u = result.user;
+        const snap = await getDoc(doc(db, "users", u.uid));
+        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
+        else { setUser(u); setScreen("google-role"); }
+      }
+      setLoading(false);
+    }).catch((e) => {
+      sessionStorage.removeItem("appleRedirectPending");
+      console.error("Apple redirect error:", e);
+      setLoading(false);
+    });
+  }, []);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -337,6 +358,8 @@ export default function App() {
           setLoading(false);
         }
       } else {
+        // Don't interrupt while waiting for Apple redirect result
+        if (sessionStorage.getItem("appleRedirectPending")) return;
         setUser(null);
         setProfile(null);
         // Show role picker on fresh open; go to landing if role already chosen this session
@@ -414,6 +437,12 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      if (isSafari) {
+        sessionStorage.setItem("appleRedirectPending", "1");
+        await signInWithRedirect(auth, provider);
+        return;
+      }
       const result = await signInWithPopup(auth, provider);
       const u = result.user;
       const snap = await getDoc(doc(db, "users", u.uid));
@@ -433,6 +462,12 @@ export default function App() {
       const provider = new OAuthProvider("apple.com");
       provider.addScope("email");
       provider.addScope("name");
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      if (isSafari) {
+        sessionStorage.setItem("appleRedirectPending", "1");
+        await signInWithRedirect(auth, provider);
+        return;
+      }
       const result = await signInWithPopup(auth, provider);
       const u = result.user;
       const snap = await getDoc(doc(db, "users", u.uid));
