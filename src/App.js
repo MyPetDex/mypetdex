@@ -892,7 +892,7 @@ function PetQRModal({ pet, onClose }) {
           <button onClick={copyLink} style={{ ...btn(copied ? "#22c55e" : C.green), flex:1, fontSize:13 }}>{copied ? "✓ Copied!" : "📋 Copy Link"}</button>
           <a href={`https://wa.me/?text=${encodeURIComponent(`Meet ${pet.name} on MyPetDex! 🐾 ${petUrl}`)}`} target="_blank" rel="noreferrer" style={{ ...btn("#25D366","#fff"), flex:1, fontSize:13, textDecoration:"none" }}>📱 Share</a>
         </div>
-        <div style={{ color:C.muted, fontSize:11, marginTop:8 }}>💡 Print this QR and attach it to {pet.name}'s collar tag</div>
+        <div style={{ color:C.muted, fontSize:11, marginTop:8 }}>💡 Print this QR and attach it to {pet.name.trim()}'s collar tag</div>
       </div>
     </div>
   );
