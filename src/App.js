@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { hasFeature, UpgradePrompt } from './planUtils';
+import { BRAND, dismissAppSplash } from './brand';
 import {
   auth,
   db,
@@ -37,9 +38,9 @@ function getReferralCodeFromURL() {
 }
 
 const C = {
-  bg: "#F5F8FF", card: "#FFFFFF", cardBorder: "#E2E8F0",
-  green: "#3B82F6", gold: "#F59E0B", text: "#1E293B",
-  muted: "#64748B", danger: "#E05C5C", inputBg: "#EEF4FF",
+  bg: BRAND.bg, card: "#FFFFFF", cardBorder: "#E2E8F0",
+  green: BRAND.blue, gold: "#F59E0B", text: BRAND.text,
+  muted: BRAND.muted, danger: "#E05C5C", inputBg: "#E8EFFE",
 };
 const font = "'Nunito', sans-serif";
 const btn = (bg = C.green, color = "#0F1A14") => ({
@@ -205,18 +206,52 @@ function lockPageForOAuth() {
   };
 }
 
-function AuthLoadingScreen({ message = "Loading…", fixed = false }) {
-  const style = fixed
+function AuthLoadingScreen({ message = "Loading your companion…", fixed = false }) {
+  const shell = fixed
     ? { position: "fixed", inset: 0, zIndex: 10000 }
     : { minHeight: "100vh" };
   return (
-    <div style={{ ...style, background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font }}>
+    <div style={{
+      ...shell,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      fontFamily: font,
+      background: `linear-gradient(165deg, ${BRAND.blue} 0%, #5B9CF8 42%, ${BRAND.bg} 78%, ${BRAND.bg} 100%)`,
+      overflow: "hidden",
+    }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, borderRadius: 24, marginBottom: 24, boxShadow: "0 4px 24px rgba(59,130,246,0.2)" }} />
-      <div style={{ fontWeight: 900, fontSize: 28, color: C.text, letterSpacing: -0.5, marginBottom: 8 }}>MyPetDex</div>
-      <div style={{ color: C.muted, fontSize: 15, marginBottom: 32 }}>{message}</div>
-      <div style={{ width: 40, height: 40, border: `3px solid ${C.cardBorder}`, borderTopColor: C.green, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{
+        width: 108, height: 108, borderRadius: 28, background: "#fff",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        marginBottom: 22,
+        boxShadow: `0 16px 48px ${BRAND.blueGlow}`,
+      }}>
+        <img src="/logo.png" alt="MyPetDex" style={{ width: 76, height: 76, borderRadius: 18, objectFit: "contain" }} />
+      </div>
+      <div style={{ fontWeight: 900, fontSize: 32, color: "#fff", letterSpacing: -0.8, marginBottom: 6, textShadow: "0 2px 16px rgba(47,106,216,0.35)" }}>MyPetDex</div>
+      <div style={{ fontWeight: 700, fontSize: 15, color: "rgba(255,255,255,0.92)", marginBottom: 28 }}>Your pet&apos;s world, organized</div>
+      <div style={{
+        color: C.text, fontSize: 14, fontWeight: 700, marginBottom: 20,
+        background: "rgba(255,255,255,0.88)", padding: "10px 20px", borderRadius: 999,
+        boxShadow: "0 4px 20px rgba(68,134,244,0.15)",
+      }}>{message}</div>
+      <div style={{ display: "flex", gap: 8 }}>
+        {[0, 1, 2].map((i) => (
+          <div key={i} style={{
+            width: 10, height: 10, borderRadius: "50%", background: BRAND.blue,
+            animation: "mpd-dot 1.2s ease-in-out infinite",
+            animationDelay: `${i * 0.15}s`,
+          }} />
+        ))}
+      </div>
+      <style>{`
+        @keyframes mpd-dot {
+          0%, 80%, 100% { transform: scale(0.65); opacity: 0.45; }
+          40% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -273,7 +308,7 @@ export default function App() {
 
   useEffect(() => {
     if (!loading && !authLoading) {
-      document.getElementById("app-splash")?.remove();
+      dismissAppSplash();
     }
   }, [loading, authLoading]);
 
@@ -1959,40 +1994,71 @@ function LoginScreen({ onBack, onSuccess, onReset, onApple, onGoogle }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font }}>
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      <div style={{ width: "100%", maxWidth: 380 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
-        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 24px" }}>Welcome back 👋</h2>
-        {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
-        <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" />
-        <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="password" />
-        <button style={{ ...btn(), width: "100%", marginTop: 8 }} onClick={login} disabled={loading}>{loading ? "Signing in..." : "Sign In"}</button>
-
-        <div style={{ textAlign: "center", marginTop: 12 }}>
-          <button onClick={onReset} style={{ background: "none", border: "none", color: C.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>
-            Forgot your password?
+      <div style={{
+        background: `linear-gradient(145deg, ${BRAND.blue} 0%, #5B9CF8 55%, ${BRAND.bg} 100%)`,
+        padding: "28px 24px 72px",
+        borderRadius: "0 0 32px 32px",
+        textAlign: "center",
+        boxShadow: `0 12px 40px ${BRAND.blueGlow}`,
+      }}>
+        <button onClick={onBack} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: font, fontWeight: 700, padding: "8px 14px", borderRadius: 999, marginBottom: 20, float: "left" }}>← Back</button>
+        <div style={{ clear: "both" }} />
+        <div style={{
+          width: 72, height: 72, margin: "0 auto 14px", borderRadius: 20, background: "#fff",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 8px 28px rgba(0,0,0,0.12)",
+        }}>
+          <img src="/logo.png" alt="" style={{ width: 52, height: 52, objectFit: "contain" }} />
+        </div>
+        <h2 style={{ color: "#fff", fontWeight: 900, fontSize: 28, margin: "0 0 6px", letterSpacing: -0.5 }}>Welcome back</h2>
+        <p style={{ color: "rgba(255,255,255,0.9)", fontSize: 14, fontWeight: 700, margin: 0 }}>Sign in to care for your pets</p>
+      </div>
+      <div style={{ padding: "0 20px 32px", marginTop: -44 }}>
+        <div style={{
+          ...card,
+          maxWidth: 400,
+          margin: "0 auto",
+          padding: 28,
+          boxShadow: "0 20px 50px rgba(68, 134, 244, 0.12), 0 4px 16px rgba(30, 41, 59, 0.06)",
+          border: "1px solid rgba(255,255,255,0.9)",
+        }}>
+          {error && <div style={{ background: C.danger + "18", border: `1px solid ${C.danger}`, borderRadius: 12, padding: "12px 14px", color: C.danger, fontSize: 13, marginBottom: 16, fontWeight: 700 }}>{error}</div>}
+          <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" />
+          <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="••••••••" />
+          <button
+            style={{
+              ...btn(C.green, "#fff"),
+              width: "100%",
+              marginTop: 8,
+              padding: "14px 28px",
+              boxShadow: `0 8px 24px ${BRAND.blueGlow}`,
+            }}
+            onClick={login}
+            disabled={loading}
+          >
+            {loading ? "Signing in…" : "Sign In"}
+          </button>
+          <div style={{ textAlign: "center", marginTop: 14 }}>
+            <button onClick={onReset} style={{ background: "none", border: "none", color: C.green, fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: font }}>
+              Forgot your password?
+            </button>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", margin: "22px 0 18px" }}>
+            <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
+            <span style={{ color: C.muted, fontSize: 11, fontWeight: 800, margin: "0 14px", letterSpacing: 1, textTransform: "uppercase" }}>or</span>
+            <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
+          </div>
+          <button onClick={onApple} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "14px 20px", background: "#0F172A", border: "none", borderRadius: 14, fontFamily: font, fontWeight: 800, fontSize: 15, color: "#fff", cursor: "pointer", marginBottom: 12 }}>
+            <svg width="18" height="18" viewBox="0 0 814 1000" fill="white"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.3-57.2-155.3-127.1C46.8 790.4 0 663.4 0 541.8c0-194.3 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>
+            Continue with Apple
+          </button>
+          <button onClick={onGoogle} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "14px 20px", background: "#fff", border: `1.5px solid ${C.cardBorder}`, borderRadius: 14, fontFamily: font, fontWeight: 800, fontSize: 15, color: C.text, cursor: "pointer", boxShadow: "0 2px 8px rgba(30,41,59,0.04)" }}>
+            <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            Continue with Google
           </button>
         </div>
-
-        {/* Divider */}
-        <div style={{ display: "flex", alignItems: "center", width: "100%", margin: "16px 0" }}>
-          <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
-          <span style={{ color: C.muted, fontSize: 12, margin: "0 12px" }}>or</span>
-          <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
-        </div>
-
-        {/* Apple Sign In */}
-        <button onClick={onApple} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "13px 20px", background: "#000", border: "1.5px solid #000", borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: "#fff", cursor: "pointer", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
-          <svg width="18" height="18" viewBox="0 0 814 1000" fill="white"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.3-57.2-155.3-127.1C46.8 790.4 0 663.4 0 541.8c0-194.3 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>
-          Continue with Apple
-        </button>
-
-        {/* Google Sign In */}
-        <button onClick={onGoogle} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "13px 20px", background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: "#1E293B", cursor: "pointer", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
-          <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-          Continue with Google
-        </button>
       </div>
     </div>
   );
