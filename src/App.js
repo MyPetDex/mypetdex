@@ -664,14 +664,24 @@ export default function App() {
     }
   }, []);
 
-  if (loading || authLoading) return <AuthLoadingScreen message={authLoading ? authLoadingMsg : "Loading…"} />;
+  if (loading || authLoading) {
+    return (
+      <>
+        <AuthLoadingScreen message={authLoading ? authLoadingMsg : "Loading…"} fixed />
+        <style>{`html, body { overflow: hidden !important; background: ${BRAND.bg} !important; }`}</style>
+      </>
+    );
+  }
 
   const runOAuthPopup = async (providerName, signInFn, busyMsg) => {
     const unlockPage = lockPageForOAuth();
     setAuthLoading(true);
+    setAuthLoadingMsg("Opening secure sign-in…");
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     setAuthLoadingMsg(busyMsg);
     try {
       const result = await signInFn();
+      setAuthLoadingMsg("Finishing sign-in…");
       await completeOAuthSignIn(result.user);
     } catch (e) {
       if (e.code !== "auth/popup-closed-by-user") {
@@ -685,10 +695,10 @@ export default function App() {
   };
 
   const handleGoogleSignIn = () =>
-    runOAuthPopup("Google", signInWithGooglePopup, "Signing in with Google…");
+    runOAuthPopup("Google", signInWithGooglePopup, "Complete Google sign-in in the popup…");
 
   const handleAppleSignIn = () =>
-    runOAuthPopup("Apple", signInWithApplePopup, "Signing in with Apple…");
+    runOAuthPopup("Apple", signInWithApplePopup, "Complete Apple sign-in in the popup…");
 
   const wrap = (el) => (
     <>
