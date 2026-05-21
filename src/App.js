@@ -401,6 +401,7 @@ export default function App() {
   // ── Auth error toast shown on top of any screen ──────────────────────────────
 
   // Unified Google sign-in — popup on desktop, redirect on mobile
+  // eslint-disable-next-line no-unused-vars
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
     if (isMobileDevice) {
@@ -423,6 +424,7 @@ export default function App() {
   };
 
   // Unified Apple sign-in — popup on desktop, redirect on mobile
+  // eslint-disable-next-line no-unused-vars
   const handleAppleSignIn = async () => {
     const provider = new OAuthProvider("apple.com");
     provider.addScope("email");
