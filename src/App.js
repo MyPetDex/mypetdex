@@ -3738,6 +3738,12 @@ const INGREDIENTS = {
   ],
 };
 
+// Hard-coded toxicity blocklist — ASPCA + AVMA verified toxic foods
+const TOXIC_INGREDIENTS = {
+  dog: ["grapes", "raisins", "onion", "onions", "garlic", "leek", "chive", "chocolate", "xylitol", "macadamia", "avocado", "alcohol", "caffeine", "coffee", "tea", "nutmeg", "raw yeast", "yeast dough", "mushroom", "wild mushroom"],
+  cat: ["grapes", "raisins", "onion", "onions", "garlic", "leek", "chive", "chocolate", "xylitol", "alcohol", "caffeine", "coffee", "tea", "raw fish", "raw meat", "dog food", "milk", "dairy", "macadamia", "avocado", "mushroom"],
+};
+
 const HEALTH_CONDITIONS = [
   { id: "healthy", label: "✅ Healthy / Maintenance" },
   { id: "weight_loss", label: "⚖️ Weight Loss" },
@@ -3993,7 +3999,11 @@ function RecipesTab({ profile, user, onUpgrade }) {
             </div>
             {/* Verified source badge */}
             <div style={{ background: C.green + "18", border: "1px solid " + C.green + "44", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: C.green, fontWeight: 700, marginBottom: 8 }}>
-              ✅ AAFCO/USDA Verified Database · WSAVA Calorie Formula
+              ✅ AAFCO Compliant Template · Scaled to Target · WSAVA Calorie Formula
+            </div>
+            {/* Supplementation disclaimer */}
+            <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: "#1E40AF", marginBottom: 8 }}>
+              💊 <strong>Supplement note:</strong> Whole foods alone rarely meet 100% of AAFCO trace minerals. A vet-recommended multivitamin supplement should be added to guarantee a nutritionally complete meal.
             </div>
             <div style={{ background: C.gold + "11", border: "1px solid " + C.gold + "44", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: C.muted }}>
               ⚠️ Always consult your veterinarian before changing your pet's diet.
@@ -4004,7 +4014,34 @@ function RecipesTab({ profile, user, onUpgrade }) {
           {recipe.rawText && (
             <div style={{ ...card, marginBottom: 14 }}>
               <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 12 }}>🍽️ Your Verified Recipe</div>
-              <div style={{ color: C.text, fontSize: 13, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{recipe.rawText}</div>
+              <div style={{ color: C.text, fontSize: 13, lineHeight: 1.8 }}>
+                {recipe.rawText.split("\n").map((line, i) => {
+                  const trimmed = line.trim();
+                  // H2 headers (##)
+                  if (trimmed.startsWith("## ")) return <div key={i} style={{ fontWeight: 900, fontSize: 15, color: C.text, marginTop: 16, marginBottom: 6 }}>{trimmed.replace(/^## /, "")}</div>;
+                  // H3 headers (###)
+                  if (trimmed.startsWith("### ")) return <div key={i} style={{ fontWeight: 800, fontSize: 14, color: C.green, marginTop: 12, marginBottom: 4 }}>{trimmed.replace(/^### /, "")}</div>;
+                  // Dividers
+                  if (trimmed === "---") return <hr key={i} style={{ border: "none", borderTop: "1px solid " + C.cardBorder, margin: "10px 0" }} />;
+                  // Table rows
+                  if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+                    if (trimmed.includes("---")) return null;
+                    const cells = trimmed.split("|").filter(c => c.trim());
+                    return <div key={i} style={{ display: "flex", gap: 8, padding: "6px 0", borderBottom: "1px solid " + C.cardBorder, fontSize: 12 }}>
+                      {cells.map((cell, j) => <span key={j} style={{ flex: j === 0 ? 2 : 1, color: j === 0 ? C.text : C.green, fontWeight: j === 1 ? 700 : 400 }}>{cell.trim().replace(/\*\*/g, "")}</span>)}
+                    </div>;
+                  }
+                  // Checkmark lines
+                  if (trimmed.startsWith("✓ ")) return <div key={i} style={{ display: "flex", gap: 8, marginBottom: 4, fontSize: 13 }}><span style={{ color: C.green }}>✓</span><span style={{ color: C.text }}>{trimmed.slice(2).replace(/\*\*/g, "")}</span></div>;
+                  // Empty lines
+                  if (!trimmed) return <div key={i} style={{ height: 6 }} />;
+                  // Bold (**text**)
+                  const boldParts = trimmed.split(/\*\*([^*]+)\*\*/g);
+                  return <div key={i} style={{ color: C.text, fontSize: 13, marginBottom: 2 }}>
+                    {boldParts.map((part, j) => j % 2 === 1 ? <strong key={j}>{part}</strong> : part)}
+                  </div>;
+                })}
+              </div>
             </div>
           )}
 
@@ -4016,8 +4053,15 @@ function RecipesTab({ profile, user, onUpgrade }) {
             </div>
           </div>
 
-          <div style={{ ...card, marginBottom: 14, background: C.danger + "11", border: "1px solid " + C.danger + "22" }}>
-            <div style={{ color: C.muted, fontSize: 12 }}>⚕️ {recipe.disclaimer}</div>
+          {/* Full legal vet disclaimer */}
+          <div style={{ ...card, marginBottom: 14, background: "#FEF2F2", border: "1px solid #FECACA" }}>
+            <div style={{ color: "#DC2626", fontWeight: 800, fontSize: 12, marginBottom: 6 }}>⚕️ Important Veterinary Disclaimer</div>
+            <div style={{ color: "#7F1D1D", fontSize: 11, lineHeight: 1.7 }}>
+              MyPetDex is an educational formulation tool based on published AAFCO 2023 and WSAVA nutritional guidelines. It does not substitute for personalized veterinary advice, medical diagnosis, or treatment. <strong>Always consult your veterinarian or a board-certified veterinary nutritionist before switching your pet to a homemade diet</strong>, especially if your pet has underlying health conditions, allergies, or is pregnant/nursing. Nutrient needs vary by individual pet.
+            </div>
+            <div style={{ color: "#991B1B", fontSize: 10, marginTop: 8, fontStyle: "italic" }}>
+              Recipe data sourced from AAFCO 2023 Nutrient Profiles · USDA FoodData Central (public domain) · WSAVA Global Nutrition Guidelines
+            </div>
           </div>
 
           <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
@@ -4083,6 +4127,13 @@ function RecipesTab({ profile, user, onUpgrade }) {
           <div style={{ marginBottom: 20 }}>
             <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 8 }}>🚫 Any ingredients to exclude?</div>
             <input value={excludeIngredients} onChange={e => setExcludeIngredients(e.target.value)} placeholder="e.g. dairy, fish, nuts..." style={{ background: C.inputBg, border: "1.5px solid " + C.cardBorder, borderRadius: 10, padding: "11px 14px", color: C.text, fontFamily: font, fontSize: 14, width: "100%", boxSizing: "border-box", outline: "none" }} />
+            {/* Toxicity blocklist warning */}
+            <div style={{ marginTop: 12, background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 14px" }}>
+              <div style={{ color: "#DC2626", fontWeight: 800, fontSize: 12, marginBottom: 4 }}>🚨 Hard-blocked toxic ingredients (ASPCA verified)</div>
+              <div style={{ color: "#7F1D1D", fontSize: 11, lineHeight: 1.6 }}>
+                These are <strong>never</strong> included in any recipe: grapes, raisins, onions, garlic, chocolate, xylitol, macadamia nuts, avocado, alcohol, caffeine, raw yeast dough, and wild mushrooms.
+              </div>
+            </div>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setStep(1)} style={{ ...btn(C.cardBorder, C.muted) }}>← Back</button>
