@@ -203,6 +203,7 @@ function compressImage(file, callback) {
 }
 
 export default function App() {
+  const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   const [user, setUser] = useState(null); // eslint-disable-line no-unused-vars
   const [profile, setProfile] = useState(null);
   const urlPlanFromURL = new URLSearchParams(window.location.search).get("plan");
@@ -217,6 +218,8 @@ export default function App() {
   );
   const [loading, setLoading] = useState(true);
   const [appleSignInPending, setAppleSignInPending] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authLoadingMsg, setAuthLoadingMsg] = useState("Signing in...");
   const [tab, setTab] = useState("home");
   const [authError, setAuthError] = useState("");
   const authErrTimer = useRef(null);
@@ -396,12 +399,6 @@ export default function App() {
   );
 
   // ── Auth error toast shown on top of any screen ──────────────────────────────
-  // Detect mobile for auth method selection
-  const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-  // Branded loading state for auth
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authLoadingMsg, setAuthLoadingMsg] = useState("Signing in...");
 
   // Unified Google sign-in — popup on desktop, redirect on mobile
   const handleGoogleSignIn = async () => {
