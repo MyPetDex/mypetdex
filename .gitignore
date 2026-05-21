@@ -27,3 +27,5 @@ serviceAccount.json
 AuthKey_SignInWithApple.p8
 mypetdex-key.json
 .fuse_hidden*
+functions/serviceAccountKey.json
+AppStore_Screenshots/
