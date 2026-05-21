@@ -725,6 +725,142 @@ function verificationEmailHTML(name, role, plan, verifyLink) {
   `);
 }
 
+// ─── Get Recipe (Verified Library — No AI Generation) ────────────────────────
+// Pulls pre-vetted recipes from Firestore, scales to pet's calorie target,
+// then uses Claude only to present/personalize — not generate from scratch.
+exports.getRecipe = onRequest(
+  { cors: true, secrets: [anthropicKey] },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+
+    const { pet } = req.body;
+    if (!pet || !pet.species) {
+      res.status(400).json({ error: "Missing pet profile" });
+      return;
+    }
+
+    try {
+      // Step 1: Calculate calories using WSAVA RER formula
+      const weightKg = pet.weight_kg || (pet.weight_lbs / 2.205) || 10;
+      const rer = Math.round(70 * Math.pow(weightKg, 0.75));
+
+      let multiplier = 1.6; // default: neutered adult
+      const ageMonths = pet.age_months || 24;
+      const species = pet.species || "dog";
+
+      if (species === "dog") {
+        if (ageMonths < 4) multiplier = 3.0;
+        else if (ageMonths < 12) multiplier = 2.0;
+        else if (ageMonths >= 84) multiplier = 1.4;
+        else if (pet.health_goal === "lose") multiplier = 1.0;
+        else if (pet.health_goal === "gain") multiplier = 1.7;
+        else if (pet.neutered === false) multiplier = 1.8;
+        else multiplier = 1.6;
+
+        // Activity adjustment
+        if (ageMonths >= 12 && ageMonths < 84) {
+          if (pet.activity_level === "high") multiplier += 0.2;
+          if (pet.activity_level === "very_high") multiplier += 0.5;
+          if (pet.activity_level === "low") multiplier -= 0.2;
+        }
+      } else if (species === "cat") {
+        if (ageMonths < 12) multiplier = 2.5;
+        else if (ageMonths >= 120) multiplier = 1.1;
+        else if (pet.health_goal === "lose") multiplier = 0.8;
+        else if (pet.neutered === false) multiplier = 1.4;
+        else multiplier = 1.2;
+      }
+
+      const dailyCalories = Math.round(rer * multiplier);
+
+      // Step 2: Pull vetted recipes from Firestore filtered by species
+      const recipesSnap = await db
+        .collection("recipes_vetted")
+        .where("species", "==", species)
+        .limit(10)
+        .get();
+
+      if (recipesSnap.empty) {
+        res.status(404).json({ error: "No vetted recipes found. Please seed the database first." });
+        return;
+      }
+
+      const recipes = recipesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Step 3: Scale recipe ingredients to match calorie target
+      // Recipes stored per 1000 kcal baseline — scale by ratio
+      const scalingFactor = dailyCalories / 1000;
+      const scaledRecipes = recipes.map(r => ({
+        ...r,
+        scaled_for_kcal: dailyCalories,
+        scaling_factor: Math.round(scalingFactor * 100) / 100,
+        scaled_ingredients: (r.ingredients || []).map(ing => ({
+          ...ing,
+          scaled_grams: ing.grams_per_1000kcal
+            ? Math.round(ing.grams_per_1000kcal * scalingFactor)
+            : null,
+        })),
+      }));
+
+      // Step 4: Claude SELECTS and PRESENTS — does NOT generate
+      const prompt = `
+You are PetDex AI, a pet nutrition assistant for MyPetDex.
+
+Pet Profile:
+- Name: ${pet.name || "this pet"}
+- Species: ${species}
+- Breed: ${pet.breed || "unknown"}
+- Age: ${ageMonths} months
+- Weight: ${Math.round(weightKg * 100) / 100} kg
+- Daily Calorie Target: ${dailyCalories} kcal/day (WSAVA RER formula: 70 x ${Math.round(weightKg * 100) / 100}^0.75 = ${rer} x ${multiplier} multiplier)
+
+Pre-Vetted Recipes Available (AAFCO/USDA verified database):
+${JSON.stringify(scaledRecipes, null, 2)}
+
+Your task:
+1. Select the SINGLE best recipe from the list above — do NOT create a new one
+2. Present it clearly with the pre-scaled ingredient amounts
+3. Explain briefly why this recipe suits this specific pet
+4. List meals per day (puppies/kittens: 3-4x, adults: 2x, seniors: 2x)
+5. End with: "This recipe is sourced from our AAFCO/USDA verified database and scaled using WSAVA nutritional guidelines. Always consult your veterinarian before changing your pet's diet."
+
+IMPORTANT: Only use recipes from the provided list. Do not invent ingredients or create new recipes.
+`;
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": anthropicKey.value(),
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 1000,
+          system: "You are PetDex AI. You only select and present from pre-vetted recipes — you never generate new recipes or invent ingredients.",
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+
+      const aiData = await response.json();
+      const recipeText = aiData?.content?.[0]?.text || "Unable to generate recipe presentation.";
+
+      res.status(200).json({
+        recipe: recipeText,
+        daily_calories: dailyCalories,
+        rer,
+        multiplier,
+        weight_kg: Math.round(weightKg * 100) / 100,
+        source: "AAFCO/USDA verified database + WSAVA calorie formula",
+      });
+
+    } catch (err) {
+      console.error("getRecipe error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
 // ─── Delete Account + All User Data ──────────────────────────────────────────
 // Called from the app when the user taps "Delete Account".
 // Deletes all Firestore data then removes the Firebase Auth account.

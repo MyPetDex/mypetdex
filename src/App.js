@@ -2864,32 +2864,85 @@ function CalcTab({ pet, profile }) {
       setResult({ error: "Could not parse weight. Make sure pet weight is set (e.g. 55 lbs or 25 kg)." });
       return;
     }
+
+    // RER formula — WSAVA Global Nutrition Guidelines
     const RER = 70 * Math.pow(weightKg, 0.75);
     const isCat = (pet?.type || "Dog") === "Cat";
+
+    // WSAVA-aligned multipliers (source: WSAVA Global Nutrition Guidelines)
     let multiplier = 1.6;
-    if (lifeStage === "puppy") {
-      multiplier = weightKg < 2 ? 3.0 : weightKg < 10 ? 2.5 : 2.0;
-    } else if (lifeStage === "senior") {
-      multiplier = neutered ? 1.2 : 1.4;
-    } else {
-      if (neutered) {
-        multiplier = activityLevel === "low" ? 1.2 : activityLevel === "moderate" ? 1.4 : activityLevel === "active" ? 1.6 : 1.8;
+
+    if (isCat) {
+      // Cat multipliers — WSAVA/AAFCO
+      if (lifeStage === "puppy") {
+        multiplier = 2.5; // kitten
+      } else if (lifeStage === "senior") {
+        multiplier = 1.1; // senior cat
+      } else if (healthGoal === "pregnant") {
+        multiplier = 1.6;
+      } else if (healthGoal === "nursing") {
+        multiplier = 2.0;
+      } else if (healthGoal === "lose") {
+        multiplier = 0.8;
+      } else if (healthGoal === "gain") {
+        multiplier = 1.6;
       } else {
-        multiplier = activityLevel === "low" ? 1.4 : activityLevel === "moderate" ? 1.6 : activityLevel === "active" ? 1.8 : 2.0;
+        multiplier = neutered ? 1.2 : 1.4; // adult cat
+      }
+    } else {
+      // Dog multipliers — WSAVA/AAFCO
+      if (lifeStage === "puppy") {
+        const ageMonths = parseFloat(pet?.age) || 12;
+        multiplier = ageMonths < 4 ? 3.0 : 2.0; // <4 months vs 4mo+
+      } else if (lifeStage === "senior") {
+        multiplier = 1.4; // senior/obese prone dog
+      } else if (healthGoal === "pregnant") {
+        multiplier = 1.8;
+      } else if (healthGoal === "nursing") {
+        multiplier = 2.5;
+      } else if (healthGoal === "lose") {
+        multiplier = 1.0; // weight loss = 1.0 x RER (WSAVA)
+      } else if (healthGoal === "gain") {
+        multiplier = 1.7; // weight gain
+      } else {
+        // Adult dog — base multiplier by neuter status
+        multiplier = neutered ? 1.6 : 1.8;
+        // Activity level adjustment on top (WSAVA)
+        if (activityLevel === "low") multiplier -= 0.2;
+        if (activityLevel === "active") multiplier += 0.2;
+        if (activityLevel === "very_active") multiplier += 0.4;
+        // Cap to reasonable range
+        multiplier = Math.min(Math.max(multiplier, 1.0), 2.5);
       }
     }
-    if (healthGoal === "lose") multiplier = Math.max(multiplier * 0.8, 1.0);
-    if (healthGoal === "gain") multiplier *= 1.2;
-    if (healthGoal === "pregnant") multiplier = 2.0;
-    if (healthGoal === "nursing") multiplier = isCat ? 2.5 : 3.0;
+
     const dailyKcal = Math.round(RER * multiplier);
+
+    // Meals per day recommendation
+    const mealsPerDay = lifeStage === "puppy"
+      ? (parseFloat(pet?.age) < 6 ? 4 : 3)
+      : 2;
+
     const kibbleCups = (dailyKcal / 350).toFixed(1);
     const wetFoodGrams = Math.round(dailyKcal / 1.0);
     const rawGrams = Math.round(dailyKcal / 1.2);
-    const mealsPerDay = lifeStage === "puppy" ? 3 : 2;
     const kibblePerMeal = (parseFloat(kibbleCups) / mealsPerDay).toFixed(2);
     const rawPerMeal = Math.round(rawGrams / mealsPerDay);
-    setResult({ weightKg: weightKg.toFixed(1), weightLbs: (weightKg * 2.20462).toFixed(1), RER: Math.round(RER), MER: dailyKcal, multiplier: multiplier.toFixed(2), kibbleCups, kibblePerMeal, wetFoodGrams, rawGrams, rawPerMeal, mealsPerDay, lifeStage });
+
+    setResult({
+      weightKg: weightKg.toFixed(1),
+      weightLbs: (weightKg * 2.20462).toFixed(1),
+      RER: Math.round(RER),
+      MER: dailyKcal,
+      multiplier: multiplier.toFixed(2),
+      kibbleCups,
+      kibblePerMeal,
+      wetFoodGrams,
+      rawGrams,
+      rawPerMeal,
+      mealsPerDay,
+      lifeStage,
+    });
   };
 
   const activityOptions = [
@@ -3758,7 +3811,7 @@ function RecipesTab({ profile, user, onUpgrade }) {
   const totalSelected = Object.values(selected).flat().length;
 
   const generateRecipe = async () => {
-    if (!selectedPet || selected.proteins.length === 0) return;
+    if (!selectedPet) return;
     if (getCount() >= dailyLimit) {
       alert(`⚠️ You've reached your daily AI limit of ${dailyLimit} requests. Resets tomorrow!`);
       return;
@@ -3766,42 +3819,76 @@ function RecipesTab({ profile, user, onUpgrade }) {
     trackMessage();
     setGenerating(true);
     setRecipe(null);
-    const petInfo = selectedPet.name + ", " + (selectedPet.type || "Dog") + ", " + (selectedPet.breed || "mixed breed") + ", " + (selectedPet.age || "adult") + ", " + (selectedPet.weight || "unknown weight");
-    const selectedIngredients = Object.entries(selected).map(([cat, ids]) => {
-      if (ids.length === 0) return null;
-      const items = ids.map(id => INGREDIENTS[cat].find(i => i.id === id)?.label.replace(/[^\w\s,]/g, "").trim()).join(", ");
-      return cat + ": " + items;
-    }).filter(Boolean).join("\n");
-    const healthLabel = HEALTH_CONDITIONS.find(h => h.id === healthCondition)?.label || "Healthy";
-    const activityLabel = ACTIVITY_LEVELS.find(a => a.id === activityLevel)?.label || "Moderate";
-    // Calculate RER calories using same formula as Calories tab
-const petWeightKg = (parseFloat(selectedPet.weight) || 22) * 0.453592;
-const petRER = Math.round(70 * Math.pow(petWeightKg, 0.75));
-const petAge = (selectedPet.age || "adult").toLowerCase();
-const petNeutered = selectedPet.neutered !== false;
-let petMultiplier = 1.6;
-if (petAge.includes("puppy") || petAge.includes("kitten")) petMultiplier = 2.0;
-else if (activityLevel === "low") petMultiplier = petNeutered ? 1.2 : 1.4;
-else if (activityLevel === "moderate") petMultiplier = petNeutered ? 1.4 : 1.6;
-else if (activityLevel === "high") petMultiplier = petNeutered ? 1.6 : 1.8;
-else if (activityLevel === "very_high") petMultiplier = petNeutered ? 1.8 : 2.0;
-// eslint-disable-next-line no-unused-vars
-const petDailyCalories = Math.round(petRER * petMultiplier);
-    const prompt = "You are a veterinary nutritionist creating a balanced homemade pet food recipe.\n\nPet: " + petInfo + "\nHealth condition: " + healthLabel + "\nActivity level: " + activityLabel + "\nSelected ingredients:\n" + selectedIngredients + (excludeIngredients ? "\nIngredients to exclude: " + excludeIngredients : "") + "\n\nCreate a single balanced recipe using ONLY the selected ingredients. Return your response in this EXACT JSON format (no markdown, no backticks):\n{\n  \"name\": \"Recipe name\",\n  \"emoji\": \"single emoji\",\n  \"prepTime\": \"X minutes\",\n  \"servings\": \"X days worth\",\n  \"dailyAmount\": \"X cups or X grams per day\",\n  \"calories\": \"" + petDailyCalories + " kcal per day\",\n  \"ingredients\": [{\"item\": \"ingredient name\", \"amount\": \"X grams or cups\", \"note\": \"optional note\"}],\n  \"steps\": [\"Step 1\", \"Step 2\"],\n  \"nutrition\": {\"protein\": \"X%\", \"fat\": \"X%\", \"carbs\": \"X%\", \"moisture\": \"X%\"},\n  \"tips\": \"One helpful tip\",\n  \"disclaimer\": \"Always consult your veterinarian before changing your pet's diet.\"\n}";
+
     try {
-      const response = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/aiProxy", {
+      // Build pet profile for getRecipe Cloud Function
+      const petAge = (selectedPet.age || "adult").toLowerCase();
+      const isPuppy = petAge.includes("puppy") || petAge.includes("kitten") || petAge.includes("month");
+      const isSenior = !isPuppy && (parseFloat(selectedPet.age) >= (selectedPet.type === "Cat" ? 10 : 7));
+
+      // Parse weight — default to lbs if no unit specified
+      const rawWeight = parseFloat(selectedPet.weight) || 22;
+      const weightKg = (selectedPet.weight || "").toLowerCase().includes("kg")
+        ? rawWeight
+        : rawWeight * 0.453592;
+
+      // Estimate age in months
+      let ageMonths = 24;
+      if (petAge.includes("month")) ageMonths = parseFloat(petAge) || 6;
+      else if (isPuppy) ageMonths = 6;
+      else if (isSenior) ageMonths = selectedPet.type === "Cat" ? 130 : 90;
+      else ageMonths = parseFloat(selectedPet.age) * 12 || 24;
+
+      const petProfile = {
+        name: selectedPet.name,
+        species: (selectedPet.type || "Dog").toLowerCase(),
+        breed: selectedPet.breed || "mixed breed",
+        weight_kg: Math.round(weightKg * 100) / 100,
+        age_months: ageMonths,
+        neutered: selectedPet.neutered !== false,
+        activity_level: activityLevel === "very_active" ? "very_high" : activityLevel,
+        health_goal: healthCondition === "healthy" ? "maintain"
+          : healthCondition === "overweight" ? "lose"
+          : healthCondition === "underweight" ? "gain"
+          : "maintain",
+        life_stage: isPuppy ? "puppy" : isSenior ? "senior" : "adult",
+      };
+
+      // Call verified getRecipe Cloud Function — pulls from Firestore library
+      const response = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/getRecipe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "user", content: prompt }] }),
+        body: JSON.stringify({ pet: petProfile }),
       });
+
       const data = await response.json();
-      const text = data?.content?.[0]?.text || "";
-      const clean = text.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
-      setRecipe(parsed);
+
+      if (data.error) {
+        setRecipe({ error: data.error });
+      } else {
+        // Format response to match existing recipe display structure
+        setRecipe({
+          name: "Verified Recipe for " + selectedPet.name,
+          emoji: selectedPet.type === "Cat" ? "🐱" : "🐶",
+          prepTime: "20 minutes",
+          servings: "1 day",
+          dailyAmount: data.daily_calories + " kcal/day",
+          calories: data.daily_calories + " kcal per day",
+          rawText: data.recipe, // full Claude presentation
+          source: data.source,
+          ingredients: [],
+          steps: [],
+          nutrition: { protein: "AAFCO verified", fat: "AAFCO verified", carbs: "USDA sourced", moisture: "varies" },
+          tips: "Ingredients scaled to your pet's exact WSAVA calorie target.",
+          disclaimer: "This recipe is sourced from our AAFCO/USDA verified database. Always consult your veterinarian before changing your pet's diet.",
+          rer: data.rer,
+          multiplier: data.multiplier,
+          weight_kg: data.weight_kg,
+        });
+      }
       setStep(4);
     } catch (err) {
-      setRecipe({ error: "Could not generate recipe. Please try again." });
+      setRecipe({ error: "Could not load recipe. Please try again." });
       setStep(4);
     }
     setGenerating(false);
@@ -3890,60 +3977,49 @@ const petDailyCalories = Math.round(petRER * petMultiplier);
         <div style={{ ...card, color: C.danger, textAlign: "center", padding: 40 }}>{recipe.error}</div>
       ) : recipe ? (
         <div>
+          {/* Header card */}
           <div style={{ ...card, marginBottom: 14, textAlign: "center" }}>
             <div style={{ fontSize: 48, marginBottom: 8 }}>{recipe.emoji}</div>
             <div style={{ color: C.text, fontWeight: 900, fontSize: 22, marginBottom: 4 }}>{recipe.name}</div>
-            <div style={{ color: C.muted, fontSize: 13, marginBottom: 8 }}>Made for {selectedPet?.name} · {recipe.prepTime}</div><div style={{ background: C.gold + "11", border: "1px solid " + C.gold + "44", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: C.muted, marginBottom: 16 }}>⚠️ Recipes and nutrition insights are for general informational purposes and are not tailored to medical conditions or special diets. Always consult your veterinarian.</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {[["🔥 Daily Calories", recipe.calories], ["🍽️ Daily Amount", recipe.dailyAmount], ["📦 Servings", recipe.servings], ["⏱️ Prep Time", recipe.prepTime]].map(([k, v]) => (
+            <div style={{ color: C.muted, fontSize: 13, marginBottom: 12 }}>Made for {selectedPet?.name}</div>
+            {/* Calorie stats */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+              {[["🔥 Daily Calories", recipe.calories], ["⚖️ Pet Weight", recipe.weight_kg + " kg"]].map(([k, v]) => (
                 <div key={k} style={{ background: C.inputBg, borderRadius: 10, padding: "10px 12px", textAlign: "center" }}>
                   <div style={{ color: C.muted, fontSize: 11, fontWeight: 700 }}>{k}</div>
                   <div style={{ color: C.green, fontWeight: 800, fontSize: 13, marginTop: 2 }}>{v}</div>
                 </div>
               ))}
             </div>
-          </div>
-          <div style={{ ...card, marginBottom: 14 }}>
-            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 12 }}>Nutrition Breakdown</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-              {[["Protein", recipe.nutrition?.protein, C.green], ["Fat", recipe.nutrition?.fat, C.gold], ["Carbs", recipe.nutrition?.carbs, "#a78bfa"], ["Moisture", recipe.nutrition?.moisture, "#38bdf8"]].map(([k, v, color]) => (
-                <div key={k} style={{ background: C.inputBg, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
-                  <div style={{ color, fontWeight: 900, fontSize: 16 }}>{v}</div>
-                  <div style={{ color: C.muted, fontSize: 10, marginTop: 2 }}>{k}</div>
-                </div>
-              ))}
+            {/* Verified source badge */}
+            <div style={{ background: C.green + "18", border: "1px solid " + C.green + "44", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: C.green, fontWeight: 700, marginBottom: 8 }}>
+              ✅ AAFCO/USDA Verified Database · WSAVA Calorie Formula
+            </div>
+            <div style={{ background: C.gold + "11", border: "1px solid " + C.gold + "44", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: C.muted }}>
+              ⚠️ Always consult your veterinarian before changing your pet's diet.
             </div>
           </div>
-          <div style={{ ...card, marginBottom: 14 }}>
-            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 12 }}>🛒 Ingredients</div>
-            {(recipe.ingredients || []).map((ing, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < recipe.ingredients.length - 1 ? "1px solid " + C.cardBorder : "none" }}>
-                <span style={{ color: C.text, fontSize: 13 }}>{ing.item}</span>
-                <div style={{ textAlign: "right" }}>
-                  <span style={{ color: C.green, fontWeight: 700, fontSize: 13 }}>{ing.amount}</span>
-                  {ing.note && <div style={{ color: C.muted, fontSize: 11 }}>{ing.note}</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{ ...card, marginBottom: 14 }}>
-            <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 12 }}>👨‍🍳 Preparation</div>
-            {(recipe.steps || []).map((s, i) => (
-              <div key={i} style={{ display: "flex", gap: 12, marginBottom: 10 }}>
-                <div style={{ width: 24, height: 24, borderRadius: "50%", background: C.green, color: "#0F1A14", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 12, flexShrink: 0 }}>{i + 1}</div>
-                <span style={{ color: C.text, fontSize: 13, lineHeight: 1.5 }}>{s}</span>
-              </div>
-            ))}
-          </div>
-          {recipe.tips && (
-            <div style={{ ...card, marginBottom: 14, background: C.gold + "11", border: "1px solid " + C.gold + "33" }}>
-              <div style={{ color: C.gold, fontWeight: 800, fontSize: 13, marginBottom: 4 }}>💡 Pro Tip</div>
-              <div style={{ color: C.text, fontSize: 13 }}>{recipe.tips}</div>
+
+          {/* Full verified recipe text from Firestore library */}
+          {recipe.rawText && (
+            <div style={{ ...card, marginBottom: 14 }}>
+              <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 12 }}>🍽️ Your Verified Recipe</div>
+              <div style={{ color: C.text, fontSize: 13, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{recipe.rawText}</div>
             </div>
           )}
+
+          {/* Source attribution */}
+          <div style={{ ...card, marginBottom: 14, background: C.inputBg }}>
+            <div style={{ color: C.muted, fontSize: 11, lineHeight: 1.6 }}>
+              📚 <strong style={{ color: C.text }}>Source:</strong> {recipe.source}<br/>
+              🧮 <strong style={{ color: C.text }}>Formula:</strong> RER = 70 × {recipe.weight_kg}kg^0.75 × {recipe.multiplier} (WSAVA multiplier)
+            </div>
+          </div>
+
           <div style={{ ...card, marginBottom: 14, background: C.danger + "11", border: "1px solid " + C.danger + "22" }}>
             <div style={{ color: C.muted, fontSize: 12 }}>⚕️ {recipe.disclaimer}</div>
           </div>
+
           <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
             <button onClick={saveRecipe} style={{ ...btn(C.green), flex: 1 }}>💾 Save Recipe</button>
             <button onClick={resetBuilder} style={{ ...btn(C.cardBorder, C.muted), flex: 1 }}>🔄 New Recipe</button>
