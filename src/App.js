@@ -4815,10 +4815,10 @@ function SettingsTab({ user, profile, onProfileUpdate, onLogout, isDemo }) {
       {!isDemo && <ReferralWidget profile={profile} />}
       <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 18, padding: 22, marginBottom: 14 }}>
         <div style={{ color: "#1E293B", fontWeight: 800, fontSize: 15, marginBottom: 12 }}>Legal</div>
-        <div onClick={() => setSection("privacy")} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${C.cardBorder}`, cursor: "pointer" }}>
+        <div onClick={() => window.open("https://home.mypetdex.app/privacy.html", "_blank")} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${C.cardBorder}`, cursor: "pointer" }}>
           <span style={{ color: C.text, fontSize: 13 }}>🔒 Privacy Policy</span><span style={{ color: C.muted }}>›</span>
         </div>
-        <div onClick={() => setSection("terms")} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", cursor: "pointer" }}>
+        <div onClick={() => window.open("https://home.mypetdex.app/terms.html", "_blank")} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", cursor: "pointer" }}>
           <span style={{ color: C.text, fontSize: 13 }}>📋 Terms of Service</span><span style={{ color: C.muted }}>›</span>
         </div>
       </div>
