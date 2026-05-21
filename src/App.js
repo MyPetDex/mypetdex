@@ -1,14 +1,21 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { hasFeature, UpgradePrompt } from './planUtils';
-import { auth, db, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, requestNotificationPermission } from "./firebase";
+import {
+  auth,
+  db,
+  getRedirectResult,
+  OAUTH_PENDING_KEY,
+  requestNotificationPermission,
+  signInWithAppleOAuth,
+  signInWithGoogleOAuth,
+} from "./firebase";
 
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  OAuthProvider,
 } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import {
@@ -176,6 +183,21 @@ function Spinner() {
     </div>
   );
 }
+function AuthLoadingScreen({ message = "Loading…", fixed = false }) {
+  const style = fixed
+    ? { position: "fixed", inset: 0, zIndex: 10000 }
+    : { minHeight: "100vh" };
+  return (
+    <div style={{ ...style, background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, borderRadius: 24, marginBottom: 24, boxShadow: "0 4px 24px rgba(59,130,246,0.2)" }} />
+      <div style={{ fontWeight: 900, fontSize: 28, color: C.text, letterSpacing: -0.5, marginBottom: 8 }}>MyPetDex</div>
+      <div style={{ color: C.muted, fontSize: 15, marginBottom: 32 }}>{message}</div>
+      <div style={{ width: 40, height: 40, border: `3px solid ${C.cardBorder}`, borderTopColor: C.green, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
 function Toast({ message }) {
   return (
     <div style={{ position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)", background: C.green, color: "#0F1A14", padding: "12px 24px", borderRadius: 12, fontFamily: font, fontWeight: 800, fontSize: 14, zIndex: 999, boxShadow: "0 4px 20px rgba(0,0,0,0.3)", whiteSpace: "nowrap" }}>
@@ -203,7 +225,6 @@ function compressImage(file, callback) {
 }
 
 export default function App() {
-  const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   const [user, setUser] = useState(null); // eslint-disable-line no-unused-vars
   const [profile, setProfile] = useState(null);
   const urlPlanFromURL = new URLSearchParams(window.location.search).get("plan");
@@ -217,9 +238,13 @@ export default function App() {
     (urlRoleFromURL || sessionStorage.getItem("selectedRole")) ? "landing" : "role-pick"
   );
   const [loading, setLoading] = useState(true);
-  const [appleSignInPending, setAppleSignInPending] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authLoadingMsg, setAuthLoadingMsg] = useState("Signing in...");
+  const [authLoading, setAuthLoading] = useState(() => !!sessionStorage.getItem(OAUTH_PENDING_KEY));
+  const [authLoadingMsg, setAuthLoadingMsg] = useState(() => {
+    const pending = sessionStorage.getItem(OAUTH_PENDING_KEY);
+    if (pending === "apple") return "Signing in with Apple…";
+    if (pending === "google") return "Signing in with Google…";
+    return "Signing in…";
+  });
   const [tab, setTab] = useState("home");
   const [authError, setAuthError] = useState("");
   const authErrTimer = useRef(null);
@@ -227,6 +252,27 @@ export default function App() {
     setAuthError(msg);
     if (authErrTimer.current) clearTimeout(authErrTimer.current);
     authErrTimer.current = setTimeout(() => setAuthError(""), 6000);
+  };
+
+  useEffect(() => {
+    document.getElementById("app-splash")?.remove();
+  }, []);
+
+  const completeOAuthSignIn = async (u) => {
+    const snap = await getDoc(doc(db, "users", u.uid));
+    if (snap.exists()) {
+      setProfile(snap.data());
+      setScreen("app");
+    } else {
+      setUser(u);
+      setScreen("google-role");
+    }
+  };
+
+  const paintThenRedirect = async (startRedirect) => {
+    setAuthLoading(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await startRedirect();
   };
 
   useEffect(() => {
@@ -260,24 +306,31 @@ export default function App() {
   }, []);
 
 
-  // Handle redirect result on page load (mobile Google/Apple auth)
+  // Complete Google/Apple redirect sign-in when returning from auth.mypetdex.app
   useEffect(() => {
-    getRedirectResult(auth).then(async (result) => {
-      if (result?.user) {
-        const u = result.user;
+    const pending = sessionStorage.getItem(OAUTH_PENDING_KEY);
+    if (pending) {
+      setAuthLoading(true);
+      setAuthLoadingMsg(
+        pending === "apple" ? "Signing in with Apple…" : "Signing in with Google…"
+      );
+    }
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          await completeOAuthSignIn(result.user);
+        }
+      })
+      .catch((e) => {
+        if (e.code !== "auth/popup-closed-by-user") {
+          console.error("Redirect sign-in error:", e);
+          showAuthError("Sign-in failed. Please try again or use email.");
+        }
+      })
+      .finally(() => {
+        sessionStorage.removeItem(OAUTH_PENDING_KEY);
         setAuthLoading(false);
-        const snap = await getDoc(doc(db, "users", u.uid));
-        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
-        else { setUser(u); setScreen("google-role"); }
-      } else {
-        setAuthLoading(false);
-      }
-    }).catch((e) => {
-      setAuthLoading(false);
-      if (e.code !== "auth/popup-closed-by-user") {
-        console.error("Redirect sign-in error:", e);
-      }
-    });
+      });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -387,91 +440,40 @@ export default function App() {
     }
   }, []);
 
-  if (loading) return (
-    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
-      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 52 }}>🐾</div>
-        <div style={{ color: C.green, fontWeight: 900, fontSize: 24, marginTop: 8 }}>MyPetDex</div>
-        <Spinner />
-      </div>
-    </div>
-  );
+  if (loading) return <AuthLoadingScreen message="Loading…" />;
 
-  // ── Auth error toast shown on top of any screen ──────────────────────────────
-
-  // Unified Google sign-in — popup on desktop, redirect on mobile
-  // eslint-disable-next-line no-unused-vars
   const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
-    if (isMobileDevice) {
-      setAuthLoading(true);
-      setAuthLoadingMsg("Redirecting to Google...");
-      await signInWithRedirect(auth, provider);
-    } else {
-      try {
-        const result = await signInWithPopup(auth, provider);
-        const u = result.user;
-        const snap = await getDoc(doc(db, "users", u.uid));
-        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
-        else { setUser(u); setScreen("google-role"); }
-      } catch (e) {
-        if (e.code !== "auth/popup-closed-by-user") {
-          showAuthError("Google sign-in failed. Please try again or use email.");
-        }
+    try {
+      setAuthLoadingMsg("Redirecting to Google…");
+      await paintThenRedirect(signInWithGoogleOAuth);
+    } catch (e) {
+      sessionStorage.removeItem(OAUTH_PENDING_KEY);
+      setAuthLoading(false);
+      if (e.code !== "auth/popup-closed-by-user") {
+        showAuthError("Google sign-in failed. Please try again or use email.");
       }
     }
   };
 
-  // Unified Apple sign-in — popup on desktop, redirect on mobile
-  // eslint-disable-next-line no-unused-vars
   const handleAppleSignIn = async () => {
-    const provider = new OAuthProvider("apple.com");
-    provider.addScope("email");
-    provider.addScope("name");
-    if (isMobileDevice) {
-      setAuthLoading(true);
-      setAuthLoadingMsg("Redirecting to Apple...");
-      await signInWithRedirect(auth, provider);
-    } else {
-      try {
-        const result = await signInWithPopup(auth, provider);
-        const u = result.user;
-        const snap = await getDoc(doc(db, "users", u.uid));
-        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
-        else { setUser(u); setScreen("google-role"); }
-      } catch (e) {
-        if (e.code !== "auth/popup-closed-by-user") {
-          showAuthError("Apple Sign-In failed. Please try again or use email.");
-        }
+    try {
+      setAuthLoadingMsg("Redirecting to Apple…");
+      await paintThenRedirect(signInWithAppleOAuth);
+    } catch (e) {
+      sessionStorage.removeItem(OAUTH_PENDING_KEY);
+      setAuthLoading(false);
+      if (e.code !== "auth/popup-closed-by-user") {
+        showAuthError("Apple Sign-In failed. Please try again or use email.");
       }
     }
   };
 
   const wrap = (el) => (
     <>
-      {/* Branded auth loading screen — shown during redirect on mobile */}
-      {authLoading && (
-        <div style={{ position: "fixed", inset: 0, background: "#FFFFFF", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 10000, fontFamily: font }}>
-          <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, borderRadius: 24, marginBottom: 24, boxShadow: "0 4px 24px rgba(59,130,246,0.2)" }} />
-          <div style={{ fontWeight: 900, fontSize: 28, color: "#1E293B", letterSpacing: -0.5, marginBottom: 8 }}>MyPetDex</div>
-          <div style={{ color: "#64748B", fontSize: 15, marginBottom: 32 }}>{authLoadingMsg}</div>
-          <div style={{ width: 40, height: 40, border: "3px solid #E2E8F0", borderTopColor: "#3B82F6", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
-      )}
+      {authLoading && <AuthLoadingScreen message={authLoadingMsg} fixed />}
       {authError && (
         <div style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", background: C.danger, color: "#fff", padding: "13px 24px", borderRadius: 14, fontFamily: font, fontWeight: 700, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.25)", maxWidth: "88vw", textAlign: "center", lineHeight: 1.4 }}>
           {authError}
-        </div>
-      )}
-      {appleSignInPending && (
-        <div style={{ position: "fixed", inset: 0, background: "#FFFFFF", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 10000, fontFamily: font }}>
-          <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, borderRadius: 24, marginBottom: 24, boxShadow: "0 4px 24px rgba(59,130,246,0.2)" }} />
-          <div style={{ fontWeight: 900, fontSize: 28, color: "#1E293B", letterSpacing: -0.5, marginBottom: 8 }}>MyPetDex</div>
-          <div style={{ color: "#64748B", marginTop: 10, fontSize: 15 }}>Signing in with Apple…</div>
-          <div style={{ marginTop: 32, width: 40, height: 40, border: "3px solid #E2E8F0", borderTopColor: "#3B82F6", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
       {el}
@@ -483,86 +485,10 @@ export default function App() {
     setScreen("landing");
   }} onLogin={() => setScreen("login")} />);
   if (screen === "admin") return wrap(<AdminDashboard onLogout={async () => { await signOut(auth); setScreen("landing"); }} />);
-  if (screen === "landing") return wrap(<Landing onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} onGoogle={async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const u = result.user;
-      const snap = await getDoc(doc(db, "users", u.uid));
-      if (snap.exists()) {
-        setProfile(snap.data());
-        setScreen("app");
-      } else {
-        setUser(u);
-        setScreen("google-role");
-      }
-    } catch (e) {
-      if (e.code !== "auth/popup-closed-by-user") {
-        console.error("Google sign in error:", e);
-        showAuthError("Google sign-in failed. Please try again or use email to sign in.");
-      }
-    }
-  }} onApple={async () => {
-    try {
-      const provider = new OAuthProvider("apple.com");
-      provider.addScope("email");
-      provider.addScope("name");
-      setAppleSignInPending(true);
-      const result = await signInWithPopup(auth, provider);
-      const u = result.user;
-      const snap = await getDoc(doc(db, "users", u.uid));
-      setAppleSignInPending(false);
-      if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
-      else { setUser(u); setScreen("google-role"); }
-    } catch (e) {
-      setAppleSignInPending(false);
-      if (e.code !== "auth/popup-closed-by-user") {
-        console.error("Apple sign in error:", e);
-        showAuthError("Apple Sign-In failed. Please try again or use Google or email.");
-      }
-    }
-  }} urlRole={urlRole} onBack={() => { sessionStorage.removeItem("selectedRole"); sessionStorage.removeItem("selectedPlan"); setScreen("role-pick"); }} />);
+  if (screen === "landing") return wrap(<Landing onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} onGoogle={handleGoogleSignIn} onApple={handleAppleSignIn} urlRole={urlRole} onBack={() => { sessionStorage.removeItem("selectedRole"); sessionStorage.removeItem("selectedPlan"); setScreen("role-pick"); }} />);
   if (screen === "google-role") return wrap(<GoogleRoleScreen user={user} initialPlan={urlPlan} initialRole={urlRole} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />);
-  if (screen === "register") return wrap(<RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); p.skipVerify ? setScreen("app") : setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} onApple={async () => { try { const provider = new OAuthProvider("apple.com"); provider.addScope("email"); provider.addScope("name"); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") { console.error("Apple sign in error:", e); showAuthError("Apple Sign-In isn't configured yet — please use Google or email to sign in."); } } }} onGoogle={async () => { try { const provider = new GoogleAuthProvider(); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") { console.error("Google sign in error:", e); showAuthError("Google sign-in failed. Please try again or use email to sign in."); } } }} />);
-  if (screen === "login") return wrap(<LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onReset={() => setScreen("reset")} onApple={async () => {
-    try {
-      const provider = new OAuthProvider("apple.com");
-      provider.addScope("email");
-      provider.addScope("name");
-      setAppleSignInPending(true);
-      const result = await signInWithPopup(auth, provider);
-      const u = result.user;
-      const snap = await getDoc(doc(db, "users", u.uid));
-      setAppleSignInPending(false);
-      if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
-      else { setUser(u); setScreen("google-role"); }
-    } catch (e) {
-      setAppleSignInPending(false);
-      if (e.code !== "auth/popup-closed-by-user") {
-        console.error("Apple sign in error:", e);
-        showAuthError("Apple Sign-In failed. Please try again or use Google or email.");
-      }
-    }
-  }} onGoogle={async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const u = result.user;
-      const snap = await getDoc(doc(db, "users", u.uid));
-      if (snap.exists()) {
-        setProfile(snap.data());
-        setScreen("app");
-      } else {
-        setUser(u);
-        setScreen("google-role");
-      }
-    } catch (e) {
-      if (e.code !== "auth/popup-closed-by-user") {
-        console.error("Google sign in error:", e);
-        showAuthError("Google sign-in failed. Please try again or use email to sign in.");
-      }
-    }
-  }} />);
+  if (screen === "register") return wrap(<RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); p.skipVerify ? setScreen("app") : setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} onApple={handleAppleSignIn} onGoogle={handleGoogleSignIn} />);
+  if (screen === "login") return wrap(<LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onReset={() => setScreen("reset")} onApple={handleAppleSignIn} onGoogle={handleGoogleSignIn} />);
   if (screen === "reset") return wrap(<ResetPasswordScreen onBack={() => setScreen("login")} />);
   if (screen === "verify") return wrap(<VerifyEmail onVerified={async () => {
     const u = auth.currentUser;

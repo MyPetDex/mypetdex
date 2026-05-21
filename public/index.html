@@ -4,8 +4,57 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>html, body { overflow-x: hidden; max-width: 100vw; }</style>
-    <meta name="theme-color" content="#0F1A14" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+    <style>
+      html, body {
+        margin: 0;
+        overflow-x: hidden;
+        max-width: 100vw;
+        background: #F5F8FF;
+      }
+      #app-splash {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #F5F8FF;
+        font-family: 'Nunito', sans-serif;
+      }
+      #app-splash img {
+        width: 90px;
+        height: 90px;
+        border-radius: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 24px rgba(59, 130, 246, 0.2);
+      }
+      #app-splash h1 {
+        margin: 0 0 8px;
+        font-weight: 900;
+        font-size: 28px;
+        color: #1E293B;
+        letter-spacing: -0.5px;
+      }
+      #app-splash p {
+        margin: 0 0 32px;
+        color: #64748B;
+        font-size: 15px;
+      }
+      #app-splash .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #E2E8F0;
+        border-top-color: #3B82F6;
+        border-radius: 50%;
+        animation: mpd-spin 0.8s linear infinite;
+      }
+      @keyframes mpd-spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+    <meta name="theme-color" content="#F5F8FF" />
     <title>MyPetDex — Your Complete Pet Care Companion</title>
 
     <!-- Primary Meta Tags -->
@@ -29,9 +78,28 @@
     <meta name="twitter:description" content="Manage your pets' health, appointments, reminders, and records all in one place." />
     <meta name="twitter:image" content="https://mypetdex.app/preview.png" />
     <meta name="impact-site-verification" content="6b8439b8-8336-414e-aeee-4321fd19afe9">
-</head>
+  </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <div id="root">
+      <div id="app-splash" aria-live="polite" aria-busy="true">
+        <img src="%PUBLIC_URL%/logo.png" alt="MyPetDex" width="90" height="90" />
+        <h1>MyPetDex</h1>
+        <p id="app-splash-msg">Loading…</p>
+        <div class="spinner" role="status" aria-label="Loading"></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var pending = sessionStorage.getItem("oauthRedirectPending");
+        if (!pending) return;
+        var msg = document.getElementById("app-splash-msg");
+        if (msg) {
+          msg.textContent = pending === "apple"
+            ? "Signing in with Apple…"
+            : "Signing in with Google…";
+        }
+      })();
+    </script>
   </body>
 </html>
