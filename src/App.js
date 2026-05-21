@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { hasFeature, UpgradePrompt } from './planUtils';
-import { auth, db, GoogleAuthProvider, signInWithPopup, requestNotificationPermission } from "./firebase";
+import { auth, db, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, requestNotificationPermission } from "./firebase";
 
 import {
   createUserWithEmailAndPassword,
@@ -257,6 +257,26 @@ export default function App() {
   }, []);
 
 
+  // Handle redirect result on page load (mobile Google/Apple auth)
+  useEffect(() => {
+    getRedirectResult(auth).then(async (result) => {
+      if (result?.user) {
+        const u = result.user;
+        setAuthLoading(false);
+        const snap = await getDoc(doc(db, "users", u.uid));
+        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
+        else { setUser(u); setScreen("google-role"); }
+      } else {
+        setAuthLoading(false);
+      }
+    }).catch((e) => {
+      setAuthLoading(false);
+      if (e.code !== "auth/popup-closed-by-user") {
+        console.error("Redirect sign-in error:", e);
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -376,19 +396,82 @@ export default function App() {
   );
 
   // ── Auth error toast shown on top of any screen ──────────────────────────────
+  // Detect mobile for auth method selection
+  const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // Branded loading state for auth
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authLoadingMsg, setAuthLoadingMsg] = useState("Signing in...");
+
+  // Unified Google sign-in — popup on desktop, redirect on mobile
+  const handleGoogleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    if (isMobileDevice) {
+      setAuthLoading(true);
+      setAuthLoadingMsg("Redirecting to Google...");
+      await signInWithRedirect(auth, provider);
+    } else {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const u = result.user;
+        const snap = await getDoc(doc(db, "users", u.uid));
+        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
+        else { setUser(u); setScreen("google-role"); }
+      } catch (e) {
+        if (e.code !== "auth/popup-closed-by-user") {
+          showAuthError("Google sign-in failed. Please try again or use email.");
+        }
+      }
+    }
+  };
+
+  // Unified Apple sign-in — popup on desktop, redirect on mobile
+  const handleAppleSignIn = async () => {
+    const provider = new OAuthProvider("apple.com");
+    provider.addScope("email");
+    provider.addScope("name");
+    if (isMobileDevice) {
+      setAuthLoading(true);
+      setAuthLoadingMsg("Redirecting to Apple...");
+      await signInWithRedirect(auth, provider);
+    } else {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const u = result.user;
+        const snap = await getDoc(doc(db, "users", u.uid));
+        if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
+        else { setUser(u); setScreen("google-role"); }
+      } catch (e) {
+        if (e.code !== "auth/popup-closed-by-user") {
+          showAuthError("Apple Sign-In failed. Please try again or use email.");
+        }
+      }
+    }
+  };
+
   const wrap = (el) => (
     <>
+      {/* Branded auth loading screen — shown during redirect on mobile */}
+      {authLoading && (
+        <div style={{ position: "fixed", inset: 0, background: "#FFFFFF", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 10000, fontFamily: font }}>
+          <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, borderRadius: 24, marginBottom: 24, boxShadow: "0 4px 24px rgba(59,130,246,0.2)" }} />
+          <div style={{ fontWeight: 900, fontSize: 28, color: "#1E293B", letterSpacing: -0.5, marginBottom: 8 }}>MyPetDex</div>
+          <div style={{ color: "#64748B", fontSize: 15, marginBottom: 32 }}>{authLoadingMsg}</div>
+          <div style={{ width: 40, height: 40, border: "3px solid #E2E8F0", borderTopColor: "#3B82F6", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
       {authError && (
         <div style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", background: C.danger, color: "#fff", padding: "13px 24px", borderRadius: 14, fontFamily: font, fontWeight: 700, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.25)", maxWidth: "88vw", textAlign: "center", lineHeight: 1.4 }}>
           {authError}
         </div>
       )}
       {appleSignInPending && (
-        <div style={{ position: "fixed", inset: 0, background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 10000, fontFamily: font }}>
-          <img src="/logo.png" alt="MyPetDex" style={{ width: 80, height: 80, borderRadius: 20, marginBottom: 20, boxShadow: "0 4px 24px rgba(59,130,246,0.18)" }} />
-          <div style={{ fontWeight: 800, fontSize: 24, color: C.text, letterSpacing: -0.5 }}>MyPetDex</div>
-          <div style={{ color: C.muted, marginTop: 10, fontSize: 15 }}>Signing in with Apple…</div>
-          <div style={{ marginTop: 28, width: 36, height: 36, border: `3px solid ${C.cardBorder}`, borderTopColor: C.green, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <div style={{ position: "fixed", inset: 0, background: "#FFFFFF", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 10000, fontFamily: font }}>
+          <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, borderRadius: 24, marginBottom: 24, boxShadow: "0 4px 24px rgba(59,130,246,0.2)" }} />
+          <div style={{ fontWeight: 900, fontSize: 28, color: "#1E293B", letterSpacing: -0.5, marginBottom: 8 }}>MyPetDex</div>
+          <div style={{ color: "#64748B", marginTop: 10, fontSize: 15 }}>Signing in with Apple…</div>
+          <div style={{ marginTop: 32, width: 40, height: 40, border: "3px solid #E2E8F0", borderTopColor: "#3B82F6", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
