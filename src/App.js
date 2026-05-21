@@ -8,8 +8,8 @@ import {
   OAUTH_PENDING_KEY,
   OAUTH_RETURN_SCREEN_KEY,
   requestNotificationPermission,
-  signInWithAppleOAuth,
-  signInWithGoogleOAuth,
+  signInWithApplePopup,
+  signInWithGooglePopup,
 } from "./firebase";
 
 import {
@@ -184,6 +184,27 @@ function Spinner() {
     </div>
   );
 }
+function lockPageForOAuth() {
+  const scrollY = window.scrollY;
+  document.documentElement.style.overflow = "hidden";
+  document.body.style.overflow = "hidden";
+  document.body.style.position = "fixed";
+  document.body.style.top = `-${scrollY}px`;
+  document.body.style.left = "0";
+  document.body.style.right = "0";
+  document.body.style.width = "100%";
+  return () => {
+    document.documentElement.style.overflow = "";
+    document.body.style.overflow = "";
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+    window.scrollTo(0, scrollY);
+  };
+}
+
 function AuthLoadingScreen({ message = "Loading…", fixed = false }) {
   const style = fixed
     ? { position: "fixed", inset: 0, zIndex: 10000 }
@@ -239,18 +260,11 @@ export default function App() {
     (urlRoleFromURL || sessionStorage.getItem("selectedRole")) ? "landing" : "role-pick"
   );
   const [loading, setLoading] = useState(true);
-  const [authLoading, setAuthLoading] = useState(() => !!sessionStorage.getItem(OAUTH_PENDING_KEY));
-  const [authLoadingMsg, setAuthLoadingMsg] = useState(() => {
-    const pending = sessionStorage.getItem(OAUTH_PENDING_KEY);
-    if (pending === "apple") return "Signing in with Apple…";
-    if (pending === "google") return "Signing in with Google…";
-    return "Signing in…";
-  });
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authLoadingMsg, setAuthLoadingMsg] = useState("Signing in…");
   const [tab, setTab] = useState("home");
   const [authError, setAuthError] = useState("");
   const authErrTimer = useRef(null);
-  const oauthHandledRef = useRef(false);
-  const oauthResolveInFlightRef = useRef(false);
   const showAuthError = (msg) => {
     setAuthError(msg);
     if (authErrTimer.current) clearTimeout(authErrTimer.current);
@@ -258,8 +272,10 @@ export default function App() {
   };
 
   useEffect(() => {
-    document.getElementById("app-splash")?.remove();
-  }, []);
+    if (!loading && !authLoading) {
+      document.getElementById("app-splash")?.remove();
+    }
+  }, [loading, authLoading]);
 
   const completeOAuthSignIn = async (u) => {
     const snap = await getDoc(doc(db, "users", u.uid));
@@ -270,12 +286,6 @@ export default function App() {
       setUser(u);
       setScreen("google-role");
     }
-  };
-
-  const paintThenRedirect = async (startRedirect) => {
-    setAuthLoading(true);
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    await startRedirect();
   };
 
   useEffect(() => {
@@ -309,76 +319,17 @@ export default function App() {
   }, []);
 
 
-  const finishOAuthRedirect = (failed = false) => {
-    const returnScreen =
-      sessionStorage.getItem(OAUTH_RETURN_SCREEN_KEY) ||
-      (sessionStorage.getItem("selectedRole") ? "landing" : "role-pick");
+  // Clear stale redirect flags from the old broken redirect flow
+  useEffect(() => {
     sessionStorage.removeItem(OAUTH_PENDING_KEY);
     sessionStorage.removeItem(OAUTH_RETURN_SCREEN_KEY);
-    setAuthLoading(false);
-    if (failed) setScreen(returnScreen);
-    setLoading(false);
-  };
-
-  const resolveOAuthRedirect = async () => {
-    const pending = sessionStorage.getItem(OAUTH_PENDING_KEY);
-    if (!pending || oauthHandledRef.current || oauthResolveInFlightRef.current) return;
-
-    oauthResolveInFlightRef.current = true;
-    setAuthLoading(true);
-    setLoading(true);
-    setAuthLoadingMsg(
-      pending === "apple" ? "Signing in with Apple…" : "Signing in with Google…"
-    );
-
-    try {
-      const result = await getRedirectResult(auth);
-      let signedInUser = result?.user ?? auth.currentUser;
-
-      if (!signedInUser) {
-        await new Promise((r) => setTimeout(r, 600));
-        signedInUser = auth.currentUser;
-      }
-
-      if (signedInUser) {
-        oauthHandledRef.current = true;
-        await completeOAuthSignIn(signedInUser);
-        sessionStorage.removeItem(OAUTH_PENDING_KEY);
-        sessionStorage.removeItem(OAUTH_RETURN_SCREEN_KEY);
-        setAuthLoading(false);
-        setLoading(false);
-        return;
-      }
-
-      finishOAuthRedirect(true);
-      showAuthError("Sign-in was cancelled or failed. Please try again or use email.");
-    } catch (e) {
-      if (e.code !== "auth/popup-closed-by-user") {
-        console.error("Redirect sign-in error:", e);
-        showAuthError("Sign-in failed. Please try again or use email.");
-      }
-      finishOAuthRedirect(true);
-    } finally {
-      oauthResolveInFlightRef.current = false;
-    }
-  };
-
-  useEffect(() => {
-    if (sessionStorage.getItem(OAUTH_PENDING_KEY)) {
-      resolveOAuthRedirect();
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    getRedirectResult(auth).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      const oauthPending = sessionStorage.getItem(OAUTH_PENDING_KEY);
-
       if (firebaseUser) {
         setUser(firebaseUser);
-        if (oauthPending && !oauthHandledRef.current) {
-          await resolveOAuthRedirect();
-          return;
-        }
         setTimeout(() => requestNotificationPermission(firebaseUser.uid), 3000);
         // Handle payment success redirect
       const paymentStatus = new URLSearchParams(window.location.search).get('payment');
@@ -465,11 +416,6 @@ export default function App() {
       } else {
         setUser(null);
         setProfile(null);
-        if (oauthPending) {
-          setLoading(true);
-          await resolveOAuthRedirect();
-          return;
-        }
         // Show role picker on fresh open; go to landing if role already chosen this session
         setScreen(sessionStorage.getItem("selectedRole") ? "landing" : "role-pick");
         setLoading(false);
@@ -495,39 +441,29 @@ export default function App() {
 
   if (loading || authLoading) return <AuthLoadingScreen message={authLoading ? authLoadingMsg : "Loading…"} />;
 
-  const startOAuthRedirect = (provider) => {
-    oauthHandledRef.current = false;
-    sessionStorage.setItem(OAUTH_RETURN_SCREEN_KEY, screen);
-    return paintThenRedirect(provider);
-  };
-
-  const handleGoogleSignIn = async () => {
+  const runOAuthPopup = async (providerName, signInFn, busyMsg) => {
+    const unlockPage = lockPageForOAuth();
+    setAuthLoading(true);
+    setAuthLoadingMsg(busyMsg);
     try {
-      setAuthLoadingMsg("Redirecting to Google…");
-      await startOAuthRedirect(signInWithGoogleOAuth);
+      const result = await signInFn();
+      await completeOAuthSignIn(result.user);
     } catch (e) {
-      sessionStorage.removeItem(OAUTH_PENDING_KEY);
-      sessionStorage.removeItem(OAUTH_RETURN_SCREEN_KEY);
-      setAuthLoading(false);
       if (e.code !== "auth/popup-closed-by-user") {
-        showAuthError("Google sign-in failed. Please try again or use email.");
+        console.error(`${providerName} sign-in error:`, e);
+        showAuthError(`${providerName} sign-in failed. Please try again or use email.`);
       }
+    } finally {
+      unlockPage();
+      setAuthLoading(false);
     }
   };
 
-  const handleAppleSignIn = async () => {
-    try {
-      setAuthLoadingMsg("Redirecting to Apple…");
-      await startOAuthRedirect(signInWithAppleOAuth);
-    } catch (e) {
-      sessionStorage.removeItem(OAUTH_PENDING_KEY);
-      sessionStorage.removeItem(OAUTH_RETURN_SCREEN_KEY);
-      setAuthLoading(false);
-      if (e.code !== "auth/popup-closed-by-user") {
-        showAuthError("Apple Sign-In failed. Please try again or use email.");
-      }
-    }
-  };
+  const handleGoogleSignIn = () =>
+    runOAuthPopup("Google", signInWithGooglePopup, "Signing in with Google…");
+
+  const handleAppleSignIn = () =>
+    runOAuthPopup("Apple", signInWithApplePopup, "Signing in with Apple…");
 
   const wrap = (el) => (
     <>
