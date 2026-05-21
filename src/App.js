@@ -4083,7 +4083,7 @@ function RecipesTab({ profile, user, onUpgrade }) {
         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 22, margin: 0 }}>Recipe Builder 🍽️</h2>
         <button onClick={() => setViewSaved(true)} style={{ background: "none", border: "1px solid " + C.cardBorder, borderRadius: 8, padding: "5px 12px", color: C.muted, fontFamily: font, fontSize: 12, cursor: "pointer" }}>📚 Saved ({savedRecipes.length})</button>
       </div>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>AI-powered balanced meals for your pet</p>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>Verified recipes · AAFCO/USDA standards · WSAVA calorie formula</p>
       <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
         {[1, 2, 3].map(s => <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: step >= s ? C.green : C.cardBorder }} />)}
       </div>
@@ -4118,7 +4118,7 @@ function RecipesTab({ profile, user, onUpgrade }) {
         <div>
           <div style={{ ...card, marginBottom: 20, background: C.green + "11", border: "1px solid " + C.green + "33" }}>
             <div style={{ color: C.green, fontSize: 13, fontWeight: 700 }}>Building for: {selectedPet?.name} ({selectedPet?.weight})</div>
-            <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>Select what you have available. Portions calculated by AI.</div>
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>Select what you have available. Portions scaled to your pet's WSAVA calorie target.</div>
           </div>
           {renderIngredientSection("proteins", "🥩", "Proteins (required)")}
           {renderIngredientSection("carbs", "🍚", "Carbs")}
@@ -4168,7 +4168,7 @@ function RecipesTab({ profile, user, onUpgrade }) {
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setStep(2)} style={{ ...btn(C.cardBorder, C.muted) }}>← Back</button>
-            <button onClick={generateRecipe} disabled={generating} style={{ ...btn(C.green), flex: 1 }}>{generating ? "Generating recipe... 🤖" : "✨ Generate Recipe"}</button>
+            <button onClick={generateRecipe} disabled={generating} style={{ ...btn(C.green), flex: 1 }}>{generating ? "Finding best recipe... 🔍" : "✨ Get Verified Recipe"}</button>
           </div>
           {generating && (
             <div style={{ ...card, marginTop: 16, textAlign: "center", padding: 30 }}>
