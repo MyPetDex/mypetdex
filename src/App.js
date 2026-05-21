@@ -3739,6 +3739,7 @@ const INGREDIENTS = {
 };
 
 // Hard-coded toxicity blocklist — ASPCA + AVMA verified toxic foods
+// eslint-disable-next-line no-unused-vars
 const TOXIC_INGREDIENTS = {
   dog: ["grapes", "raisins", "onion", "onions", "garlic", "leek", "chive", "chocolate", "xylitol", "macadamia", "avocado", "alcohol", "caffeine", "coffee", "tea", "nutmeg", "raw yeast", "yeast dough", "mushroom", "wild mushroom"],
   cat: ["grapes", "raisins", "onion", "onions", "garlic", "leek", "chive", "chocolate", "xylitol", "alcohol", "caffeine", "coffee", "tea", "raw fish", "raw meat", "dog food", "milk", "dairy", "macadamia", "avocado", "mushroom"],
