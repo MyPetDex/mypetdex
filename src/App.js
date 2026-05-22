@@ -1,23 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { hasFeature, UpgradePrompt } from './planUtils';
-import { BRAND, dismissAppSplash } from './brand';
-import {
-  auth,
-  db,
-  getRedirectResult,
-  OAUTH_PENDING_KEY,
-  OAUTH_RETURN_SCREEN_KEY,
-  requestNotificationPermission,
-  signInWithApplePopup,
-  signInWithGooglePopup,
-} from "./firebase";
+import { auth, db, GoogleAuthProvider, signInWithPopup, requestNotificationPermission } from "./firebase";
 
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  OAuthProvider,
 } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import {
@@ -38,9 +29,9 @@ function getReferralCodeFromURL() {
 }
 
 const C = {
-  bg: BRAND.bg, card: "#FFFFFF", cardBorder: "#E2E8F0",
-  green: BRAND.blue, gold: "#F59E0B", text: BRAND.text,
-  muted: BRAND.muted, danger: "#E05C5C", inputBg: "#E8EFFE",
+  bg: "#F5F8FF", card: "#FFFFFF", cardBorder: "#E2E8F0",
+  green: "#3B82F6", gold: "#F59E0B", text: "#1E293B",
+  muted: "#64748B", danger: "#E05C5C", inputBg: "#EEF4FF",
 };
 const font = "'Nunito', sans-serif";
 const btn = (bg = C.green, color = "#0F1A14") => ({
@@ -185,266 +176,6 @@ function Spinner() {
     </div>
   );
 }
-function lockPageForOAuth() {
-  const scrollY = window.scrollY;
-  document.documentElement.style.overflow = "hidden";
-  document.body.style.overflow = "hidden";
-  document.body.style.position = "fixed";
-  document.body.style.top = `-${scrollY}px`;
-  document.body.style.left = "0";
-  document.body.style.right = "0";
-  document.body.style.width = "100%";
-  return () => {
-    document.documentElement.style.overflow = "";
-    document.body.style.overflow = "";
-    document.body.style.position = "";
-    document.body.style.top = "";
-    document.body.style.left = "";
-    document.body.style.right = "";
-    document.body.style.width = "";
-    window.scrollTo(0, scrollY);
-  };
-}
-
-const authPage = {
-  shell: { minHeight: "100vh", background: C.bg, fontFamily: font },
-  gradient: {
-    background: `linear-gradient(145deg, ${BRAND.blue} 0%, #5B9CF8 55%, ${BRAND.bg} 100%)`,
-    padding: "24px 20px 72px",
-    borderRadius: "0 0 32px 32px",
-    textAlign: "center",
-    boxShadow: `0 12px 40px ${BRAND.blueGlow}`,
-  },
-  topBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 8,
-    textAlign: "left",
-  },
-  backBtn: {
-    background: "rgba(255,255,255,0.22)",
-    border: "none",
-    color: "#fff",
-    cursor: "pointer",
-    fontSize: 12,
-    fontFamily: font,
-    fontWeight: 800,
-    padding: "8px 12px",
-    borderRadius: 999,
-    flexShrink: 0,
-  },
-  headerLink: {
-    background: "rgba(255,255,255,0.15)",
-    border: "none",
-    color: "#fff",
-    fontWeight: 800,
-    fontSize: 12,
-    cursor: "pointer",
-    fontFamily: font,
-    padding: "8px 12px",
-    borderRadius: 999,
-  },
-  logo: {
-    width: 72,
-    height: 72,
-    margin: "0 auto 12px",
-    borderRadius: 20,
-    background: "#fff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    boxShadow: "0 8px 28px rgba(0,0,0,0.12)",
-  },
-  badge: (color = BRAND.blue) => ({
-    display: "inline-block",
-    background: color,
-    color: "#fff",
-    borderRadius: 999,
-    padding: "6px 14px",
-    fontSize: 11,
-    fontWeight: 800,
-    marginBottom: 10,
-  }),
-  title: {
-    color: "#fff",
-    fontWeight: 900,
-    fontSize: 28,
-    margin: "0 0 6px",
-    letterSpacing: -0.6,
-    lineHeight: 1.15,
-  },
-  subtitle: {
-    color: "rgba(255,255,255,0.92)",
-    fontSize: 14,
-    fontWeight: 700,
-    margin: "0 auto",
-    maxWidth: 320,
-    lineHeight: 1.45,
-  },
-  cardOuter: { padding: "0 20px 36px", marginTop: -44 },
-  card: (maxW = 420) => ({
-    ...card,
-    width: "100%",
-    maxWidth: maxW,
-    margin: "0 auto",
-    padding: 26,
-    boxShadow: "0 20px 50px rgba(68, 134, 244, 0.12), 0 4px 16px rgba(30, 41, 59, 0.06)",
-    border: "1px solid rgba(255,255,255,0.95)",
-    borderRadius: 20,
-  }),
-  primaryBtn: {
-    width: "100%",
-    padding: "14px 28px",
-    boxShadow: `0 8px 24px ${BRAND.blueGlow}`,
-  },
-  notice: {
-    background: BRAND.bgDeep,
-    borderRadius: 12,
-    padding: "10px 14px",
-    marginBottom: 16,
-    border: `1px solid ${C.cardBorder}`,
-  },
-};
-
-function AuthScreenLayout({ topBar, badge, title, subtitle, children, cardMaxWidth = 420 }) {
-  return (
-    <div style={authPage.shell}>
-      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      <div style={authPage.gradient}>
-        {topBar}
-        <div style={authPage.logo}>
-          <img src="/logo.png" alt="" style={{ width: 52, height: 52, objectFit: "contain" }} />
-        </div>
-        {badge}
-        <h1 style={authPage.title}>{title}</h1>
-        {subtitle ? <p style={authPage.subtitle}>{subtitle}</p> : null}
-      </div>
-      <div style={authPage.cardOuter}>
-        <div style={authPage.card(cardMaxWidth)}>{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function OAuthDivider() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", margin: "20px 0 16px" }}>
-      <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
-      <span style={{ color: C.muted, fontSize: 11, fontWeight: 800, margin: "0 14px", letterSpacing: 1, textTransform: "uppercase" }}>or</span>
-      <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
-    </div>
-  );
-}
-
-function OAuthAppleButton({ onClick, label = "Continue with Apple", disabled = false }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-        width: "100%",
-        padding: "14px 20px",
-        background: disabled ? "#94a3b8" : "#0F172A",
-        border: "none",
-        borderRadius: 14,
-        fontFamily: font,
-        fontWeight: 800,
-        fontSize: 15,
-        color: "#fff",
-        cursor: disabled ? "not-allowed" : "pointer",
-        marginBottom: 12,
-      }}
-    >
-      <svg width="18" height="18" viewBox="0 0 814 1000" fill="white"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.3-57.2-155.3-127.1C46.8 790.4 0 663.4 0 541.8c0-194.3 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z" /></svg>
-      {label}
-    </button>
-  );
-}
-
-function OAuthGoogleButton({ onClick, label = "Continue with Google", disabled = false }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-        width: "100%",
-        padding: "14px 20px",
-        background: "#fff",
-        border: `1.5px solid ${disabled ? "#cbd5e1" : C.cardBorder}`,
-        borderRadius: 14,
-        fontFamily: font,
-        fontWeight: 800,
-        fontSize: 15,
-        color: disabled ? "#94a3b8" : C.text,
-        cursor: disabled ? "not-allowed" : "pointer",
-        boxShadow: disabled ? "none" : "0 2px 8px rgba(30,41,59,0.04)",
-      }}
-    >
-      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" /><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" /><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" /><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" /></svg>
-      {label}
-    </button>
-  );
-}
-
-function AuthLoadingScreen({ message = "Loading your companion…", fixed = false }) {
-  const shell = fixed
-    ? { position: "fixed", inset: 0, zIndex: 10000 }
-    : { minHeight: "100vh" };
-  return (
-    <div style={{
-      ...shell,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      fontFamily: font,
-      background: `linear-gradient(165deg, ${BRAND.blue} 0%, #5B9CF8 42%, ${BRAND.bg} 78%, ${BRAND.bg} 100%)`,
-      overflow: "hidden",
-    }}>
-      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
-      <div style={{
-        width: 108, height: 108, borderRadius: 28, background: "#fff",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        marginBottom: 22,
-        boxShadow: `0 16px 48px ${BRAND.blueGlow}`,
-      }}>
-        <img src="/logo.png" alt="MyPetDex" style={{ width: 76, height: 76, borderRadius: 18, objectFit: "contain" }} />
-      </div>
-      <div style={{ fontWeight: 900, fontSize: 32, color: "#fff", letterSpacing: -0.8, marginBottom: 6, textShadow: "0 2px 16px rgba(47,106,216,0.35)" }}>MyPetDex</div>
-      <div style={{ fontWeight: 700, fontSize: 15, color: "rgba(255,255,255,0.92)", marginBottom: 28 }}>Your pet&apos;s world, organized</div>
-      <div style={{
-        color: C.text, fontSize: 14, fontWeight: 700, marginBottom: 20,
-        background: "rgba(255,255,255,0.88)", padding: "10px 20px", borderRadius: 999,
-        boxShadow: "0 4px 20px rgba(68,134,244,0.15)",
-      }}>{message}</div>
-      <div style={{ display: "flex", gap: 8 }}>
-        {[0, 1, 2].map((i) => (
-          <div key={i} style={{
-            width: 10, height: 10, borderRadius: "50%", background: BRAND.blue,
-            animation: "mpd-dot 1.2s ease-in-out infinite",
-            animationDelay: `${i * 0.15}s`,
-          }} />
-        ))}
-      </div>
-      <style>{`
-        @keyframes mpd-dot {
-          0%, 80%, 100% { transform: scale(0.65); opacity: 0.45; }
-          40% { transform: scale(1); opacity: 1; }
-        }
-      `}</style>
-    </div>
-  );
-}
 function Toast({ message }) {
   return (
     <div style={{ position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)", background: C.green, color: "#0F1A14", padding: "12px 24px", borderRadius: 12, fontFamily: font, fontWeight: 800, fontSize: 14, zIndex: 999, boxShadow: "0 4px 20px rgba(0,0,0,0.3)", whiteSpace: "nowrap" }}>
@@ -485,8 +216,7 @@ export default function App() {
     (urlRoleFromURL || sessionStorage.getItem("selectedRole")) ? "landing" : "role-pick"
   );
   const [loading, setLoading] = useState(true);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authLoadingMsg, setAuthLoadingMsg] = useState("Signing in…");
+  const [appleSignInPending, setAppleSignInPending] = useState(false);
   const [tab, setTab] = useState("home");
   const [authError, setAuthError] = useState("");
   const authErrTimer = useRef(null);
@@ -494,23 +224,6 @@ export default function App() {
     setAuthError(msg);
     if (authErrTimer.current) clearTimeout(authErrTimer.current);
     authErrTimer.current = setTimeout(() => setAuthError(""), 6000);
-  };
-
-  useEffect(() => {
-    if (!loading && !authLoading) {
-      dismissAppSplash();
-    }
-  }, [loading, authLoading]);
-
-  const completeOAuthSignIn = async (u) => {
-    const snap = await getDoc(doc(db, "users", u.uid));
-    if (snap.exists()) {
-      setProfile(snap.data());
-      setScreen("app");
-    } else {
-      setUser(u);
-      setScreen("google-role");
-    }
   };
 
   useEffect(() => {
@@ -543,13 +256,6 @@ export default function App() {
     return () => document.head.removeChild(style);
   }, []);
 
-
-  // Clear stale redirect flags from the old broken redirect flow
-  useEffect(() => {
-    sessionStorage.removeItem(OAUTH_PENDING_KEY);
-    sessionStorage.removeItem(OAUTH_RETURN_SCREEN_KEY);
-    getRedirectResult(auth).catch(() => {});
-  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -597,12 +303,6 @@ export default function App() {
         } else {
           try {
             const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-            if (isOAuthUser && !snap.exists()) {
-              setUser(firebaseUser);
-              setScreen("google-role");
-              setLoading(false);
-              return;
-            }
             // Always load fresh plan from Firestore — never use cached plan
             const freshData = snap.exists() ? snap.data() : {};
             const userData = { 
@@ -647,7 +347,7 @@ export default function App() {
       }
     });
     return unsub;
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -664,48 +364,32 @@ export default function App() {
     }
   }, []);
 
-  if (loading || authLoading) {
-    return (
-      <>
-        <AuthLoadingScreen message={authLoading ? authLoadingMsg : "Loading…"} fixed />
-        <style>{`html, body { overflow: hidden !important; background: ${BRAND.bg} !important; }`}</style>
-      </>
-    );
-  }
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 52 }}>🐾</div>
+        <div style={{ color: C.green, fontWeight: 900, fontSize: 24, marginTop: 8 }}>MyPetDex</div>
+        <Spinner />
+      </div>
+    </div>
+  );
 
-  const runOAuthPopup = async (providerName, signInFn, busyMsg) => {
-    const unlockPage = lockPageForOAuth();
-    setAuthLoading(true);
-    setAuthLoadingMsg("Opening secure sign-in…");
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    setAuthLoadingMsg(busyMsg);
-    try {
-      const result = await signInFn();
-      setAuthLoadingMsg("Finishing sign-in…");
-      await completeOAuthSignIn(result.user);
-    } catch (e) {
-      if (e.code !== "auth/popup-closed-by-user") {
-        console.error(`${providerName} sign-in error:`, e);
-        showAuthError(`${providerName} sign-in failed. Please try again or use email.`);
-      }
-    } finally {
-      unlockPage();
-      setAuthLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = () =>
-    runOAuthPopup("Google", signInWithGooglePopup, "Complete Google sign-in in the popup…");
-
-  const handleAppleSignIn = () =>
-    runOAuthPopup("Apple", signInWithApplePopup, "Complete Apple sign-in in the popup…");
-
+  // ── Auth error toast shown on top of any screen ──────────────────────────────
   const wrap = (el) => (
     <>
-      {authLoading && <AuthLoadingScreen message={authLoadingMsg} fixed />}
       {authError && (
         <div style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", background: C.danger, color: "#fff", padding: "13px 24px", borderRadius: 14, fontFamily: font, fontWeight: 700, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.25)", maxWidth: "88vw", textAlign: "center", lineHeight: 1.4 }}>
           {authError}
+        </div>
+      )}
+      {appleSignInPending && (
+        <div style={{ position: "fixed", inset: 0, background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 10000, fontFamily: font }}>
+          <img src="/logo.png" alt="MyPetDex" style={{ width: 80, height: 80, borderRadius: 20, marginBottom: 20, boxShadow: "0 4px 24px rgba(59,130,246,0.18)" }} />
+          <div style={{ fontWeight: 800, fontSize: 24, color: C.text, letterSpacing: -0.5 }}>MyPetDex</div>
+          <div style={{ color: C.muted, marginTop: 10, fontSize: 15 }}>Signing in with Apple…</div>
+          <div style={{ marginTop: 28, width: 36, height: 36, border: `3px solid ${C.cardBorder}`, borderTopColor: C.green, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
       {el}
@@ -717,10 +401,86 @@ export default function App() {
     setScreen("landing");
   }} onLogin={() => setScreen("login")} />);
   if (screen === "admin") return wrap(<AdminDashboard onLogout={async () => { await signOut(auth); setScreen("landing"); }} />);
-  if (screen === "landing") return wrap(<Landing onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} onGoogle={handleGoogleSignIn} onApple={handleAppleSignIn} urlRole={urlRole} onBack={() => { sessionStorage.removeItem("selectedRole"); sessionStorage.removeItem("selectedPlan"); setScreen("role-pick"); }} />);
+  if (screen === "landing") return wrap(<Landing onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} onGoogle={async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const u = result.user;
+      const snap = await getDoc(doc(db, "users", u.uid));
+      if (snap.exists()) {
+        setProfile(snap.data());
+        setScreen("app");
+      } else {
+        setUser(u);
+        setScreen("google-role");
+      }
+    } catch (e) {
+      if (e.code !== "auth/popup-closed-by-user") {
+        console.error("Google sign in error:", e);
+        showAuthError("Google sign-in failed. Please try again or use email to sign in.");
+      }
+    }
+  }} onApple={async () => {
+    try {
+      const provider = new OAuthProvider("apple.com");
+      provider.addScope("email");
+      provider.addScope("name");
+      setAppleSignInPending(true);
+      const result = await signInWithPopup(auth, provider);
+      const u = result.user;
+      const snap = await getDoc(doc(db, "users", u.uid));
+      setAppleSignInPending(false);
+      if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
+      else { setUser(u); setScreen("google-role"); }
+    } catch (e) {
+      setAppleSignInPending(false);
+      if (e.code !== "auth/popup-closed-by-user") {
+        console.error("Apple sign in error:", e);
+        showAuthError("Apple Sign-In failed. Please try again or use Google or email.");
+      }
+    }
+  }} urlRole={urlRole} onBack={() => { sessionStorage.removeItem("selectedRole"); sessionStorage.removeItem("selectedPlan"); setScreen("role-pick"); }} />);
   if (screen === "google-role") return wrap(<GoogleRoleScreen user={user} initialPlan={urlPlan} initialRole={urlRole} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onLogout={async () => { await signOut(auth); setScreen("landing"); }} />);
-  if (screen === "register") return wrap(<RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); p.skipVerify ? setScreen("app") : setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} onApple={handleAppleSignIn} onGoogle={handleGoogleSignIn} />);
-  if (screen === "login") return wrap(<LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onReset={() => setScreen("reset")} onApple={handleAppleSignIn} onGoogle={handleGoogleSignIn} />);
+  if (screen === "register") return wrap(<RegisterScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); p.skipVerify ? setScreen("app") : setScreen("verify"); }} initialPlan={urlPlan} initialRole={urlRole} onApple={async () => { try { const provider = new OAuthProvider("apple.com"); provider.addScope("email"); provider.addScope("name"); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") { console.error("Apple sign in error:", e); showAuthError("Apple Sign-In isn't configured yet — please use Google or email to sign in."); } } }} onGoogle={async () => { try { const provider = new GoogleAuthProvider(); const result = await signInWithPopup(auth, provider); const u = result.user; const snap = await getDoc(doc(db, "users", u.uid)); if (snap.exists()) { setProfile(snap.data()); setScreen("app"); } else { setUser(u); setScreen("google-role"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user") { console.error("Google sign in error:", e); showAuthError("Google sign-in failed. Please try again or use email to sign in."); } } }} />);
+  if (screen === "login") return wrap(<LoginScreen onBack={() => setScreen("landing")} onSuccess={(p) => { setProfile(p); setScreen("app"); }} onReset={() => setScreen("reset")} onApple={async () => {
+    try {
+      const provider = new OAuthProvider("apple.com");
+      provider.addScope("email");
+      provider.addScope("name");
+      setAppleSignInPending(true);
+      const result = await signInWithPopup(auth, provider);
+      const u = result.user;
+      const snap = await getDoc(doc(db, "users", u.uid));
+      setAppleSignInPending(false);
+      if (snap.exists()) { setProfile(snap.data()); setScreen("app"); }
+      else { setUser(u); setScreen("google-role"); }
+    } catch (e) {
+      setAppleSignInPending(false);
+      if (e.code !== "auth/popup-closed-by-user") {
+        console.error("Apple sign in error:", e);
+        showAuthError("Apple Sign-In failed. Please try again or use Google or email.");
+      }
+    }
+  }} onGoogle={async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const u = result.user;
+      const snap = await getDoc(doc(db, "users", u.uid));
+      if (snap.exists()) {
+        setProfile(snap.data());
+        setScreen("app");
+      } else {
+        setUser(u);
+        setScreen("google-role");
+      }
+    } catch (e) {
+      if (e.code !== "auth/popup-closed-by-user") {
+        console.error("Google sign in error:", e);
+        showAuthError("Google sign-in failed. Please try again or use email to sign in.");
+      }
+    }
+  }} />);
   if (screen === "reset") return wrap(<ResetPasswordScreen onBack={() => setScreen("login")} />);
   if (screen === "verify") return wrap(<VerifyEmail onVerified={async () => {
     const u = auth.currentUser;
@@ -1749,28 +1509,31 @@ function AuthButtons({ onApple, onGoogle, onEmail, emailLabel = "Create Free Acc
     fn();
   };
 
-  const ready = confirmed && ageConfirmed;
-
   return (
     <>
-      <div style={{ ...authPage.notice, display: "flex", alignItems: "flex-start", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10, background: "#EEF4FF", borderRadius: 10, padding: "10px 14px", maxWidth: 340, width: "100%" }}>
         <input type="checkbox" id="roleConfirm" checked={confirmed} onChange={e => { setConfirmed(e.target.checked); setShowWarning(false); }} style={{ marginTop: 2, cursor: "pointer", width: 16, height: 16, flexShrink: 0 }} />
-        <label htmlFor="roleConfirm" style={{ color: C.text, fontSize: 12, cursor: "pointer", fontFamily: font, lineHeight: 1.5 }}>{confirmLabel}</label>
+        <label htmlFor="roleConfirm" style={{ color: "#1E293B", fontSize: 12, cursor: "pointer", fontFamily: font, lineHeight: 1.5 }}>{confirmLabel}</label>
       </div>
-      <div style={{ ...authPage.notice, display: "flex", alignItems: "flex-start", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16, background: "#EEF4FF", borderRadius: 10, padding: "10px 14px", maxWidth: 340, width: "100%" }}>
         <input type="checkbox" id="ageConfirmBtn" checked={ageConfirmed} onChange={e => { setAgeConfirmed(e.target.checked); setShowWarning(false); }} style={{ marginTop: 2, cursor: "pointer", width: 16, height: 16, flexShrink: 0 }} />
-        <label htmlFor="ageConfirmBtn" style={{ color: C.text, fontSize: 12, cursor: "pointer", fontFamily: font, lineHeight: 1.5 }}>I confirm I am <strong>13 years of age or older</strong>.</label>
+        <label htmlFor="ageConfirmBtn" style={{ color: "#1E293B", fontSize: 12, cursor: "pointer", fontFamily: font, lineHeight: 1.5 }}>I confirm I am <strong>13 years of age or older</strong>.</label>
       </div>
-      {showWarning && <p style={{ color: C.danger, fontSize: 12, marginBottom: 8, textAlign: "center", fontWeight: 700 }}>Please check both boxes before signing up.</p>}
-      <OAuthAppleButton onClick={() => handleAction(onApple)} label="Sign up with Apple" disabled={!ready} />
-      <OAuthGoogleButton onClick={() => handleAction(onGoogle)} label="Sign up with Google" disabled={!ready} />
-      <OAuthDivider />
-      <button
-        style={{ ...btn(ready ? C.green : "#94a3b8", "#fff"), ...authPage.primaryBtn, cursor: ready ? "pointer" : "not-allowed" }}
-        onClick={() => handleAction(onEmail)}
-      >
-        {emailLabel}
+      {showWarning && <p style={{ color: "#E05C5C", fontSize: 12, marginBottom: 8, maxWidth: 340, textAlign: "center" }}>Please check both boxes before signing up.</p>}
+      <button onClick={() => handleAction(onApple)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", maxWidth: 340, padding: "13px 20px", background: (confirmed && ageConfirmed) ? "#000" : "#94a3b8", border: "none", borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: "#fff", cursor: (confirmed && ageConfirmed) ? "pointer" : "not-allowed", marginBottom: 12 }}>
+        <svg width="18" height="18" viewBox="0 0 814 1000" fill="white"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.3-57.2-155.3-127.1C46.8 790.4 0 663.4 0 541.8c0-194.3 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>
+        Sign up with Apple
       </button>
+      <button onClick={() => handleAction(onGoogle)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", maxWidth: 340, padding: "13px 20px", background: "#fff", border: `1.5px solid ${(confirmed && ageConfirmed) ? "#E2E8F0" : "#cbd5e1"}`, borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: (confirmed && ageConfirmed) ? "#1E293B" : "#94a3b8", cursor: (confirmed && ageConfirmed) ? "pointer" : "not-allowed", marginBottom: 12 }}>
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign up with Google
+      </button>
+      <div style={{ display: "flex", alignItems: "center", width: "100%", maxWidth: 340, margin: "4px 0 12px" }}>
+        <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
+        <span style={{ color: C.muted, fontSize: 12, margin: "0 12px" }}>or</span>
+        <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
+      </div>
+      <button style={{ ...btn((confirmed && ageConfirmed) ? C.green : "#94a3b8"), width: "100%", maxWidth: 340, cursor: (confirmed && ageConfirmed) ? "pointer" : "not-allowed" }} onClick={() => handleAction(onEmail)}>{emailLabel}</button>
     </>
   );
 }
@@ -1786,114 +1549,104 @@ function OwnerLanding({ onRegister, onLogin, onGoogle, onApple, onBack }) {
   const handleRegister = () => { sessionStorage.setItem("selectedPlan", selectedPlan); onRegister(); };
   const handleGoogle  = () => { sessionStorage.setItem("selectedPlan", selectedPlan); onGoogle(); };
   const handleApple   = () => { sessionStorage.setItem("selectedPlan", selectedPlan); onApple(); };
-  const topBar = (
-    <div style={authPage.topBar}>
-      <button type="button" onClick={onBack} style={authPage.backBtn}>← Change role</button>
-      <button type="button" onClick={onLogin} style={authPage.headerLink}>Sign In</button>
-    </div>
-  );
-
   return (
-    <AuthScreenLayout
-      topBar={topBar}
-      badge={<span style={authPage.badge(BRAND.blue)}>🐾 For Pet Owners</span>}
-      title="MyPetDex"
-      subtitle="Everything your pet needs — in one simple app."
-      cardMaxWidth={440}
-    >
-      <p style={{ color: C.muted, fontSize: 13, textAlign: "center", margin: "0 0 16px", lineHeight: 1.5 }}>Health records · Reminders · AI Assistant · Nutrition · Adoption</p>
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap", justifyContent: "center" }}>
-        {["🐾 Pet Profiles", "💉 Vaccines", "⏰ Reminders", "🤖 AI Tips", "🍽️ Recipes", "❤️ Adoption"].map(f => (
-          <span key={f} style={{ background: BRAND.bgDeep, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "5px 12px", fontSize: 11, color: C.text, fontWeight: 700 }}>{f}</span>
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", maxWidth: 400, marginBottom: 8 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>← Not a pet owner?</button>
+        <span><span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span><button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button></span>
+      </div>
+      <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, objectFit: "contain", marginBottom: 8 }} />
+      <div style={{ background: C.green, color: "#fff", borderRadius: 20, padding: "4px 16px", fontSize: 12, fontWeight: 700, marginBottom: 8 }}>🐾 For Pet Owners</div>
+      <h1 style={{ color: C.green, fontWeight: 900, fontSize: 38, margin: 0, letterSpacing: -1, textAlign: "center" }}>MyPetDex</h1>
+      <p style={{ color: C.muted, fontSize: 16, textAlign: "center", maxWidth: 320, marginBottom: 4 }}>Everything your pet needs — in one simple app.</p>
+      <p style={{ color: "#64748b", fontSize: 13, textAlign: "center", maxWidth: 300, marginBottom: 20 }}>Health records · Reminders · AI Assistant · Nutrition · Adoption</p>
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap", justifyContent: "center", maxWidth: 340 }}>
+        {["🐾 Pet Profiles","💉 Vaccines","⏰ Reminders","🤖 AI Tips","🍽️ Recipes","❤️ Adoption"].map(f => (
+          <span key={f} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "4px 12px", fontSize: 12, color: C.text, fontWeight: 600 }}>{f}</span>
         ))}
       </div>
-      <div style={{ marginBottom: 18 }}>
+      <div style={{ width: "100%", maxWidth: 340, marginBottom: 16 }}>
         <div style={{ color: C.text, fontWeight: 800, fontSize: 14, marginBottom: 10, textAlign: "center" }}>Choose your plan</div>
         <div style={{ display: "flex", gap: 8 }}>
           {plans.map(p => (
-            <div key={p.id} onClick={() => setSelectedPlan(p.id)} style={{ flex: 1, background: selectedPlan === p.id ? BRAND.bgDeep : C.card, border: `2px solid ${selectedPlan === p.id ? p.color : C.cardBorder}`, borderRadius: 14, padding: "10px 6px", textAlign: "center", cursor: "pointer" }}>
+            <div key={p.id} onClick={() => setSelectedPlan(p.id)} style={{ flex: 1, background: C.card, border: `2px solid ${selectedPlan === p.id ? p.color : C.cardBorder}`, borderRadius: 12, padding: "10px 6px", textAlign: "center", cursor: "pointer", transition: "border 0.15s" }}>
               <div style={{ color: p.color, fontWeight: 900, fontSize: 13 }}>{p.label}</div>
               <div style={{ color: C.text, fontWeight: 800, fontSize: 12, marginTop: 2 }}>{p.price}</div>
               <div style={{ color: C.muted, fontSize: 10, marginTop: 3, lineHeight: 1.3 }}>{p.sub}</div>
             </div>
           ))}
         </div>
-        {selectedPlan !== "free" && <div style={{ textAlign: "center", color: BRAND.blue, fontSize: 12, fontWeight: 800, marginTop: 10 }}>🎁 30-day free trial — no card required</div>}
+        {selectedPlan !== "free" && <div style={{ textAlign: "center", color: C.green, fontSize: 12, fontWeight: 700, marginTop: 8 }}>🎁 30-day free trial — no credit card needed to start</div>}
       </div>
-      <AuthButtons
-        onApple={handleApple}
-        onGoogle={handleGoogle}
-        onEmail={handleRegister}
+      <AuthButtons onApple={handleApple} onGoogle={handleGoogle} onEmail={handleRegister}
         emailLabel={selectedPlan === "free" ? "Create Free Account →" : `Start ${selectedPlan === "plus" ? "Plus" : "Family"} Free Trial →`}
-        confirmLabel="I confirm I am signing up as a Pet Owner and agree to the Terms of Service."
-      />
-      <p style={{ color: C.muted, fontSize: 11, marginTop: 16, textAlign: "center" }}>Free · Plus $2.99/mo · Family $4.99/mo</p>
-      <p style={{ color: C.muted, fontSize: 11, margin: "12px 0 0", textAlign: "center" }}>🔒 Encrypted · Never shared with third parties</p>
-    </AuthScreenLayout>
+        confirmLabel="I confirm I am signing up as a Pet Owner and agree to the Terms of Service." />
+      <p style={{ color: C.muted, fontSize: 11, marginTop: 16, textAlign: "center" }}>Free plan available · Plus $2.99/mo · Family $4.99/mo</p>
+      <div style={{ marginTop: 12, background: C.card, borderRadius: 12, padding: "10px 18px", border: `1px solid ${C.cardBorder}`, maxWidth: 340 }}>
+        <p style={{ color: C.muted, fontSize: 11, margin: 0, textAlign: "center" }}>🔒 Your data is encrypted and never shared with third parties.</p>
+      </div>
+    </div>
   );
 }
 
 // ─── Provider Landing ─────────────────────────────────────────────────────────
 function ProviderLanding({ onRegister, onLogin, onGoogle, onApple, onBack }) {
-  const topBar = (
-    <div style={authPage.topBar}>
-      <button type="button" onClick={onBack} style={authPage.backBtn}>← Change role</button>
-      <button type="button" onClick={onLogin} style={authPage.headerLink}>Sign In</button>
-    </div>
-  );
-
   return (
-    <AuthScreenLayout
-      topBar={topBar}
-      badge={<span style={authPage.badge(C.gold)}>🛎️ For Service Providers</span>}
-      title="Grow Your Pet Business"
-      subtitle="Get discovered by local pet owners looking for your services."
-      cardMaxWidth={440}
-    >
-      <p style={{ color: C.muted, fontSize: 13, textAlign: "center", margin: "0 0 16px" }}>Grooming · Walking · Veterinary · Training · Boarding & more</p>
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap", justifyContent: "center" }}>
-        {["📍 Local Discovery", "⭐ Reviews", "📅 Bookings", "💼 Profile", "📊 Analytics", "🎉 6-Mo Free"].map(f => (
-          <span key={f} style={{ background: "#FFF9E6", border: "1px solid #FDE68A", borderRadius: 20, padding: "5px 12px", fontSize: 11, color: "#92400E", fontWeight: 700 }}>{f}</span>
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", maxWidth: 400, marginBottom: 8 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>← Not a service provider?</button>
+        <span><span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span><button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button></span>
+      </div>
+      <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, objectFit: "contain", marginBottom: 8 }} />
+      <div style={{ background: C.green, color: "#fff", borderRadius: 20, padding: "4px 16px", fontSize: 12, fontWeight: 700, marginBottom: 8 }}>🛎️ For Service Providers</div>
+      <h1 style={{ color: C.green, fontWeight: 900, fontSize: 32, margin: "0 0 8px", letterSpacing: -1, textAlign: "center" }}>Grow Your Pet Business</h1>
+      <p style={{ color: C.muted, fontSize: 15, textAlign: "center", maxWidth: 320, marginBottom: 4 }}>Join MyPetDex and get discovered by local pet owners looking for your services.</p>
+      <p style={{ color: "#64748b", fontSize: 13, textAlign: "center", maxWidth: 300, marginBottom: 20 }}>Grooming · Walking · Veterinary · Training · Boarding & more</p>
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap", justifyContent: "center", maxWidth: 340 }}>
+        {["📍 Local Discovery","⭐ Reviews","📅 Bookings","💼 Business Profile","📊 Analytics","🎉 6-Month Free Trial"].map(f => (
+          <span key={f} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "4px 12px", fontSize: 12, color: C.text, fontWeight: 600 }}>{f}</span>
         ))}
       </div>
       <AuthButtons onApple={onApple} onGoogle={onGoogle} onEmail={onRegister} emailLabel="Join as Provider →" confirmLabel="I confirm I am signing up as a Service Provider and agree to the Terms of Service." />
-      <div style={{ marginTop: 16, background: "#FFF9E6", borderRadius: 12, padding: "12px 14px", border: "1px solid #F59E0B" }}>
-        <p style={{ color: "#92400E", fontSize: 12, margin: 0, textAlign: "center", fontWeight: 800 }}>🎉 6 months free — then 5% commission only. No monthly fees.</p>
+      <div style={{ marginTop: 16, background: "#FFF9E6", borderRadius: 12, padding: "10px 18px", border: "1px solid #F59E0B", maxWidth: 340 }}>
+        <p style={{ color: "#92400E", fontSize: 11, margin: 0, textAlign: "center", fontWeight: 700 }}>🎉 Free for 6 months — then only 5% commission on bookings. No monthly fees ever!</p>
       </div>
-      <p style={{ color: C.muted, fontSize: 11, margin: "12px 0 0", textAlign: "center" }}>🔒 Encrypted · Never shared with third parties</p>
-    </AuthScreenLayout>
+      <div style={{ marginTop: 10, background: C.card, borderRadius: 12, padding: "10px 18px", border: `1px solid ${C.cardBorder}`, maxWidth: 340 }}>
+        <p style={{ color: C.muted, fontSize: 11, margin: 0, textAlign: "center" }}>🔒 Your data is encrypted and never shared with third parties.</p>
+      </div>
+    </div>
   );
 }
 
 // ─── Shelter Landing ──────────────────────────────────────────────────────────
 function ShelterLanding({ onRegister, onLogin, onGoogle, onApple, onBack }) {
-  const topBar = (
-    <div style={authPage.topBar}>
-      <button type="button" onClick={onBack} style={authPage.backBtn}>← Change role</button>
-      <button type="button" onClick={onLogin} style={authPage.headerLink}>Sign In</button>
-    </div>
-  );
-
   return (
-    <AuthScreenLayout
-      topBar={topBar}
-      badge={<span style={authPage.badge("#22c55e")}>🏠 For Animal Shelters</span>}
-      title="Forever Homes Start Here"
-      subtitle="List adoptable pets and connect with loving families nearby."
-      cardMaxWidth={440}
-    >
-      <p style={{ color: C.muted, fontSize: 13, textAlign: "center", margin: "0 0 16px" }}>Dogs · Cats · Rabbits · Birds · and more</p>
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap", justifyContent: "center" }}>
-        {["🐾 Listings", "❤️ Adoptions", "📍 Local", "🔔 Alerts", "📋 Profiles", "✅ Free"].map(f => (
-          <span key={f} style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 20, padding: "5px 12px", fontSize: 11, color: "#166534", fontWeight: 700 }}>{f}</span>
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: 24 }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", maxWidth: 400, marginBottom: 8 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>← Not an animal shelter?</button>
+        <span><span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Already have an account? </span><button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button></span>
+      </div>
+      <img src="/logo.png" alt="MyPetDex" style={{ width: 90, height: 90, objectFit: "contain", marginBottom: 8 }} />
+      <div style={{ background: "#22c55e", color: "#fff", borderRadius: 20, padding: "4px 16px", fontSize: 12, fontWeight: 700, marginBottom: 8 }}>🏠 For Animal Shelters</div>
+      <h1 style={{ color: C.green, fontWeight: 900, fontSize: 32, margin: "0 0 8px", letterSpacing: -1, textAlign: "center" }}>Help Pets Find Forever Homes</h1>
+      <p style={{ color: C.muted, fontSize: 15, textAlign: "center", maxWidth: 320, marginBottom: 4 }}>List your adoptable pets and connect with loving families in your area.</p>
+      <p style={{ color: "#64748b", fontSize: 13, textAlign: "center", maxWidth: 300, marginBottom: 20 }}>Dogs · Cats · Rabbits · Birds · and more</p>
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap", justifyContent: "center", maxWidth: 340 }}>
+        {["🐾 Pet Listings","❤️ Adoption Requests","📍 Local Visibility","🔔 Notifications","📋 Pet Profiles","✅ Always Free"].map(f => (
+          <span key={f} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "4px 12px", fontSize: 12, color: C.text, fontWeight: 600 }}>{f}</span>
         ))}
       </div>
       <AuthButtons onApple={onApple} onGoogle={onGoogle} onEmail={onRegister} emailLabel="Register Your Shelter →" confirmLabel="I confirm I am registering as an Animal Shelter and agree to the Terms of Service." />
-      <div style={{ marginTop: 16, background: "#F0FDF4", borderRadius: 12, padding: "12px 14px", border: "1px solid #22c55e" }}>
-        <p style={{ color: "#166534", fontSize: 12, margin: 0, textAlign: "center", fontWeight: 800 }}>✅ Shelter access is always FREE — forever!</p>
+      <div style={{ marginTop: 16, background: "#F0FDF4", borderRadius: 12, padding: "10px 18px", border: "1px solid #22c55e", maxWidth: 340 }}>
+        <p style={{ color: "#166534", fontSize: 11, margin: 0, textAlign: "center", fontWeight: 700 }}>✅ Shelter access is always FREE on MyPetDex — forever!</p>
       </div>
-      <p style={{ color: C.muted, fontSize: 11, margin: "12px 0 0", textAlign: "center" }}>🔒 Encrypted · Never shared with third parties</p>
-    </AuthScreenLayout>
+      <div style={{ marginTop: 10, background: C.card, borderRadius: 12, padding: "10px 18px", border: `1px solid ${C.cardBorder}`, maxWidth: 340 }}>
+        <p style={{ color: C.muted, fontSize: 11, margin: 0, textAlign: "center" }}>🔒 Your data is encrypted and never shared with third parties.</p>
+      </div>
+    </div>
   );
 }
 
@@ -1906,7 +1659,7 @@ function RolePickerScreen({ onSelectRole, onLogin }) {
       title: "Pet Owner",
       desc: "Manage health records, reminders, AI tips & more",
       color: C.green,
-      light: BRAND.bgDeep,
+      light: "#EEF4FF",
     },
     {
       id: "provider",
@@ -1927,49 +1680,42 @@ function RolePickerScreen({ onSelectRole, onLogin }) {
   ];
 
   return (
-    <AuthScreenLayout
-      badge={<span style={authPage.badge(BRAND.blue)}>Welcome</span>}
-      title="MyPetDex"
-      subtitle="How are you joining today?"
-      cardMaxWidth={440}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, padding: "24px 20px" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+
+      {/* Header */}
+      <img src="/logo.png" alt="MyPetDex" style={{ width: 80, height: 80, objectFit: "contain", marginBottom: 10 }} />
+      <h1 style={{ color: C.green, fontWeight: 900, fontSize: 34, margin: "0 0 6px", letterSpacing: -1 }}>MyPetDex</h1>
+      <p style={{ color: C.muted, fontSize: 15, margin: "0 0 32px", textAlign: "center" }}>Welcome! How are you joining today?</p>
+
+      {/* Role cards */}
+      <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 14 }}>
         {roles.map(r => (
-          <button
-            key={r.id}
-            type="button"
-            onClick={() => onSelectRole(r.id)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              background: C.card,
-              border: `2px solid ${C.cardBorder}`,
-              borderRadius: 16,
-              padding: "16px 18px",
-              cursor: "pointer",
-              textAlign: "left",
-              fontFamily: font,
-              boxShadow: "0 2px 8px rgba(68,134,244,0.06)",
-            }}
-          >
-            <div style={{ width: 52, height: 52, borderRadius: 14, background: r.light, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>
+          <button key={r.id} onClick={() => onSelectRole(r.id)} style={{ display: "flex", alignItems: "center", gap: 18, background: C.card, border: `2px solid ${C.cardBorder}`, borderRadius: 18, padding: "18px 20px", cursor: "pointer", textAlign: "left", fontFamily: font, transition: "border-color 0.15s, box-shadow 0.15s", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = r.color; e.currentTarget.style.boxShadow = `0 4px 16px ${r.color}33`; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)"; }}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: r.light, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>
               {r.emoji}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ color: C.text, fontWeight: 900, fontSize: 16, marginBottom: 2 }}>{r.title}</div>
-              <div style={{ color: C.muted, fontSize: 12, lineHeight: 1.4 }}>{r.desc}</div>
+              <div style={{ color: C.text, fontWeight: 900, fontSize: 17, marginBottom: 3 }}>{r.title}</div>
+              <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.4 }}>{r.desc}</div>
             </div>
-            <div style={{ color: BRAND.blue, fontSize: 22, fontWeight: 900, flexShrink: 0 }}>›</div>
+            <div style={{ color: C.muted, fontSize: 20, flexShrink: 0 }}>›</div>
           </button>
         ))}
       </div>
-      <div style={{ marginTop: 22, textAlign: "center" }}>
+
+      {/* Sign in link */}
+      <div style={{ marginTop: 32, textAlign: "center" }}>
         <span style={{ color: C.muted, fontSize: 14 }}>Already have an account? </span>
-        <button type="button" onClick={onLogin} style={{ background: "none", border: "none", color: BRAND.blue, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font }}>Sign In</button>
+        <button onClick={onLogin} style={{ background: "none", border: "none", color: C.green, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>Sign In</button>
       </div>
-      <p style={{ color: C.muted, fontSize: 11, margin: "14px 0 0", textAlign: "center" }}>🔒 Encrypted · Never shared with third parties</p>
-    </AuthScreenLayout>
+
+      <div style={{ marginTop: 20, background: C.card, borderRadius: 12, padding: "10px 18px", border: `1px solid ${C.cardBorder}`, maxWidth: 400, width: "100%" }}>
+        <p style={{ color: C.muted, fontSize: 11, margin: 0, textAlign: "center" }}>🔒 Your data is encrypted and never shared with third parties.</p>
+      </div>
+    </div>
   );
 }
 
@@ -2075,38 +1821,21 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
     </div>
   );
 
-  const registerTitle = initialRole === "provider"
-    ? "Provider Signup"
-    : initialRole === "shelter"
-      ? "Shelter Signup"
-      : "Create Account";
-  const registerSubtitle = initialRole === "provider"
-    ? "Join MyPetDex — free to get started."
-    : initialRole === "shelter"
-      ? "Register your shelter — always free."
-      : "Join the MyPetDex community.";
-  const registerBadge = initialRole === "provider"
-    ? "🛎️ Service Provider"
-    : initialRole === "shelter"
-      ? "🏠 Animal Shelter"
-      : "🐾 New Member";
-
   return (
-    <AuthScreenLayout
-      topBar={(
-        <div style={authPage.topBar}>
-          <button type="button" onClick={() => step === 2 ? setStep(1) : onBack()} style={authPage.backBtn}>← Back</button>
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      <div style={{ width: "100%", maxWidth: 460 }}>
+        <button onClick={() => step === 2 ? setStep(1) : onBack()} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
+         <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 8px" }}>
+          {initialRole === "provider" ? "🛎️ Service Provider Signup" : initialRole === "shelter" ? "🏠 Shelter Signup" : "Create Account"}
+        </h2>
+        <p style={{ color: C.muted, fontSize: 14, marginBottom: 16 }}>
+          {initialRole === "provider" ? "Join MyPetDex as a service provider — free to join!" : initialRole === "shelter" ? "Register your shelter — always free on MyPetDex!" : "Join the MyPetDex community"}
+        </p>
+        <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
+          <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>🔒 Your data is encrypted using industry-standard protocols and never shared with third parties.</p>
         </div>
-      )}
-      badge={<span style={authPage.badge(initialRole === "shelter" ? "#22c55e" : initialRole === "provider" ? C.gold : BRAND.blue)}>{registerBadge}</span>}
-      title={registerTitle}
-      subtitle={registerSubtitle}
-      cardMaxWidth={480}
-    >
-        <div style={authPage.notice}>
-          <p style={{ color: C.muted, fontSize: 12, margin: 0, lineHeight: 1.5 }}>🔒 Your data is encrypted and never shared with third parties.</p>
-        </div>
-        {error && <div style={{ background: C.danger + "18", border: `1px solid ${C.danger}`, borderRadius: 12, padding: "12px 14px", color: C.danger, fontSize: 13, marginBottom: 16, fontWeight: 700 }}>{error}</div>}
+        {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
         {step === 1 && <>
           {!initialRole && <>
           <p style={{ ...label, marginBottom: 12 }}>I am a...</p>
@@ -2120,7 +1849,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
           <Field label="Email" type="email" value={form.email} onChange={set("email")} placeholder="you@email.com" required />
           <Field label="Password (min 8 characters + special character)" type="password" value={form.password} onChange={set("password")} placeholder="e.g. MyPet@2024" required />
           <Field label="Confirm Password" type="password" value={form.confirmPassword} onChange={set("confirmPassword")} placeholder="Re-enter your password" required />
-          <button style={{ ...btn(C.green, "#fff"), ...authPage.primaryBtn, width: "100%" }} disabled={loading} onClick={async () => {
+          <button style={{ ...btn(), width: "100%" }} disabled={loading} onClick={async () => {
             if ((!role && !initialRole) || !form.name || !form.email || !form.password) { setError("Please fill in all fields and select a role"); return; }
             if (form.password.length < 8) { setError("Password must be at least 8 characters"); return; }
             if (!/[!@#$%^&*(),.?":{}|<>]/.test(form.password)) { setError("Password must include at least one special character (e.g. @, #, !)"); return; }
@@ -2140,9 +1869,19 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
             }
           }}>{loading ? "Creating account..." : "Continue"}</button>
           {initialRole && <>
-            <OAuthDivider />
-            <OAuthAppleButton onClick={onApple} />
-            <OAuthGoogleButton onClick={onGoogle} />
+            <div style={{ display: "flex", alignItems: "center", width: "100%", margin: "16px 0" }}>
+              <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
+              <span style={{ color: C.muted, fontSize: 12, margin: "0 12px" }}>or</span>
+              <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
+            </div>
+            <button onClick={onApple} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "13px 20px", background: "#000", border: "1.5px solid #000", borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: "#fff", cursor: "pointer", marginBottom: 12 }}>
+              <svg width="18" height="18" viewBox="0 0 814 1000" fill="white"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.3-57.2-155.3-127.1C46.8 790.4 0 663.4 0 541.8c0-194.3 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>
+              Continue with Apple
+            </button>
+            <button onClick={onGoogle} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "13px 20px", background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: "#1E293B", cursor: "pointer", marginBottom: 12 }}>
+              <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Continue with Google
+            </button>
           </>}
         </>}
         {step === 2 && role === "owner" && <>
@@ -2154,7 +1893,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
           <Field label="Weight" value={form.petWeight} onChange={set("petWeight")} placeholder="e.g. 55 lbs" />
           <Field label="Your State" as="select" value={form.state} onChange={set("state")} options={US_STATES} />
           <Field label="Your City" value={form.city} onChange={set("city")} placeholder="Princeton" />
-          <button style={{ ...btn(C.green, "#fff"), ...authPage.primaryBtn, width: "100%" }} onClick={submit} disabled={loading}>{loading ? "Creating Account..." : "Create Account"}</button>
+          <button style={{ ...btn(), width: "100%" }} onClick={submit} disabled={loading}>{loading ? "Creating Account..." : "Create Account"}</button>
         </>}
         {step === 2 && role === "provider" && <>
           <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>Tell us about your business</p>
@@ -2171,7 +1910,7 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
           <div style={{ ...card, background: "#EEF4FF", marginBottom: 16 }}>
             <p style={{ color: C.gold, fontSize: 12, fontWeight: 700, margin: 0 }}>🎉 6-Month Free Trial — then only 5% commission on bookings. No monthly fees!</p>
           </div>
-          <button style={{ ...btn(C.green, "#fff"), ...authPage.primaryBtn, width: "100%" }} onClick={submit} disabled={loading}>{loading ? "Creating Account..." : "Create Provider Account"}</button>
+          <button style={{ ...btn(), width: "100%" }} onClick={submit} disabled={loading}>{loading ? "Creating Account..." : "Create Provider Account"}</button>
         </>}
         {step === 2 && role === "shelter" && <>
           <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>Shelter verification (approved within 24hr)</p>
@@ -2187,9 +1926,10 @@ function RegisterScreen({ onBack, onSuccess, initialPlan = "free", initialRole =
           <div style={{ ...card, background: "#EEF4FF", marginBottom: 16 }}>
             <p style={{ color: C.green, fontSize: 12, fontWeight: 700, margin: 0 }}>Shelter access is always FREE on MyPetDex!</p>
           </div>
-          <button style={{ ...btn(C.green, "#fff"), ...authPage.primaryBtn, width: "100%" }} onClick={submit} disabled={loading}>{loading ? "Submitting..." : "Submit for Approval"}</button>
+          <button style={{ ...btn(), width: "100%" }} onClick={submit} disabled={loading}>{loading ? "Submitting..." : "Submit for Approval"}</button>
         </>}
-    </AuthScreenLayout>
+      </div>
+    </div>
   );
 }
 
@@ -2214,31 +1954,42 @@ function LoginScreen({ onBack, onSuccess, onReset, onApple, onGoogle }) {
   };
 
   return (
-    <AuthScreenLayout
-      topBar={(
-        <div style={authPage.topBar}>
-          <button type="button" onClick={onBack} style={authPage.backBtn}>← Back</button>
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: font, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+      <div style={{ width: "100%", maxWidth: 380 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 26, margin: "0 0 24px" }}>Welcome back 👋</h2>
+        {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
+        <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" />
+        <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="password" />
+        <button style={{ ...btn(), width: "100%", marginTop: 8 }} onClick={login} disabled={loading}>{loading ? "Signing in..." : "Sign In"}</button>
+
+        <div style={{ textAlign: "center", marginTop: 12 }}>
+          <button onClick={onReset} style={{ background: "none", border: "none", color: C.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, textDecoration: "underline" }}>
+            Forgot your password?
+          </button>
         </div>
-      )}
-      badge={<span style={authPage.badge(BRAND.blue)}>Sign In</span>}
-      title="Welcome back"
-      subtitle="Sign in to care for your pets."
-    >
-      {error && <div style={{ background: C.danger + "18", border: `1px solid ${C.danger}`, borderRadius: 12, padding: "12px 14px", color: C.danger, fontSize: 13, marginBottom: 16, fontWeight: 700 }}>{error}</div>}
-      <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" />
-      <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="••••••••" />
-      <button style={{ ...btn(C.green, "#fff"), ...authPage.primaryBtn, marginTop: 8 }} onClick={login} disabled={loading}>
-        {loading ? "Signing in…" : "Sign In"}
-      </button>
-      <div style={{ textAlign: "center", marginTop: 14 }}>
-        <button type="button" onClick={onReset} style={{ background: "none", border: "none", color: BRAND.blue, fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: font }}>
-          Forgot your password?
+
+        {/* Divider */}
+        <div style={{ display: "flex", alignItems: "center", width: "100%", margin: "16px 0" }}>
+          <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
+          <span style={{ color: C.muted, fontSize: 12, margin: "0 12px" }}>or</span>
+          <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
+        </div>
+
+        {/* Apple Sign In */}
+        <button onClick={onApple} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "13px 20px", background: "#000", border: "1.5px solid #000", borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: "#fff", cursor: "pointer", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+          <svg width="18" height="18" viewBox="0 0 814 1000" fill="white"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.3-57.2-155.3-127.1C46.8 790.4 0 663.4 0 541.8c0-194.3 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>
+          Continue with Apple
+        </button>
+
+        {/* Google Sign In */}
+        <button onClick={onGoogle} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "13px 20px", background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 12, fontFamily: font, fontWeight: 700, fontSize: 15, color: "#1E293B", cursor: "pointer", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+          <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          Continue with Google
         </button>
       </div>
-      <OAuthDivider />
-      <OAuthAppleButton onClick={onApple} />
-      <OAuthGoogleButton onClick={onGoogle} />
-    </AuthScreenLayout>
+    </div>
   );
 }
 function ResetPasswordScreen({ onBack }) {
@@ -2262,30 +2013,27 @@ function ResetPasswordScreen({ onBack }) {
   };
 
   return (
-    <AuthScreenLayout
-      topBar={(
-        <div style={authPage.topBar}>
-          <button type="button" onClick={onBack} style={authPage.backBtn}>← Back</button>
-        </div>
-      )}
-      badge={<span style={authPage.badge(BRAND.blue)}>Account</span>}
-      title="Reset Password"
-      subtitle="We'll email you a secure reset link."
-    >
-      {sent ? (
-        <div style={{ background: "#F0FDF4", border: "1px solid #22c55e", borderRadius: 12, padding: "14px 16px", color: "#16a34a", fontSize: 14, textAlign: "center", fontWeight: 700 }}>
-          ✅ Reset link sent! Check your inbox at {email}
-        </div>
-      ) : (
-        <>
-          {error && <div style={{ background: C.danger + "18", border: `1px solid ${C.danger}`, borderRadius: 12, padding: "12px 14px", color: C.danger, fontSize: 13, marginBottom: 16, fontWeight: 700 }}>{error}</div>}
-          <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" />
-          <button style={{ ...btn(C.green, "#fff"), ...authPage.primaryBtn, marginTop: 16 }} onClick={handleReset} disabled={loading}>
-            {loading ? "Sending…" : "Send Reset Link 🐾"}
-          </button>
-        </>
-      )}
-    </AuthScreenLayout>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg, padding: 16 }}>
+      <div style={{ ...card, maxWidth: 400, width: "100%", padding: 32 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, fontFamily: font, marginBottom: 20 }}>← Back</button>
+        <img src="/logo.png" alt="MyPetDex" style={{ width: 56, height: 56, objectFit: "contain", display: "block", margin: "0 auto 16px" }} />
+        <h2 style={{ color: C.text, fontWeight: 900, fontSize: 24, textAlign: "center", margin: "0 0 8px" }}>Reset Password</h2>
+        <p style={{ color: C.muted, fontSize: 14, textAlign: "center", marginBottom: 24 }}>Enter your email and we'll send you a reset link.</p>
+        {sent ? (
+          <div style={{ background: "#22c55e22", border: "1px solid #22c55e", borderRadius: 10, padding: "12px 16px", color: "#16a34a", fontSize: 14, textAlign: "center" }}>
+            ✅ Reset link sent! Check your inbox at {email}
+          </div>
+        ) : (
+          <>
+            {error && <div style={{ background: C.danger + "22", border: `1px solid ${C.danger}`, borderRadius: 10, padding: "10px 14px", color: C.danger, fontSize: 13, marginBottom: 16 }}>{error}</div>}
+            <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" />
+            <button style={{ ...btn(), width: "100%", marginTop: 16 }} onClick={handleReset} disabled={loading}>
+              {loading ? "Sending..." : "Send Reset Link 🐾"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
