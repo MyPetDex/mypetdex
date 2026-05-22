@@ -203,6 +203,14 @@ function compressImage(file, callback) {
 }
 
 export default function App() {
+  // Hide branded splash screen once React loads
+  useEffect(() => {
+    const splash = document.getElementById("app-splash");
+    if (splash) {
+      splash.classList.add("mpd-splash-hide");
+      setTimeout(() => { splash.style.display = "none"; }, 500);
+    }
+  }, []);
   const [user, setUser] = useState(null); // eslint-disable-line no-unused-vars
   const [profile, setProfile] = useState(null);
   const urlPlanFromURL = new URLSearchParams(window.location.search).get("plan");
