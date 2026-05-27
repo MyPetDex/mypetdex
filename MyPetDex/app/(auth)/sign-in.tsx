@@ -402,6 +402,43 @@ export default function SignInScreen() {
   }
 
   // ── Register ────────────────────────────────────────────────────────────────
+  const roleConfig = {
+    owner: {
+      badge: "🐾 For Pet Owners",
+      badgeColor: BRAND,
+      title: "Your Pet's World,\nAll in One App",
+      titleColor: BLUE,
+      desc: "Everything your pet needs — in one simple app.",
+      subdesc: "Health records · Reminders · AI Assistant · Nutrition · Adoption",
+      pills: ["🐾 Pet Profiles", "💉 Vaccines", "⏰ Reminders", "🤖 AI Tips", "🍳 Recipes", "❤️ Adoption"],
+      cta: "Create Free Account →",
+      pricing: "Free plan available · Plus $2.99/mo · Family $4.99/mo",
+    },
+    provider: {
+      badge: "🛎️ For Service Providers",
+      badgeColor: BLUE,
+      title: "Grow Your Pet\nBusiness",
+      titleColor: BLUE,
+      desc: "Join MyPetDex and get discovered by local pet owners looking for your services.",
+      subdesc: "Grooming · Walking · Veterinary · Training · Boarding & more",
+      pills: ["📍 Local Discovery", "⭐ Reviews", "📅 Bookings", "🏢 Business Profile", "📊 Analytics", "🎉 6-Month Free Trial"],
+      cta: "Join as Provider →",
+      pricing: "🎉 Free for 6 months — then only 5% commission. No monthly fees ever!",
+    },
+    shelter: {
+      badge: "🏠 For Animal Shelters",
+      badgeColor: BRAND,
+      title: "Help Pets Find\nForever Homes",
+      titleColor: BLUE,
+      desc: "List your adoptable pets and connect with loving families in your area.",
+      subdesc: "Dogs · Cats · Rabbits · Birds · and more",
+      pills: ["🐾 Pet Listings", "❤️ Adoption Requests", "📍 Local Visibility", "🔔 Notifications", "📋 Pet Profiles", "✅ Always Free"],
+      cta: "Register Your Shelter →",
+      pricing: "Shelter access is always FREE on MyPetDex!",
+    },
+  };
+  const rc = roleConfig[role];
+
   return (
     <SafeAreaView style={styles.safeContainer}>
       <BackHeader
@@ -410,44 +447,39 @@ export default function SignInScreen() {
       />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <View style={[styles.roleBadge, {
-            backgroundColor: role === "owner" ? BRAND : role === "provider" ? BLUE : "#F59E0B"
-          }]}>
-            <Text style={styles.roleBadgeText}>
-              {role === "owner" ? "🐾 For Pet Owners" : role === "provider" ? "🛎️ For Service Providers" : "🏠 For Animal Shelters"}
-            </Text>
+
+          {/* Already have account */}
+          <Pressable onPress={() => setScreen("login")} style={{ alignItems: "flex-end", marginBottom: 12 }}>
+            <Text style={styles.linkText}>Already have an account? <Text style={{ color: BLUE }}>Sign In</Text></Text>
+          </Pressable>
+
+          {/* Logo */}
+          <Image source={require("../../assets/images/logo-transparent.png")} style={styles.logoSmall} resizeMode="contain" />
+
+          {/* Role badge */}
+          <View style={[styles.roleBadge, { backgroundColor: rc.badgeColor, alignSelf: "center", marginBottom: 14 }]}>
+            <Text style={styles.roleBadgeText}>{rc.badge}</Text>
           </View>
 
-          <Text style={styles.title}>
-            {role === "owner" ? "MyPetDex" : role === "provider" ? "Grow Your Pet Business" : "Help Pets Find Forever Homes"}
-          </Text>
+          {/* Title */}
+          <Text style={[styles.title, { color: rc.titleColor, textAlign: "center", marginBottom: 10 }]}>{rc.title}</Text>
+
+          {/* Description */}
+          <Text style={styles.roleDesc}>{rc.desc}</Text>
+          <Text style={styles.roleSubdesc}>{rc.subdesc}</Text>
+
+          {/* Feature pills */}
+          <View style={styles.pillsWrap}>
+            {rc.pills.map(p => (
+              <View key={p} style={styles.pill}><Text style={styles.pillText}>{p}</Text></View>
+            ))}
+          </View>
 
           {error ? <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View> : null}
 
           {step === 1 && (
             <>
-              <Text style={styles.fieldLabel}>Full Name *</Text>
-              <TextInput style={styles.input} value={form.name} onChangeText={set("name")} placeholder="Jane Smith" placeholderTextColor="#aaa" />
-
-              <Text style={styles.fieldLabel}>Email *</Text>
-              <TextInput style={styles.input} value={form.email} onChangeText={set("email")} placeholder="you@email.com" placeholderTextColor="#aaa" keyboardType="email-address" autoCapitalize="none" />
-
-              <Text style={styles.fieldLabel}>Password (min 8 chars + special character) *</Text>
-              <TextInput style={styles.input} value={form.password} onChangeText={set("password")} placeholder="e.g. MyPet@2024" placeholderTextColor="#aaa" secureTextEntry />
-
-              <Text style={styles.fieldLabel}>Confirm Password *</Text>
-              <TextInput style={styles.input} value={form.confirmPassword} onChangeText={set("confirmPassword")} placeholder="Re-enter password" placeholderTextColor="#aaa" secureTextEntry />
-
-              <Pressable style={[styles.primaryBtn, loading && { opacity: 0.6 }]} onPress={handleRegisterStep1} disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Continue →</Text>}
-              </Pressable>
-
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
+              {/* Social auth */}
               {appleAvailable && (
                 isWeb ? (
                   <WebAppleButton onPress={handleApple} />
@@ -463,12 +495,33 @@ export default function SignInScreen() {
               )}
 
               <Pressable style={styles.googleButton} onPress={handleGoogle} disabled={loading}>
+                <Image source={{ uri: "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" }} style={{ width: 20, height: 20, marginRight: 8 }} />
                 <Text style={styles.googleText}>Sign up with Google</Text>
               </Pressable>
 
-              <Pressable onPress={() => setScreen("login")} style={{ marginTop: 20, alignItems: "center" }}>
-                <Text style={styles.linkText}>Already have an account? Sign In</Text>
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <Text style={styles.fieldLabel}>Full Name *</Text>
+              <TextInput style={styles.input} value={form.name} onChangeText={set("name")} placeholder="Jane Smith" placeholderTextColor="#aaa" />
+
+              <Text style={styles.fieldLabel}>Email *</Text>
+              <TextInput style={styles.input} value={form.email} onChangeText={set("email")} placeholder="you@email.com" placeholderTextColor="#aaa" keyboardType="email-address" autoCapitalize="none" />
+
+              <Text style={styles.fieldLabel}>Password (min 8 chars + special character) *</Text>
+              <TextInput style={styles.input} value={form.password} onChangeText={set("password")} placeholder="e.g. MyPet@2024" placeholderTextColor="#aaa" secureTextEntry />
+
+              <Text style={styles.fieldLabel}>Confirm Password *</Text>
+              <TextInput style={styles.input} value={form.confirmPassword} onChangeText={set("confirmPassword")} placeholder="Re-enter password" placeholderTextColor="#aaa" secureTextEntry />
+
+              <Pressable style={[styles.primaryBtn, { backgroundColor: BLUE }, loading && { opacity: 0.6 }]} onPress={handleRegisterStep1} disabled={loading}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>{rc.cta}</Text>}
               </Pressable>
+
+              <Text style={styles.pricingText}>{rc.pricing}</Text>
             </>
           )}
 
@@ -651,6 +704,12 @@ const styles = StyleSheet.create({
   stateChipActive: { backgroundColor: BRAND + "15", borderColor: BRAND },
   stateChipText: { fontSize: 13, color: "#666" },
   stateChipTextActive: { color: BRAND, fontWeight: "700" },
+  roleDesc: { fontSize: 14, color: "#555", textAlign: "center", lineHeight: 20, marginBottom: 4 },
+  roleSubdesc: { fontSize: 12, color: "#999", textAlign: "center", marginBottom: 16 },
+  pillsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 20 },
+  pill: { backgroundColor: "#EEF2FF", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  pillText: { fontSize: 12, fontWeight: "600", color: "#3B5FDB" },
+  pricingText: { fontSize: 11, color: "#aaa", textAlign: "center", marginTop: 10 },
   trialBadge: { backgroundColor: "#EEF4FF", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#c7d9ff", marginVertical: 12 },
   trialBadgeText: { fontSize: 13, color: BLUE, fontWeight: "600", textAlign: "center" },
   buttons: { gap: 14, paddingHorizontal: 28 },
