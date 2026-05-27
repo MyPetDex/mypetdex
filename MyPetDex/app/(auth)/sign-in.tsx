@@ -34,28 +34,26 @@ const US_STATES = [
   "VA","WA","WV","WI","WY",
 ];
 
+// Read ?role= from URL synchronously so the first render already has the right
+// screen — prevents the one-frame flash of the landing (3-role) screen.
+function getInitialRoleAndScreen(): { role: Role; screen: Screen } {
+  if (isWeb && typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    const roleParam = params.get("role") as Role | null;
+    if (roleParam === "owner" || roleParam === "provider" || roleParam === "shelter") {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("mypetdex_role", roleParam);
+      }
+      return { role: roleParam, screen: "register" };
+    }
+  }
+  return { role: "owner", screen: "landing" };
+}
+
 export default function SignInScreen() {
   const { signInWithGoogle, signInWithApple, signInAnonymously, appleAvailable } = useAuth();
-  const [screen, setScreen] = useState<Screen>("landing");
-  const [role, setRole] = useState<Role>("owner");
-
-  // On web: if ?role=provider or ?role=shelter in URL, skip the landing picker.
-  // Also save to localStorage immediately — if the user is already authenticated,
-  // AuthGuard will redirect them to onboarding before they can pick a role, and
-  // onboarding reads this value to pre-select and lock the correct role.
-  useEffect(() => {
-    if (isWeb && typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const roleParam = params.get("role") as Role | null;
-      if (roleParam === "owner" || roleParam === "provider" || roleParam === "shelter") {
-        if (typeof localStorage !== "undefined") {
-          localStorage.setItem("mypetdex_role", roleParam);
-        }
-        setRole(roleParam);
-        setScreen("register");
-      }
-    }
-  }, []);
+  const [screen, setScreen] = useState<Screen>(() => getInitialRoleAndScreen().screen);
+  const [role, setRole] = useState<Role>(() => getInitialRoleAndScreen().role);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
