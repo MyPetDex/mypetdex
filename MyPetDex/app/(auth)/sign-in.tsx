@@ -51,9 +51,14 @@ function getInitialRoleAndScreen(): { role: Role; screen: Screen } {
 }
 
 export default function SignInScreen() {
-  const { signInWithGoogle, signInWithApple, signInAnonymously, appleAvailable } = useAuth();
+  const { signInWithGoogle, signInWithApple, signInAnonymously, appleAvailable, user, loading: authLoading } = useAuth();
   const [screen, setScreen] = useState<Screen>(() => getInitialRoleAndScreen().screen);
   const [role, setRole] = useState<Role>(() => getInitialRoleAndScreen().role);
+
+  // Show nothing while Firebase resolves auth state, or if already signed in.
+  // AuthGuard in _layout.tsx handles the redirect — this prevents any flash of
+  // the sign-in screen for users who are already authenticated.
+  if (authLoading || user) return null;
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
