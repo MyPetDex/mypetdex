@@ -39,19 +39,19 @@ export default function SignInScreen() {
   const [screen, setScreen] = useState<Screen>("landing");
   const [role, setRole] = useState<Role>("owner");
 
-  // On web: if ?role=provider or ?role=shelter in URL, skip the landing picker
+  // On web: if ?role=provider or ?role=shelter in URL, skip the landing picker.
+  // Also save to localStorage immediately — if the user is already authenticated,
+  // AuthGuard will redirect them to onboarding before they can pick a role, and
+  // onboarding reads this value to pre-select and lock the correct role.
   useEffect(() => {
     if (isWeb && typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const roleParam = params.get("role");
-      if (roleParam === "owner") {
-        setRole("owner");
-        setScreen("register");
-      } else if (roleParam === "provider") {
-        setRole("provider");
-        setScreen("register");
-      } else if (roleParam === "shelter") {
-        setRole("shelter");
+      const roleParam = params.get("role") as Role | null;
+      if (roleParam === "owner" || roleParam === "provider" || roleParam === "shelter") {
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem("mypetdex_role", roleParam);
+        }
+        setRole(roleParam);
         setScreen("register");
       }
     }
@@ -59,6 +59,8 @@ export default function SignInScreen() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [confirmedAge, setConfirmedAge] = useState(false);
   const [pendingUser, setPendingUser] = useState<any>(null);
 
   const [form, setForm] = useState({
@@ -76,6 +78,10 @@ export default function SignInScreen() {
   async function handleGoogle() {
     setError("");
     setLoading(true);
+    // Save intended role so AuthContext and onboarding can read it after the popup
+    if (isWeb && typeof localStorage !== "undefined") {
+      localStorage.setItem("mypetdex_role", role);
+    }
     try {
       await signInWithGoogle();
     } catch (e: any) {
@@ -87,6 +93,10 @@ export default function SignInScreen() {
 
   async function handleApple() {
     setError("");
+    // Save intended role so AuthContext and onboarding can read it after the popup
+    if (isWeb && typeof localStorage !== "undefined") {
+      localStorage.setItem("mypetdex_role", role);
+    }
     try {
       await signInWithApple();
     } catch (e: any) {
@@ -448,13 +458,20 @@ export default function SignInScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
 
-          {/* Already have account */}
-          <Pressable onPress={() => setScreen("login")} style={{ alignItems: "flex-end", marginBottom: 12 }}>
-            <Text style={styles.linkText}>Already have an account? <Text style={{ color: BLUE }}>Sign In</Text></Text>
-          </Pressable>
+          {/* Top row: back link (non-owner) + sign in */}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            {role !== "owner" ? (
+              <Pressable onPress={() => setScreen("landing")}>
+                <Text style={[styles.linkText, { color: "#888" }]}>← Not a {role === "provider" ? "provider" : "shelter"}?</Text>
+              </Pressable>
+            ) : <View />}
+            <Pressable onPress={() => setScreen("login")}>
+              <Text style={styles.linkText}>Already have an account? <Text style={{ color: BLUE }}>Sign In</Text></Text>
+            </Pressable>
+          </View>
 
           {/* Logo */}
-          <Image source={require("../../assets/images/logo-transparent.png")} style={styles.logoSmall} resizeMode="contain" />
+          <Image source={require("../../assets/images/logo-transparent.png")} style={[styles.logoSmall, { alignSelf: "center" }]} resizeMode="contain" />
 
           {/* Role badge */}
           <View style={[styles.roleBadge, { backgroundColor: rc.badgeColor, alignSelf: "center", marginBottom: 14 }]}>
@@ -462,7 +479,7 @@ export default function SignInScreen() {
           </View>
 
           {/* Title */}
-          <Text style={[styles.title, { color: rc.titleColor, textAlign: "center", marginBottom: 10 }]}>{rc.title}</Text>
+          <Text style={[styles.title, { color: BLUE, textAlign: "center", marginBottom: 10 }]}>{rc.title}</Text>
 
           {/* Description */}
           <Text style={styles.roleDesc}>{rc.desc}</Text>
@@ -479,6 +496,29 @@ export default function SignInScreen() {
 
           {step === 1 && (
             <>
+              {/* Checkbox — agree to terms */}
+              <Pressable style={styles.checkRow} onPress={() => setAgreedToTerms(v => !v)}>
+                <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+                  {agreedToTerms && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
+                </View>
+                <Text style={styles.checkLabel}>
+                  I confirm I am signing up as a{" "}
+                  {role === "owner" ? "Pet Owner" : role === "provider" ? "Service Provider" : "an Animal Shelter"}
+                  {" "}and agree to the{" "}
+                  <Text style={{ color: BLUE }}>Terms of Service</Text>.
+                </Text>
+              </Pressable>
+
+              {/* Extra age checkbox for shelter */}
+              {role === "shelter" && (
+                <Pressable style={styles.checkRow} onPress={() => setConfirmedAge(v => !v)}>
+                  <View style={[styles.checkbox, confirmedAge && styles.checkboxChecked]}>
+                    {confirmedAge && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
+                  </View>
+                  <Text style={styles.checkLabel}>I confirm I am 13 years of age or older.</Text>
+                </Pressable>
+              )}
+
               {/* Social auth */}
               {appleAvailable && (
                 isWeb ? (
@@ -495,7 +535,6 @@ export default function SignInScreen() {
               )}
 
               <Pressable style={styles.googleButton} onPress={handleGoogle} disabled={loading}>
-                <Image source={{ uri: "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" }} style={{ width: 20, height: 20, marginRight: 8 }} />
                 <Text style={styles.googleText}>Sign up with Google</Text>
               </Pressable>
 
@@ -517,7 +556,11 @@ export default function SignInScreen() {
               <Text style={styles.fieldLabel}>Confirm Password *</Text>
               <TextInput style={styles.input} value={form.confirmPassword} onChangeText={set("confirmPassword")} placeholder="Re-enter password" placeholderTextColor="#aaa" secureTextEntry />
 
-              <Pressable style={[styles.primaryBtn, { backgroundColor: BLUE }, loading && { opacity: 0.6 }]} onPress={handleRegisterStep1} disabled={loading}>
+              <Pressable
+                style={[styles.primaryBtn, { backgroundColor: BLUE }, loading && { opacity: 0.6 }]}
+                onPress={handleRegisterStep1}
+                disabled={loading}
+              >
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>{rc.cta}</Text>}
               </Pressable>
 
@@ -708,8 +751,12 @@ const styles = StyleSheet.create({
   roleSubdesc: { fontSize: 12, color: "#999", textAlign: "center", marginBottom: 16 },
   pillsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 20 },
   pill: { backgroundColor: "#EEF2FF", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
-  pillText: { fontSize: 12, fontWeight: "600", color: "#3B5FDB" },
+  pillText: { fontSize: 12, fontWeight: "600", color: "#4486F4" },
   pricingText: { fontSize: 11, color: "#aaa", textAlign: "center", marginTop: 10 },
+  checkRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 12 },
+  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1.5, borderColor: "#ccc", alignItems: "center", justifyContent: "center", marginTop: 1, flexShrink: 0 },
+  checkboxChecked: { backgroundColor: BLUE, borderColor: BLUE },
+  checkLabel: { fontSize: 13, color: "#555", lineHeight: 18, flex: 1 },
   trialBadge: { backgroundColor: "#EEF4FF", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#c7d9ff", marginVertical: 12 },
   trialBadgeText: { fontSize: 13, color: BLUE, fontWeight: "600", textAlign: "center" },
   buttons: { gap: 14, paddingHorizontal: 28 },

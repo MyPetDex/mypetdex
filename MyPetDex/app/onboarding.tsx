@@ -2,7 +2,7 @@ import {
   View, Text, StyleSheet, ScrollView, TextInput, Pressable,
   ActivityIndicator, Modal, FlatList, Image, Platform,
 } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { isWeb, webDb } from "@/lib/firebase";
@@ -66,7 +66,22 @@ export default function OnboardingScreen() {
   const { user } = useAuth();
 
   const [role, setRole] = useState<"owner" | "provider" | "shelter">("owner");
+  // When role is locked (came from a role-specific sign-up), hide the picker
+  const [roleLocked, setRoleLocked] = useState(false);
   const [state, setState] = useState("NJ");
+
+  // On mount: read the intended role saved before OAuth and pre-select it
+  useEffect(() => {
+    if (isWeb && typeof localStorage !== "undefined") {
+      const saved = localStorage.getItem("mypetdex_role") as "owner" | "provider" | "shelter" | null;
+      if (saved === "provider" || saved === "shelter" || saved === "owner") {
+        setRole(saved);
+        // Lock the picker for non-owner roles so they never see irrelevant options
+        if (saved !== "owner") setRoleLocked(true);
+        localStorage.removeItem("mypetdex_role");
+      }
+    }
+  }, []);
   const [city, setCity] = useState("");
 
   // Owner fields
@@ -187,30 +202,51 @@ export default function OnboardingScreen() {
         <Text style={styles.title}>Welcome! Let's set up your account</Text>
         <Text style={styles.subtitle}>Just a few quick details to personalize your experience.</Text>
 
-        {/* Role selection */}
-        <View style={styles.section}>
-          <Text style={styles.label}>I AM A...</Text>
-          <View style={styles.roleGrid}>
-            {([
-              { key: "owner",    emoji: "🐾",  title: "Pet Owner",         desc: "Track my pet's health & care" },
-              { key: "provider", emoji: "✂️",  title: "Service Provider",  desc: "Groomer, vet, trainer, etc." },
-              { key: "shelter",  emoji: "🏠",  title: "Shelter / Rescue",  desc: "Manage adoptable animals" },
-            ] as const).map(r => (
-              <Pressable
-                key={r.key}
-                style={[styles.roleCard, role === r.key && styles.roleCardActive]}
-                onPress={() => setRole(r.key)}
-              >
-                <Text style={styles.roleEmoji}>{r.emoji}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.roleTitle, role === r.key && styles.roleTitleActive]}>{r.title}</Text>
-                  <Text style={styles.roleDesc}>{r.desc}</Text>
-                </View>
-                {role === r.key && <Text style={styles.roleCheck}>✓</Text>}
-              </Pressable>
-            ))}
+        {/* Role selection — hidden when role is locked (provider/shelter OAuth flow) */}
+        {roleLocked ? (
+          <View style={styles.section}>
+            <View style={styles.roleLockedBadge}>
+              <Text style={styles.roleLockedEmoji}>
+                {role === "provider" ? "🛎️" : "🏠"}
+              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.roleLockedTitle}>
+                  {role === "provider" ? "Service Provider Account" : "Animal Shelter Account"}
+                </Text>
+                <Text style={styles.roleLockedDesc}>
+                  {role === "provider"
+                    ? "Complete your business profile below"
+                    : "Complete your shelter details below"}
+                </Text>
+              </View>
+              <Text style={styles.roleLockedCheck}>✓</Text>
+            </View>
           </View>
-        </View>
+        ) : (
+          <View style={styles.section}>
+            <Text style={styles.label}>I AM A...</Text>
+            <View style={styles.roleGrid}>
+              {([
+                { key: "owner",    emoji: "🐾",  title: "Pet Owner",         desc: "Track my pet's health & care" },
+                { key: "provider", emoji: "✂️",  title: "Service Provider",  desc: "Groomer, vet, trainer, etc." },
+                { key: "shelter",  emoji: "🏠",  title: "Shelter / Rescue",  desc: "Manage adoptable animals" },
+              ] as const).map(r => (
+                <Pressable
+                  key={r.key}
+                  style={[styles.roleCard, role === r.key && styles.roleCardActive]}
+                  onPress={() => setRole(r.key)}
+                >
+                  <Text style={styles.roleEmoji}>{r.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.roleTitle, role === r.key && styles.roleTitleActive]}>{r.title}</Text>
+                    <Text style={styles.roleDesc}>{r.desc}</Text>
+                  </View>
+                  {role === r.key && <Text style={styles.roleCheck}>✓</Text>}
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Location */}
         <View style={styles.section}>
@@ -477,4 +513,10 @@ const styles = StyleSheet.create({
   finishBtn: { backgroundColor: BRAND, borderRadius: 14, paddingVertical: 16, alignItems: "center", marginTop: 8, width: "100%" },
   finishBtnDisabled: { backgroundColor: "#ccc" },
   finishBtnText: { color: "#fff", fontSize: 17, fontWeight: "700" },
+  // Locked role badge (shown for provider/shelter OAuth flow)
+  roleLockedBadge: { backgroundColor: "#f0faf5", borderRadius: 14, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 2, borderColor: BRAND },
+  roleLockedEmoji: { fontSize: 26 },
+  roleLockedTitle: { fontSize: 15, fontWeight: "700", color: BRAND },
+  roleLockedDesc: { fontSize: 12, color: "#888", marginTop: 2 },
+  roleLockedCheck: { fontSize: 18, color: BRAND, fontWeight: "700" },
 });
