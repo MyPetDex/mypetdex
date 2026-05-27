@@ -44,7 +44,10 @@ export default function SignInScreen() {
     if (isWeb && typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const roleParam = params.get("role");
-      if (roleParam === "provider") {
+      if (roleParam === "owner") {
+        setRole("owner");
+        setScreen("register");
+      } else if (roleParam === "provider") {
         setRole("provider");
         setScreen("register");
       } else if (roleParam === "shelter") {
