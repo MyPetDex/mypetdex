@@ -63,7 +63,14 @@ function StateDropdown({ value, onSelect }: { value: string; onSelect: (v: strin
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+
+  async function handleSignOut() {
+    try {
+      await signOut();
+      router.replace("/(auth)/sign-in");
+    } catch {}
+  }
 
   const [role, setRole] = useState<"owner" | "provider" | "shelter">("owner");
   // When role is locked (came from a role-specific sign-up), hide the picker
@@ -189,6 +196,13 @@ export default function OnboardingScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.inner}>
+
+        {/* Sign out link — top right */}
+        <View style={{ alignItems: "flex-end", marginBottom: 4 }}>
+          <Pressable onPress={handleSignOut} hitSlop={12}>
+            <Text style={{ fontSize: 13, color: "#aaa" }}>Sign Out</Text>
+          </Pressable>
+        </View>
 
         {/* Logo */}
         <View style={styles.logoRow}>
