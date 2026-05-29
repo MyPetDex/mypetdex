@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "209772699227",
+    "project_id": "mypetdex-c4315",
+    "storage_bucket": "mypetdex-c4315.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:209772699227:android:9dad5bd86bcadefa6da97e",
+        "android_client_info": {
+          "package_name": "app.mypetdex"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "209772699227-ilqlulmvqp12fau8bbvmq5ufvnbkoguc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwuUzMXv5mcZju2pWQ0ePfroUOQiwmc1Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "209772699227-ilqlulmvqp12fau8bbvmq5ufvnbkoguc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "209772699227-eibpfptsff0h497q956hlru2qbeu9pm9.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "app.mypetdex"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

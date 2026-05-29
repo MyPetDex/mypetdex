@@ -80,12 +80,12 @@ export default function OnboardingScreen() {
   // On mount: read the intended role saved before OAuth and pre-select it
   useEffect(() => {
     if (isWeb && typeof localStorage !== "undefined") {
-      const saved = localStorage.getItem("mypetdex_role") as "owner" | "provider" | "shelter" | null;
+      const saved = localStorage.getItem("mypetdex_onboarding_role") as "owner" | "provider" | "shelter" | null;
       if (saved === "provider" || saved === "shelter" || saved === "owner") {
         setRole(saved);
-        // Lock the picker for non-owner roles so they never see irrelevant options
-        if (saved !== "owner") setRoleLocked(true);
-        localStorage.removeItem("mypetdex_role");
+        // Lock the picker for all roles coming from a role-specific sign-up flow
+        setRoleLocked(true);
+        localStorage.removeItem("mypetdex_onboarding_role");
       }
     }
   }, []);
@@ -221,14 +221,16 @@ export default function OnboardingScreen() {
           <View style={styles.section}>
             <View style={styles.roleLockedBadge}>
               <Text style={styles.roleLockedEmoji}>
-                {role === "provider" ? "🛎️" : "🏠"}
+                {role === "owner" ? "🐾" : role === "provider" ? "🛎️" : "🏠"}
               </Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.roleLockedTitle}>
-                  {role === "provider" ? "Service Provider Account" : "Animal Shelter Account"}
+                  {role === "owner" ? "Pet Owner Account" : role === "provider" ? "Service Provider Account" : "Animal Shelter Account"}
                 </Text>
                 <Text style={styles.roleLockedDesc}>
-                  {role === "provider"
+                  {role === "owner"
+                    ? "Complete your profile to find services near you"
+                    : role === "provider"
                     ? "Complete your business profile below"
                     : "Complete your shelter details below"}
                 </Text>
@@ -253,7 +255,7 @@ export default function OnboardingScreen() {
                   <Text style={styles.roleEmoji}>{r.emoji}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.roleTitle, role === r.key && styles.roleTitleActive]}>{r.title}</Text>
-                    <Text style={styles.roleDesc}>{r.desc}</Text>
+                    <Text style={[styles.roleDesc, role === r.key && styles.roleDescActive]}>{r.desc}</Text>
                   </View>
                   {role === r.key && <Text style={styles.roleCheck}>✓</Text>}
                 </Pressable>
@@ -488,12 +490,13 @@ const styles = StyleSheet.create({
   // Role cards
   roleGrid: { gap: 10 },
   roleCard: { backgroundColor: "#fff", borderRadius: 14, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1.5, borderColor: "#eee" },
-  roleCardActive: { borderColor: BRAND, backgroundColor: "#f0faf5" },
+  roleCardActive: { borderColor: "#3B82F6", backgroundColor: "#3B82F6" },
   roleEmoji: { fontSize: 26 },
   roleTitle: { fontSize: 15, fontWeight: "700", color: "#1a1a1a" },
-  roleTitleActive: { color: BRAND },
+  roleTitleActive: { color: "#FFFFFF" },
   roleDesc: { fontSize: 12, color: "#888", marginTop: 2 },
-  roleCheck: { fontSize: 16, color: BRAND, fontWeight: "700" },
+  roleDescActive: { color: "rgba(255,255,255,0.85)" },
+  roleCheck: { fontSize: 16, color: "#FFFFFF", fontWeight: "700" },
   // Dropdown
   dropdown: { backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, borderWidth: 1, borderColor: "#eee", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   dropdownValue: { fontSize: 15, color: "#1a1a1a", flex: 1 },
@@ -528,9 +531,9 @@ const styles = StyleSheet.create({
   finishBtnDisabled: { backgroundColor: "#ccc" },
   finishBtnText: { color: "#fff", fontSize: 17, fontWeight: "700" },
   // Locked role badge (shown for provider/shelter OAuth flow)
-  roleLockedBadge: { backgroundColor: "#f0faf5", borderRadius: 14, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 2, borderColor: BRAND },
+  roleLockedBadge: { backgroundColor: "#3B82F6", borderRadius: 14, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 2, borderColor: "#3B82F6" },
   roleLockedEmoji: { fontSize: 26 },
-  roleLockedTitle: { fontSize: 15, fontWeight: "700", color: BRAND },
-  roleLockedDesc: { fontSize: 12, color: "#888", marginTop: 2 },
-  roleLockedCheck: { fontSize: 18, color: BRAND, fontWeight: "700" },
+  roleLockedTitle: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
+  roleLockedDesc: { fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 },
+  roleLockedCheck: { fontSize: 18, color: "#FFFFFF", fontWeight: "700" },
 });

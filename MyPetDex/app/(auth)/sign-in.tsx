@@ -43,6 +43,7 @@ function getInitialRoleAndScreen(): { role: Role; screen: Screen } {
     if (roleParam === "owner" || roleParam === "provider" || roleParam === "shelter") {
       if (typeof localStorage !== "undefined") {
         localStorage.setItem("mypetdex_role", roleParam);
+        localStorage.setItem("mypetdex_onboarding_role", roleParam);
       }
       return { role: roleParam, screen: "register" };
     }
@@ -54,18 +55,12 @@ export default function SignInScreen() {
   const { signInWithGoogle, signInWithApple, signInAnonymously, appleAvailable, user, loading: authLoading } = useAuth();
   const [screen, setScreen] = useState<Screen>(() => getInitialRoleAndScreen().screen);
   const [role, setRole] = useState<Role>(() => getInitialRoleAndScreen().role);
-
-  // Show nothing while Firebase resolves auth state, or if already signed in.
-  // AuthGuard in _layout.tsx handles the redirect — this prevents any flash of
-  // the sign-in screen for users who are already authenticated.
-  if (authLoading || user) return null;
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [confirmedAge, setConfirmedAge] = useState(false);
   const [pendingUser, setPendingUser] = useState<any>(null);
-
   const [form, setForm] = useState({
     name: "", email: "", password: "", confirmPassword: "",
     petName: "", petType: "Dog", petBreed: "", petAge: "", petWeight: "",
@@ -73,6 +68,11 @@ export default function SignInScreen() {
     businessName: "", service: "Grooming", phone: "", website: "", address: "", bio: "", priceRange: "",
     shelterName: "", ein: "", license: "",
   });
+
+  // Show nothing while Firebase resolves auth state, or if already signed in.
+  // AuthGuard in _layout.tsx handles the redirect — this prevents any flash of
+  // the sign-in screen for users who are already authenticated.
+  if (authLoading || user) return null;
 
   function set(key: string) {
     return (val: string) => setForm(f => ({ ...f, [key]: val }));
@@ -84,6 +84,7 @@ export default function SignInScreen() {
     // Save intended role so AuthContext and onboarding can read it after the popup
     if (isWeb && typeof localStorage !== "undefined") {
       localStorage.setItem("mypetdex_role", role);
+      localStorage.setItem("mypetdex_onboarding_role", role);
     }
     try {
       await signInWithGoogle();
@@ -99,6 +100,7 @@ export default function SignInScreen() {
     // Save intended role so AuthContext and onboarding can read it after the popup
     if (isWeb && typeof localStorage !== "undefined") {
       localStorage.setItem("mypetdex_role", role);
+      localStorage.setItem("mypetdex_onboarding_role", role);
     }
     try {
       await signInWithApple();
