@@ -12,7 +12,11 @@ export interface UserProfile {
   plan?: string;
   city?: string;
   state?: string;
+  businessName?: string;
+  shelterName?: string;
+  onboardingComplete?: boolean;
   createdAt?: any;
+  [key: string]: any;
 }
 
 export function useUserProfile() {
