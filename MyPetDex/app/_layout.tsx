@@ -60,8 +60,10 @@ function AuthGuard() {
     const inOnboarding = segments.some(s => s === "onboarding");
     const inExplore = segments.some(s => s === "explore");
 
+    // Admin always bypasses onboarding
+    const isAdmin = user?.email === "mypetdexapp@gmail.com";
     // User has completed onboarding if they have city, businessName, or shelterName
-    const hasCompletedOnboarding = !!(profile?.city || profile?.businessName || profile?.shelterName || profile?.onboardingComplete);
+    const hasCompletedOnboarding = isAdmin || !!(profile?.city || profile?.businessName || profile?.shelterName || profile?.onboardingComplete);
 
     if (!user && !inAuthGroup && !inExplore) {
       router.replace("/(auth)/sign-in");
