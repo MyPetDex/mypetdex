@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { isWeb, webDb } from "@/lib/firebase";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFocusEffect } from "expo-router";
 
 const BRAND = "#4CAF82";
 
@@ -13,24 +14,23 @@ export default function ShelterHome() {
   const [stats, setStats] = useState({ total: 0, available: 0, adopted: 0 });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    async function load() {
-      if (!isWeb) { setLoading(false); return; }
-      try {
-        const snap = await getDoc(doc(webDb, "users", user.uid));
-        if (snap.exists()) setProfile(snap.data());
-        const petsSnap = await getDocs(query(collection(webDb, "shelter_pets"), where("shelterId", "==", user.uid)));
-        let available = 0, adopted = 0;
-        petsSnap.forEach(d => {
-          if (d.data().status === "adopted") adopted++;
-          else available++;
-        });
-        setStats({ total: petsSnap.size, available, adopted });
-      } finally { setLoading(false); }
-    }
-    load();
+  const load = useCallback(async () => {
+    if (!user || !isWeb) { setLoading(false); return; }
+    try {
+      const snap = await getDoc(doc(webDb, "users", user.uid));
+      if (snap.exists()) setProfile(snap.data());
+      const petsSnap = await getDocs(query(collection(webDb, "shelter_pets"), where("shelterId", "==", user.uid)));
+      let available = 0, adopted = 0;
+      petsSnap.forEach(d => {
+        if (d.data().status === "adopted") adopted++;
+        else available++;
+      });
+      setStats({ total: petsSnap.size, available, adopted });
+    } finally { setLoading(false); }
   }, [user]);
+
+  // Reload every time this tab comes into focus (e.g. after adding a pet)
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   if (loading) return <View style={s.center}><ActivityIndicator color={BRAND} size="large" /></View>;
 

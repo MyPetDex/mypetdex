@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState, useCallback } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Alert } from "react-native";
 import { isWeb, webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFocusEffect } from "expo-router";
 
 const BRAND = "#4CAF82";
 const STATUS_COLORS: Record<string, string> = { available: BRAND, pending: "#F5A623", adopted: "#3B82F6" };
@@ -14,20 +15,17 @@ export default function ShelterPets() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
-  useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    loadPets();
-  }, [user]);
-
-  async function loadPets() {
-    if (!isWeb) { setLoading(false); return; }
+  const loadPets = useCallback(async () => {
+    if (!user || !isWeb) { setLoading(false); return; }
     try {
-      const snap = await getDocs(query(collection(webDb, "shelter_pets"), where("shelterId", "==", user!.uid)));
+      const snap = await getDocs(query(collection(webDb, "shelter_pets"), where("shelterId", "==", user.uid)));
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       list.sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       setPets(list);
     } finally { setLoading(false); }
-  }
+  }, [user]);
+
+  useFocusEffect(useCallback(() => { loadPets(); }, [loadPets]));
 
   async function updateStatus(id: string, status: string) {
     await updateDoc(doc(webDb, "shelter_pets", id), { status });
