@@ -15,6 +15,8 @@ export default function TabLayout() {
     if (!isWeb) return;
     const unsub = onAuthStateChanged(webAuth, async (user) => {
       if (user) {
+        // Admin email always gets admin role regardless of Firestore doc
+        if (user.email === "mypetdexapp@gmail.com") { setRole("admin"); return; }
         try {
           const snap = await getDoc(doc(webDb, "users", user.uid));
           if (snap.exists()) setRole(snap.data().role || "owner");

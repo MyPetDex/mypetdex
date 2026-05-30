@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal } from "react-native";
-import { isWeb, webAuth, webDb } from "@/lib/firebase";
+import { isWeb, webDb } from "@/lib/firebase";
 import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4CAF82";
 const ADMIN_EMAIL = "mypetdexapp@gmail.com";
@@ -10,6 +11,7 @@ const STORES = ["Amazon", "Chewy", "Other"];
 const CATEGORIES = ["Food", "Treats", "Toys", "Health", "Grooming", "Accessories", "Other"];
 
 export default function AdminProducts() {
+  const { user } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -17,10 +19,10 @@ export default function AdminProducts() {
   const [form, setForm] = useState({ title: "", url: "", store: "Amazon", category: "Food", price: "", description: "" });
 
   useEffect(() => {
-    const user = webAuth.currentUser;
-    if (!user || user.email !== ADMIN_EMAIL) { setLoading(false); return; }
+    if (!user) { setLoading(false); return; }
+    if (user.email !== ADMIN_EMAIL) { setLoading(false); return; }
     loadProducts();
-  }, []);
+  }, [user]);
 
   async function loadProducts() {
     try {
@@ -54,7 +56,6 @@ export default function AdminProducts() {
 
   if (loading) return <View style={s.center}><ActivityIndicator color={BRAND} size="large" /></View>;
 
-  const user = webAuth.currentUser;
   if (!user || user.email !== ADMIN_EMAIL) return <View style={s.center}><Text style={s.noAccess}>Access Restricted</Text></View>;
 
   const STORE_COLORS: Record<string, string> = { Amazon: "#FF9900", Chewy: "#0073CF", Other: "#64748B" };

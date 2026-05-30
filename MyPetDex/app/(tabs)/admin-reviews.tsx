@@ -1,21 +1,25 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { isWeb, webAuth, webDb } from "@/lib/firebase";
+import { isWeb, webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4CAF82";
 const ADMIN_EMAIL = "mypetdexapp@gmail.com";
 
 export default function AdminReviews() {
+  const { user } = useAuth();
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
   useEffect(() => {
-    const user = webAuth.currentUser;
-    if (!user || user.email !== ADMIN_EMAIL) { setLoading(false); return; }
+    if (!user) { setLoading(false); return; }
+    if (user.email !== ADMIN_EMAIL) { setLoading(false); return; }
     loadReviews();
-  }, []);
+  }, [user]);
 
   async function loadReviews() {
     try {
@@ -38,8 +42,7 @@ export default function AdminReviews() {
 
   if (loading) return <View style={s.center}><ActivityIndicator color={BRAND} size="large" /></View>;
 
-  const user = webAuth.currentUser;
-  if (!user || user.email !== ADMIN_EMAIL) return <View style={s.center}><Text style={s.noAccess}>Access Restricted</Text></View>;
+  if (!isAdmin) return <View style={s.center}><Text style={s.noAccess}>Access Restricted</Text></View>;
 
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>

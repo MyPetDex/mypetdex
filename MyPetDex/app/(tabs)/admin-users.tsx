@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert } from "react-native";
-import { isWeb, webAuth, webDb } from "@/lib/firebase";
+import { isWeb, webDb } from "@/lib/firebase";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4CAF82";
 const ADMIN_EMAIL = "mypetdexapp@gmail.com";
 
 export default function AdminUsers() {
+  const { user } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [filtered, setFiltered] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,10 +17,10 @@ export default function AdminUsers() {
   const [roleFilter, setRoleFilter] = useState("all");
 
   useEffect(() => {
-    const user = webAuth.currentUser;
-    if (!user || user.email !== ADMIN_EMAIL) { setLoading(false); return; }
+    if (!user) { setLoading(false); return; }
+    if (user.email !== ADMIN_EMAIL) { setLoading(false); return; }
     loadUsers();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     let list = users;
@@ -48,7 +50,6 @@ export default function AdminUsers() {
 
   if (loading) return <View style={s.center}><ActivityIndicator color={BRAND} size="large" /></View>;
 
-  const user = webAuth.currentUser;
   if (!user || user.email !== ADMIN_EMAIL) return <View style={s.center}><Text style={s.noAccess}>Access Restricted</Text></View>;
 
   return (

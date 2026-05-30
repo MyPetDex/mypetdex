@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
-import { isWeb, webAuth, webDb } from "@/lib/firebase";
+import { isWeb, webDb } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4CAF82";
 const ADMIN_EMAIL = "mypetdexapp@gmail.com";
@@ -10,16 +11,17 @@ const ADMIN_EMAIL = "mypetdexapp@gmail.com";
 const PLAN_PRICES: Record<string, number> = { plus: 3.0, family: 5.0 };
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
   const [stats, setStats] = useState({ owners: 0, providers: 0, shelters: 0, plusUsers: 0, familyUsers: 0 });
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   useEffect(() => {
-    const user = webAuth.currentUser;
-    if (!user || user.email !== ADMIN_EMAIL) { setLoading(false); return; }
-    setIsAdmin(true);
+    if (!user) { setLoading(false); return; }
+    if (user.email !== ADMIN_EMAIL) { setLoading(false); return; }
     loadStats();
-  }, []);
+  }, [user]);
 
   async function loadStats() {
     try {
