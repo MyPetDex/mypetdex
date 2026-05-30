@@ -23,18 +23,20 @@ export default function HomeScreen() {
   const [pets, setPets] = useState<any[]>([]);
   const [selectedPet, setSelectedPet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [roleChecked, setRoleChecked] = useState(false);
 
   const firstName = user?.displayName?.split(" ")[0] || "there";
 
-  // Redirect non-owners to their own dashboard
+  // Redirect non-owners to their own dashboard BEFORE rendering anything
   useEffect(() => {
-    if (!user || !isWeb) return;
+    if (!user || !isWeb) { setRoleChecked(true); return; }
     getDoc(doc(webDb, "users", user.uid)).then((snap) => {
-      if (!snap.exists()) return;
+      if (!snap.exists()) { setRoleChecked(true); return; }
       const role = snap.data()?.role;
-      if (role === "provider") router.replace("/(tabs)/provider-home");
-      else if (role === "shelter") router.replace("/(tabs)/shelter-home");
-      else if (role === "admin") router.replace("/(tabs)/admin-dashboard");
+      if (role === "provider") { router.replace("/(tabs)/provider-home"); return; }
+      if (role === "shelter") { router.replace("/(tabs)/shelter-home"); return; }
+      if (role === "admin") { router.replace("/(tabs)/admin-dashboard"); return; }
+      setRoleChecked(true); // only owners reach here
     });
   }, [user]);
 
@@ -73,6 +75,11 @@ export default function HomeScreen() {
     } else {
       router.push("/pet/add");
     }
+  }
+
+  // Don't render pet-owner UI until we know this user is actually an owner
+  if (!roleChecked) {
+    return <View style={{ flex: 1, backgroundColor: "#fff" }}><ActivityIndicator style={{ marginTop: 80 }} color={BRAND} size="large" /></View>;
   }
 
   return (
