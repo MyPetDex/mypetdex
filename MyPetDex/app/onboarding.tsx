@@ -134,6 +134,7 @@ export default function OnboardingScreen() {
         plan: "free",
         state,
         city: city.trim(),
+        onboardingComplete: true,
       };
 
       if (role === "provider") {

@@ -71,6 +71,9 @@ function AuthGuard() {
       } else {
         router.replace("/(tabs)");
       }
+    } else if (user && inOnboarding && hasCompletedOnboarding) {
+      // Already completed onboarding — race condition guard: redirect away
+      router.replace("/(tabs)");
     } else if (user && !inAuthGroup && !inOnboarding) {
       if (!hasCompletedOnboarding) {
         router.replace("/onboarding");
