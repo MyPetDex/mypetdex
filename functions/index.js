@@ -51,13 +51,17 @@ exports.onNewUser = onDocumentCreated(
 
 
 
+    const adminMsg = {
+      to: ADMIN_EMAIL,
+      from: { email: FROM_EMAIL, name: FROM_NAME },
+      subject: `✅ New ${role} signup: ${email}`,
+      html: adminNotificationHTML(role, email, profile),
+    };
+
     try {
-      console.log(`New user created: ${email} (${role}) — welcome email will send after verification`);
-      // Increment public user counter
-      await db.collection("stats").doc("public").update({
-        userCount: admin.firestore.FieldValue.increment(1)
-      });
-      // Increment public user counter
+      if (welcomeMsg) await sgMail.send(welcomeMsg);
+      await sgMail.send(adminMsg);
+      console.log(`Welcome + admin emails sent for ${email} (${role})`);
       await db.collection("stats").doc("public").update({
         userCount: admin.firestore.FieldValue.increment(1)
       });
