@@ -67,7 +67,7 @@ export default function ProviderHome() {
         <View style={s.alert}>
           <Ionicons name="information-circle-outline" size={18} color="#F5A623" />
           <Text style={s.alertText}>
-            Your account is pending verification. Reply to your welcome email with your Business License and Google Business link to get approved.
+            Your account is under review. You can set up your services now — your public listing will go live once verified by our team.
           </Text>
         </View>
       )}

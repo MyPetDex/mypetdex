@@ -53,7 +53,7 @@ export default function ShelterHome() {
       {!isVerified && (
         <View style={s.alert}>
           <Ionicons name="information-circle-outline" size={18} color="#F5A623" />
-          <Text style={s.alertText}>Reply to your welcome email with your Shelter Name, Website, License Number, and EIN to get verified.</Text>
+          <Text style={s.alertText}>Your account is under review. You can add pets and manage your shelter now — your public listing will go live once verified by our team.</Text>
         </View>
       )}
 
