@@ -13,10 +13,10 @@ import _nativeAuth from "@react-native-firebase/auth";
 import _nativeFirestore from "@react-native-firebase/firestore";
 
 // Web-only Apple Sign In button (the expo-apple-authentication stub renders null on web)
-function WebAppleButton({ onPress }: { onPress: () => void }) {
+function WebAppleButton({ onPress, label = "Sign in with Apple" }: { onPress: () => void; label?: string }) {
   return (
     <Pressable style={styles.appleButtonWeb} onPress={onPress}>
-      <Text style={styles.appleButtonWebText}> Sign in with Apple</Text>
+      <Text style={styles.appleButtonWebText}> {label}</Text>
     </Pressable>
   );
 }
@@ -527,7 +527,7 @@ export default function SignInScreen() {
               {/* Social auth */}
               {appleAvailable && (
                 isWeb ? (
-                  <WebAppleButton onPress={handleApple} />
+                  <WebAppleButton onPress={handleApple} label="Sign up with Apple" />
                 ) : (
                   <AppleAuthentication.AppleAuthenticationButton
                     buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}

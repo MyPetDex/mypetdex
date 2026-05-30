@@ -60,18 +60,19 @@ function AuthGuard() {
     const inOnboarding = segments.some(s => s === "onboarding");
     const inExplore = segments.some(s => s === "explore");
 
+    // User has completed onboarding if they have city, businessName, or shelterName
+    const hasCompletedOnboarding = !!(profile?.city || profile?.businessName || profile?.shelterName || profile?.onboardingComplete);
+
     if (!user && !inAuthGroup && !inExplore) {
       router.replace("/(auth)/sign-in");
     } else if (user && inAuthGroup) {
-      // New OAuth user with no city → onboarding; else → tabs
-      if (!profile?.city) {
+      if (!hasCompletedOnboarding) {
         router.replace("/onboarding");
       } else {
         router.replace("/(tabs)");
       }
     } else if (user && !inAuthGroup && !inOnboarding) {
-      // Signed-in user missing city (OAuth signup) → onboarding
-      if (!profile?.city) {
+      if (!hasCompletedOnboarding) {
         router.replace("/onboarding");
       }
     }
