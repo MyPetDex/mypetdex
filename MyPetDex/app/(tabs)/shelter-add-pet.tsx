@@ -1,9 +1,8 @@
-import { useState } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, Image } from "react-native";
+import { useRef, useState } from "react";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, Image, Platform } from "react-native";
 import { isWeb, webAuth, webDb } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
 
 const BRAND = "#4CAF82";
 const SPECIES = ["Dog", "Cat", "Rabbit", "Bird", "Other"];
@@ -13,6 +12,7 @@ const STATUSES = ["Available", "Pending", "Adopted"];
 export default function ShelterAddPet() {
   const [saving, setSaving] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const fileInputRef = useRef<any>(null);
   const [form, setForm] = useState({
     name: "", species: "Dog", breed: "", age: "", weight: "",
     gender: "Male", color: "", description: "", contactPhone: "",
@@ -21,9 +21,18 @@ export default function ShelterAddPet() {
 
   function set(key: string, val: string) { setForm(f => ({ ...f, [key]: val })); }
 
-  async function pickPhoto() {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8, allowsEditing: true, aspect: [1, 1] });
-    if (!result.canceled) setPhotoUri(result.assets[0].uri);
+  function pickPhoto() {
+    if (isWeb && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  }
+
+  function onFileChange(e: any) {
+    const file = e.target?.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setPhotoUri(ev.target?.result as string);
+    reader.readAsDataURL(file);
   }
 
   async function handleSubmit() {
@@ -51,6 +60,11 @@ export default function ShelterAddPet() {
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
       <Text style={s.title}>Add a Pet</Text>
+
+      {/* Hidden file input for web */}
+      {isWeb && (
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={onFileChange} />
+      )}
 
       {/* Photo */}
       <TouchableOpacity style={s.photoBox} onPress={pickPhoto}>
