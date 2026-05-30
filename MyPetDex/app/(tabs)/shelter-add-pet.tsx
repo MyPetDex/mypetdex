@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, Image, Platform } from "react-native";
-import { isWeb, webAuth, webDb } from "@/lib/firebase";
+import { isWeb, webDb } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4CAF82";
 const SPECIES = ["Dog", "Cat", "Rabbit", "Bird", "Other"];
@@ -10,6 +11,7 @@ const GENDERS = ["Male", "Female", "Unknown"];
 const STATUSES = ["Available", "Pending", "Adopted"];
 
 export default function ShelterAddPet() {
+  const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const fileInputRef = useRef<any>(null);
@@ -38,7 +40,6 @@ export default function ShelterAddPet() {
   async function handleSubmit() {
     if (!form.name.trim()) { Alert.alert("Required", "Please enter the pet's name."); return; }
     if (!form.breed.trim()) { Alert.alert("Required", "Please enter the breed."); return; }
-    const user = webAuth.currentUser;
     if (!user || !isWeb) return;
     setSaving(true);
     try {

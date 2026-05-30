@@ -1,24 +1,25 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { isWeb, webAuth, webDb } from "@/lib/firebase";
+import { isWeb, webDb } from "@/lib/firebase";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4CAF82";
 
 export default function ProviderHome() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({ bookings: 0, reviews: 0, rating: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) { setLoading(false); return; }
     loadData();
-  }, []);
+  }, [user]);
 
   async function loadData() {
-    if (!isWeb) return;
-    const user = webAuth.currentUser;
-    if (!user) return;
+    if (!isWeb) { setLoading(false); return; }
     try {
       const snap = await getDoc(doc(webDb, "users", user.uid));
       if (snap.exists()) setProfile(snap.data());

@@ -3,12 +3,14 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Activi
 import { isWeb, webAuth, webDb } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { signOut as webSignOut } from "firebase/auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 const BRAND = "#4CAF82";
 
 export default function ShelterProfile() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
@@ -17,10 +19,10 @@ export default function ShelterProfile() {
   const router = useRouter();
 
   useEffect(() => {
+    if (!user) { setLoading(false); return; }
     async function load() {
-      const user = webAuth.currentUser;
-      if (!user || !isWeb) return;
-      const snap = await getDoc(doc(webDb, "users", user.uid));
+      if (!isWeb) { setLoading(false); return; }
+      const snap = await getDoc(doc(webDb, "users", user!.uid));
       if (snap.exists()) {
         const d = snap.data();
         setProfile(d);
@@ -29,14 +31,13 @@ export default function ShelterProfile() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [user]);
 
   async function save() {
-    const user = webAuth.currentUser;
     if (!user) return;
     setSaving(true);
     try {
-      await updateDoc(doc(webDb, "users", user.uid), form);
+      await updateDoc(doc(webDb, "users", user!.uid), form);
       setProfile((p: any) => ({ ...p, ...form }));
       setEditMode(false);
     } catch { Alert.alert("Error", "Failed to save."); }

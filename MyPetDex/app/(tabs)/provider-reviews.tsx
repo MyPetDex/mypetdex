@@ -1,28 +1,30 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
-import { isWeb, webAuth, webDb } from "@/lib/firebase";
+import { isWeb, webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4CAF82";
 
 export default function ProviderReviews() {
+  const { user } = useAuth();
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) { setLoading(false); return; }
     async function load() {
-      const user = webAuth.currentUser;
-      if (!user || !isWeb) return;
+      if (!isWeb) { setLoading(false); return; }
       try {
-        const snap = await getDocs(query(collection(webDb, "reviews"), where("providerId", "==", user.uid), where("published", "==", true)));
+        const snap = await getDocs(query(collection(webDb, "reviews"), where("providerId", "==", user!.uid), where("published", "==", true)));
         const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         list.sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
         setReviews(list);
       } finally { setLoading(false); }
     }
     load();
-  }, []);
+  }, [user]);
 
   const avg = reviews.length > 0 ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1) : "—";
 

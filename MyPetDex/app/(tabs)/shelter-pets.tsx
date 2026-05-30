@@ -1,24 +1,28 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Alert } from "react-native";
-import { isWeb, webAuth, webDb } from "@/lib/firebase";
+import { isWeb, webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4CAF82";
 const STATUS_COLORS: Record<string, string> = { available: BRAND, pending: "#F5A623", adopted: "#3B82F6" };
 
 export default function ShelterPets() {
+  const { user } = useAuth();
   const [pets, setPets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
-  useEffect(() => { loadPets(); }, []);
+  useEffect(() => {
+    if (!user) { setLoading(false); return; }
+    loadPets();
+  }, [user]);
 
   async function loadPets() {
-    const user = webAuth.currentUser;
-    if (!user || !isWeb) return;
+    if (!isWeb) { setLoading(false); return; }
     try {
-      const snap = await getDocs(query(collection(webDb, "shelter_pets"), where("shelterId", "==", user.uid)));
+      const snap = await getDocs(query(collection(webDb, "shelter_pets"), where("shelterId", "==", user!.uid)));
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       list.sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       setPets(list);

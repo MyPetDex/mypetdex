@@ -3,26 +3,28 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator
 import { isWeb, webAuth, webDb } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { signOut as webSignOut } from "firebase/auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 const BRAND = "#4CAF82";
 
 export default function ProviderProfile() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
+    if (!user) { setLoading(false); return; }
     async function load() {
-      const user = webAuth.currentUser;
-      if (!user || !isWeb) return;
-      const snap = await getDoc(doc(webDb, "users", user.uid));
+      if (!isWeb) { setLoading(false); return; }
+      const snap = await getDoc(doc(webDb, "users", user!.uid));
       if (snap.exists()) setProfile(snap.data());
       setLoading(false);
     }
     load();
-  }, []);
+  }, [user]);
 
   async function handleSignOut() {
     await webSignOut(webAuth);

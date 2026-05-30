@@ -1,20 +1,22 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { isWeb, webAuth, webDb } from "@/lib/firebase";
+import { isWeb, webDb } from "@/lib/firebase";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4CAF82";
 
 export default function ShelterHome() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({ total: 0, available: 0, adopted: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) { setLoading(false); return; }
     async function load() {
-      const user = webAuth.currentUser;
-      if (!user || !isWeb) return;
+      if (!isWeb) { setLoading(false); return; }
       try {
         const snap = await getDoc(doc(webDb, "users", user.uid));
         if (snap.exists()) setProfile(snap.data());
@@ -28,7 +30,7 @@ export default function ShelterHome() {
       } finally { setLoading(false); }
     }
     load();
-  }, []);
+  }, [user]);
 
   if (loading) return <View style={s.center}><ActivityIndicator color={BRAND} size="large" /></View>;
 
