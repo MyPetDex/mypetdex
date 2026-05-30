@@ -30,6 +30,8 @@ export default function HomeScreen() {
   // Redirect non-owners to their own dashboard BEFORE rendering anything
   useEffect(() => {
     if (!user || !isWeb) { setRoleChecked(true); return; }
+    // Admin email always goes to admin dashboard regardless of Firestore doc
+    if (user.email === "mypetdexapp@gmail.com") { router.replace("/(tabs)/admin-dashboard"); return; }
     getDoc(doc(webDb, "users", user.uid)).then((snap) => {
       if (!snap.exists()) { setRoleChecked(true); return; }
       const role = snap.data()?.role;
