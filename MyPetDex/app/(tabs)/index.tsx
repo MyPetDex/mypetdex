@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { isWeb, webDb } from "@/lib/firebase";
-import { collection as webCollection, onSnapshot as webOnSnapshot } from "firebase/firestore";
+import { collection as webCollection, onSnapshot as webOnSnapshot, doc, getDoc } from "firebase/firestore";
 import _nativeFirestore from "@react-native-firebase/firestore";
 
 const BRAND = "#4CAF82";
@@ -25,6 +25,18 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
 
   const firstName = user?.displayName?.split(" ")[0] || "there";
+
+  // Redirect non-owners to their own dashboard
+  useEffect(() => {
+    if (!user || !isWeb) return;
+    getDoc(doc(webDb, "users", user.uid)).then((snap) => {
+      if (!snap.exists()) return;
+      const role = snap.data()?.role;
+      if (role === "provider") router.replace("/(tabs)/provider-home");
+      else if (role === "shelter") router.replace("/(tabs)/shelter-home");
+      else if (role === "admin") router.replace("/(tabs)/admin-dashboard");
+    });
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
