@@ -20,16 +20,24 @@ export default function AdminDashboard() {
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   async function handleSignOut() {
-    try {
-      await setPersistence(webAuth, inMemoryPersistence);
-    } catch {}
-    try {
-      await signOut(webAuth);
-    } catch {}
+    try { await setPersistence(webAuth, inMemoryPersistence); } catch {}
+    try { await signOut(webAuth); } catch {}
     if (typeof window !== "undefined") {
-      // Clear all storage to ensure no cached auth state
       try { localStorage.clear(); } catch {}
       try { sessionStorage.clear(); } catch {}
+      // Delete all Firebase IndexedDB databases so the session cannot be restored
+      const dbNames = [
+        "firebaseLocalStorageDb",
+        "firebase-heartbeat-database",
+        "firebase-installations-database",
+        `firebase-installations-store`,
+      ];
+      await Promise.allSettled(dbNames.map(name => new Promise<void>(resolve => {
+        const req = indexedDB.deleteDatabase(name);
+        req.onsuccess = () => resolve();
+        req.onerror = () => resolve();
+        req.onblocked = () => resolve();
+      })));
       window.location.href = "/";
     } else {
       router.replace("/(auth)/sign-in" as any);
