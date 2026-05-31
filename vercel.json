@@ -1,10 +1,15 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "build",
-  "framework": "create-react-app",
+  "buildCommand": "npm install && npx expo export -p web",
+  "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/pet/:id", "destination": "/pet.html" },
-    { "source": "/services", "destination": "/services-section.html" },
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://mypetdex-c4315.firebaseapp.com/__/auth/:path*"
+    },
+    {
+      "source": "/__/firebase/:path*",
+      "destination": "https://mypetdex-c4315.firebaseapp.com/__/firebase/:path*"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
