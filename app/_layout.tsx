@@ -1,6 +1,8 @@
 import { useEffect, Component, ReactNode } from "react";
 import { Pressable, Text, View, ScrollView } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
+import { signOut } from "firebase/auth";
+import { webAuth } from "@/lib/firebase";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import { Ionicons } from "@expo/vector-icons";
@@ -54,6 +56,17 @@ function AuthGuard() {
   const router = useRouter();
 
   useEffect(() => {
+    // Check for ?logout=1 in URL — force sign out from anywhere
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("logout") === "1") {
+        signOut(webAuth).finally(() => {
+          window.location.href = "/";
+        });
+        return;
+      }
+    }
+
     if (authLoading || (user && profileLoading)) return;
 
     const inAuthGroup = segments.some(s => s === "(auth)");
