@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to MyPetDex 🐾</title>
+  <meta name="description" content="You're in! Create your free MyPetDex account and start tracking your pet's health, reminders, and more." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --blue:    #3B82F6;
+      --blue-dk: #2563EB;
+      --green:   #4CAF82;
+      --white:   #1E293B;
+      --muted:   #64748B;
+      --font-h:  'Outfit', sans-serif;
+      --font-b:  'DM Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: linear-gradient(180deg, #D6E9FF 0%, #E8F3FF 30%, #F4F8FF 70%, #FFFFFF 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-family: var(--font-b);
+      color: var(--white);
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      background: #3B82F6;
+      padding: 16px 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .nav-logo .paw { font-size: 1.5rem; }
+    .nav-logo .brand {
+      font-family: var(--font-h);
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: #fff;
+    }
+    .nav-back {
+      color: rgba(255,255,255,0.85);
+      font-size: 0.88rem;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .nav-back:hover { color: #fff; }
+
+    /* MAIN */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px 64px;
+    }
+
+    /* HEADER */
+    .page-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .checkmark {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #34d399, #4CAF82);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 20px;
+      box-shadow: 0 8px 24px rgba(76,175,130,0.3);
+    }
+    .page-header h1 {
+      font-family: var(--font-h);
+      font-size: clamp(1.6rem, 4vw, 2rem);
+      font-weight: 800;
+      color: var(--white);
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+    .page-header p {
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.6;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ROLE CARDS */
+    .role-question {
+      font-family: var(--font-h);
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--white);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .role-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      max-width: 820px;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+
+    .role-card {
+      background: #fff;
+      border: 2px solid #E2EEF9;
+      border-radius: 20px;
+      padding: 28px 20px 24px;
+      text-align: center;
+      text-decoration: none;
+      color: var(--white);
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 16px rgba(59,130,246,0.07);
+      cursor: pointer;
+    }
+    .role-card:hover {
+      border-color: var(--blue);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(59,130,246,0.18);
+    }
+    .role-card.green:hover { border-color: var(--blue); box-shadow: 0 12px 32px rgba(59,130,246,0.18); }
+    .role-card.orange:hover { border-color: var(--blue); box-shadow: 0 12px 32px rgba(59,130,246,0.18); }
+
+    .role-icon {
+      font-size: 2.8rem;
+      line-height: 1;
+    }
+    .role-title {
+      font-family: var(--font-h);
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--white);
+      line-height: 1.2;
+    }
+    .role-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .role-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 50px;
+      margin-top: 4px;
+    }
+    .role-badge.blue  { background: #DBEAFE; color: #1d4ed8; }
+    .role-badge.green { background: #DBEAFE; color: #1d4ed8; }
+    .role-badge.orange{ background: #DBEAFE; color: #1d4ed8; }
+
+    .role-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: var(--font-h);
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 10px 18px;
+      border-radius: 10px;
+      margin-top: 6px;
+      width: 100%;
+      transition: opacity 0.2s;
+    }
+    .role-btn.blue   { background: var(--blue); color: #fff; }
+    .role-btn.green  { background: var(--blue); color: #fff; }
+    .role-btn.orange { background: var(--blue); color: #fff; }
+    .role-card:hover .role-btn { opacity: 0.9; }
+
+    .fine-print {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 8px;
+      margin-bottom: 40px;
+    }
+
+    /* DIVIDER */
+    .divider {
+      border: none;
+      border-top: 1px solid #E2EEF9;
+      margin: 0 0 32px;
+      width: 100%;
+      max-width: 820px;
+    }
+
+    /* ALREADY HAVE ACCOUNT */
+    .signin-row {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 40px;
+    }
+    .signin-row a {
+      color: var(--blue);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .signin-row a:hover { text-decoration: underline; }
+
+    /* BACK LINK */
+    .back-link {
+      display: block;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.88rem;
+      text-decoration: none;
+    }
+    .back-link:hover { color: var(--blue); }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    footer a { color: var(--blue); }
+
+    /* MOBILE */
+    @media (max-width: 640px) {
+      .role-cards { grid-template-columns: 1fr; max-width: 400px; }
+      .role-card { flex-direction: row; text-align: left; padding: 20px; gap: 16px; }
+      .role-icon { font-size: 2.2rem; min-width: 48px; }
+      .role-card-body { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+      .role-btn { width: auto; padding: 8px 14px; font-size: 0.8rem; align-self: flex-start; }
+      .role-badge { align-self: flex-start; }
+      main { padding: 32px 16px 48px; }
+    }
+
+    @media (max-width: 900px) and (min-width: 641px) {
+      .role-cards { grid-template-columns: 1fr; max-width: 480px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="https://home.mypetdex.app" class="nav-logo">
+      <img src="/images/logo.png" alt="MyPetDex" style="height:36px;width:36px;object-fit:contain;border-radius:50%;">
+      <span class="brand">MyPetDex</span>
+    </a>
+    <a href="https://home.mypetdex.app" class="nav-back">← Back to home</a>
+  </nav>
+
+  <main>
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="checkmark">🎉</div>
+      <h1>Welcome to MyPetDex!</h1>
+      <p>Create your free account in seconds. Choose how you'll be using the app:</p>
+    </div>
+
+    <!-- Role question -->
+    <div class="role-question">Who are you signing up as?</div>
+
+    <!-- 3 Role Cards -->
+    <div class="role-cards">
+
+      <!-- Pet Owner -->
+      <a href="https://app.mypetdex.app" class="role-card">
+        <div class="role-icon">🐾</div>
+        <div class="role-card-body">
+          <div class="role-title">Pet Owner</div>
+          <div class="role-desc">Track health records, set reminders, get AI tips, and find local services for your pet.</div>
+          <span class="role-badge blue">Free plan available</span>
+          <div class="role-btn blue">Get Started Free →</div>
+        </div>
+      </a>
+
+      <!-- Service Provider -->
+      <a href="https://app.mypetdex.app/sign-in?role=provider" class="role-card green">
+        <div class="role-icon">🛎️</div>
+        <div class="role-card-body">
+          <div class="role-title">Service Provider</div>
+          <div class="role-desc">List your pet business, get discovered by local owners, and manage bookings.</div>
+          <span class="role-badge green">6 months free trial</span>
+          <div class="role-btn green">Join as Provider →</div>
+        </div>
+      </a>
+
+      <!-- Animal Shelter -->
+      <a href="https://app.mypetdex.app/sign-in?role=shelter" class="role-card orange">
+        <div class="role-icon">🏠</div>
+        <div class="role-card-body">
+          <div class="role-title">Animal Shelter</div>
+          <div class="role-desc">List adoptable pets, connect with loving families, and manage your shelter profile.</div>
+          <span class="role-badge orange">Always free for shelters</span>
+          <div class="role-btn orange">Register Shelter →</div>
+        </div>
+      </a>
+
+    </div>
+
+    <div class="fine-print">✓ No payment due today &nbsp;·&nbsp; ✓ Sign in with Apple or Google &nbsp;·&nbsp; ✓ Cancel anytime</div>
+
+    <hr class="divider" />
+
+    <div class="signin-row">
+      Already have an account? <a href="https://app.mypetdex.app/sign-in">Sign In →</a>
+    </div>
+
+    <a href="https://home.mypetdex.app" class="back-link">← Back to mypetdex.app</a>
+
+  </main>
+
+  <footer>
+    &copy; 2025 MyPetDex &nbsp;·&nbsp; <a href="https://home.mypetdex.app/privacy.html">Privacy Policy</a> &nbsp;·&nbsp; <a href="https://home.mypetdex.app/terms.html">Terms of Service</a>
+  </footer>
+
+</body>
+</html>

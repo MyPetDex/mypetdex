@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>For Service Providers – MyPetDex</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #4486F4; --white: #ffffff; --dark: #1E293B; --muted: #64748B; --font-h: 'Outfit', sans-serif; --font-b: 'DM Sans', sans-serif; }
+    body { font-family: var(--font-b); color: var(--dark); background: #fff; overflow-x: hidden; }
+
+    nav {
+      background: var(--blue);
+      padding: 16px 5%;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo img { height: 36px; width: 36px; border-radius: 50%; object-fit: contain; }
+    .nav-logo span { font-family: var(--font-h); font-weight: 800; font-size: 1.2rem; color: #fff; }
+    .nav-signin { color: rgba(255,255,255,0.85); font-size: 0.88rem; font-weight: 500; text-decoration: none; }
+    .nav-signin:hover { color: #fff; }
+
+    .hero {
+      background: var(--blue);
+      color: #fff;
+      text-align: center;
+      padding: 56px 20px 60px;
+    }
+    .role-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 50px;
+      padding: 7px 18px;
+      font-family: var(--font-h); font-weight: 700; font-size: 0.88rem;
+      margin-bottom: 22px;
+    }
+    .hero h1 {
+      font-family: var(--font-h); font-size: clamp(2rem, 5vw, 2.8rem); font-weight: 800;
+      line-height: 1.2; margin-bottom: 16px;
+    }
+    .hero p { font-size: 1rem; opacity: 0.9; line-height: 1.7; max-width: 500px; margin: 0 auto 12px; }
+    .hero-sub { font-size: 0.85rem; opacity: 0.7; margin-bottom: 32px; }
+
+    .pills {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      justify-content: center; margin-bottom: 36px;
+    }
+    .pill {
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 50px;
+      padding: 7px 16px;
+      font-size: 0.85rem; font-weight: 600; color: #fff;
+    }
+
+    .cta-group { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #fff; color: var(--blue);
+      font-family: var(--font-h); font-weight: 800; font-size: 1rem;
+      padding: 16px 36px; border-radius: 50px;
+      text-decoration: none;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 36px rgba(0,0,0,0.2); }
+    .btn-signin { color: rgba(255,255,255,0.8); font-size: 0.88rem; text-decoration: none; }
+    .btn-signin span { color: #fff; font-weight: 700; text-decoration: underline; }
+    .btn-signin:hover span { opacity: 0.85; }
+
+    .pricing-note {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 0.82rem; color: rgba(255,255,255,0.9);
+      max-width: 420px; margin: 16px auto 0; text-align: center;
+    }
+
+    .features { padding: 64px 5%; max-width: 1100px; margin: 0 auto; }
+    .section-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--blue); margin-bottom: 8px; }
+    .features h2 { font-family: var(--font-h); font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; margin-bottom: 40px; }
+    .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .feat-card {
+      border: 1.5px solid #E2EEF9; border-radius: 18px; padding: 28px 22px;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    .feat-card:hover { border-color: var(--blue); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(68,134,244,0.12); }
+    .feat-icon { font-size: 2rem; margin-bottom: 12px; }
+    .feat-title { font-family: var(--font-h); font-weight: 700; font-size: 1rem; margin-bottom: 6px; }
+    .feat-desc { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+
+    .cta-bottom { background: var(--blue); color: #fff; text-align: center; padding: 60px 20px; }
+    .cta-bottom h2 { font-family: var(--font-h); font-size: clamp(1.6rem,3vw,2.2rem); font-weight: 800; margin-bottom: 12px; }
+    .cta-bottom p { opacity: 0.9; font-size: 1rem; margin-bottom: 28px; max-width: 460px; margin-left: auto; margin-right: auto; }
+
+    footer { text-align: center; padding: 20px; font-size: 0.78rem; color: var(--muted); }
+    footer a { color: var(--blue); }
+
+    @media (max-width: 640px) {
+      .feat-grid { grid-template-columns: 1fr; }
+      .hero { padding: 40px 16px 48px; }
+    }
+    @media (max-width: 900px) and (min-width: 641px) {
+      .feat-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="https://home.mypetdex.app" class="nav-logo">
+    <img src="/images/logo.png" alt="MyPetDex" />
+    <span>MyPetDex</span>
+  </a>
+  <a href="https://app.mypetdex.app/sign-in?role=provider" class="nav-signin">Sign In →</a>
+</nav>
+
+<div class="hero">
+  <div class="role-badge">🛎️ For Service Providers</div>
+  <h1>Grow Your Pet Business</h1>
+  <p>Join MyPetDex and get discovered by local pet owners looking for your services.</p>
+  <p class="hero-sub">Grooming · Walking · Veterinary · Training · Boarding & more</p>
+
+  <div class="pills">
+    <div class="pill">📍 Local Discovery</div>
+    <div class="pill">⭐ Reviews</div>
+    <div class="pill">📅 Bookings</div>
+    <div class="pill">🏢 Business Profile</div>
+    <div class="pill">📊 Analytics</div>
+    <div class="pill">🎉 6-Month Free Trial</div>
+  </div>
+
+  <div class="cta-group">
+    <a href="https://app.mypetdex.app/sign-in?role=provider" class="btn-primary">Join as Provider →</a>
+    <a href="https://app.mypetdex.app/sign-in?role=provider" class="btn-signin">Already have an account? <span>Sign In</span></a>
+  </div>
+  <div class="pricing-note">🎉 Free for 6 months — then only 5% commission on bookings. No monthly fees ever!</div>
+</div>
+
+<div class="features">
+  <div class="section-label">What You Get</div>
+  <h2>Everything to Run Your Pet Business</h2>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon">📍</div>
+      <div class="feat-title">Local Discovery</div>
+      <div class="feat-desc">Get found by pet owners near you searching for your specific service type.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⭐</div>
+      <div class="feat-title">Reviews & Ratings</div>
+      <div class="feat-desc">Build trust with verified reviews from your clients on your public profile.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📅</div>
+      <div class="feat-title">Booking Management</div>
+      <div class="feat-desc">Accept and manage appointments directly from pet owners in the app.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🏢</div>
+      <div class="feat-title">Business Profile</div>
+      <div class="feat-desc">Showcase your services, pricing, photos, and contact info in one place.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <div class="feat-title">Analytics</div>
+      <div class="feat-desc">Track profile views, enquiries, and booking trends to grow your business.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🎉</div>
+      <div class="feat-title">6-Month Free Trial</div>
+      <div class="feat-desc">Start completely free for 6 months. Then only 5% per booking — no monthly fees.</div>
+    </div>
+  </div>
+</div>
+
+<div class="cta-bottom">
+  <h2>Ready to Grow Your Business?</h2>
+  <p>Join thousands of pet service providers on MyPetDex today.</p>
+  <a href="https://app.mypetdex.app/sign-in?role=provider" class="btn-primary">Join as Provider →</a>
+</div>
+
+<footer>
+  &copy; 2025 MyPetDex &nbsp;·&nbsp;
+  <a href="https://home.mypetdex.app/privacy.html">Privacy Policy</a> &nbsp;·&nbsp;
+  <a href="https://home.mypetdex.app/terms.html">Terms of Service</a>
+</footer>
+
+</body>
+</html>
