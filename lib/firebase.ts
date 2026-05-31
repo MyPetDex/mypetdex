@@ -41,6 +41,7 @@ export const storage = isWeb ? webStorage : nativeStorage;
 
 export async function signInWithGoogleWeb() {
   const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
   const result = await signInWithPopup(webAuth, provider);
   return result.user;
 }

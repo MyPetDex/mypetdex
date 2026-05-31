@@ -4,7 +4,7 @@ import { isWeb, webDb } from "@/lib/firebase";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, router } from "expo-router";
 
 const BRAND = "#4CAF82";
 
@@ -80,7 +80,7 @@ export default function ShelterHome() {
         { icon: "paw-outline", label: "Manage Pets", tab: "shelter-pets" },
         { icon: "business-outline", label: "Shelter Profile", tab: "shelter-profile" },
       ].map(item => (
-        <TouchableOpacity key={item.tab} style={s.actionRow}>
+        <TouchableOpacity key={item.tab} style={s.actionRow} onPress={() => router.push(`/(tabs)/${item.tab}` as any)}>
           <View style={s.actionIcon}>
             <Ionicons name={item.icon as any} size={20} color={BRAND} />
           </View>
