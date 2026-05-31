@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
-import { isWeb, webDb } from "@/lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { isWeb, webDb, webAuth } from "@/lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
+import { signOut } from "firebase/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
+import { router } from "expo-router";
 
 const BRAND = "#4CAF82";
 const ADMIN_EMAIL = "mypetdexapp@gmail.com";
@@ -16,6 +18,11 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
+
+  async function handleSignOut() {
+    await signOut(webAuth);
+    router.replace("/(auth)/sign-in" as any);
+  }
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -53,8 +60,16 @@ export default function AdminDashboard() {
 
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
-      <Text style={s.title}>Admin Dashboard</Text>
-      <Text style={s.subtitle}>MyPetDex Overview</Text>
+      <View style={s.header}>
+        <View>
+          <Text style={s.title}>Admin Dashboard</Text>
+          <Text style={s.subtitle}>MyPetDex Overview</Text>
+        </View>
+        <TouchableOpacity style={s.signOutBtn} onPress={handleSignOut}>
+          <Ionicons name="log-out-outline" size={20} color="#64748B" />
+          <Text style={s.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Revenue */}
       <View style={s.revenueCard}>
@@ -111,10 +126,13 @@ function StatCard({ label, value, icon, color }: { label: string; value: number;
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F5F8FF" },
   content: { padding: 20, paddingBottom: 40 },
+  header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 },
+  signOutBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#fff", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  signOutText: { fontSize: 13, fontWeight: "600", color: "#64748B" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   noAccess: { fontSize: 18, fontWeight: "700", color: "#94A3B8" },
   title: { fontSize: 24, fontWeight: "900", color: "#1E293B" },
-  subtitle: { fontSize: 14, color: "#64748B", marginBottom: 20 },
+  subtitle: { fontSize: 14, color: "#64748B", marginTop: 2 },
   revenueCard: { backgroundColor: "#1E293B", borderRadius: 18, padding: 24, marginBottom: 24, alignItems: "center" },
   revenueLabel: { color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: "600", marginBottom: 6 },
   revenueNum: { color: "#fff", fontSize: 42, fontWeight: "900" },
