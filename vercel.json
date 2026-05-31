@@ -1,6 +1,20 @@
 {
   "buildCommand": "npm install && npx expo export -p web",
   "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/_expo/static/js/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/__/auth/:path*",
