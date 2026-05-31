@@ -21,7 +21,11 @@ export default function AdminDashboard() {
 
   async function handleSignOut() {
     await signOut(webAuth);
-    router.replace("/(auth)/sign-in" as any);
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    } else {
+      router.replace("/(auth)/sign-in" as any);
+    }
   }
 
   useEffect(() => {
@@ -98,7 +102,7 @@ export default function AdminDashboard() {
         { icon: "shield-checkmark-outline", label: "Pending Reviews", sub: "Approve or reject service provider reviews", tab: "admin-reviews" },
         { icon: "pricetag-outline", label: "Product Links", sub: "Add Amazon & Chewy product links", tab: "admin-products" },
       ].map(item => (
-        <TouchableOpacity key={item.tab} style={s.navCard} onPress={() => router.navigate(`/(tabs)/${item.tab}` as any)}>
+        <TouchableOpacity key={item.tab} style={s.navCard} onPress={() => { if (typeof window !== "undefined") { window.location.href = `/${item.tab}`; } else { router.navigate(`/(tabs)/${item.tab}` as any); } }}>
           <View style={s.navIcon}>
             <Ionicons name={item.icon as any} size={22} color={BRAND} />
           </View>
@@ -130,7 +134,7 @@ function StatCard({ label, value, icon, color }: { label: string; value: number;
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F5F8FF" },
-  content: { padding: 20, paddingBottom: 40 },
+  content: { padding: 20, paddingBottom: 120 },
   header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 },
   signOutBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#fff", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
   signOutText: { fontSize: 13, fontWeight: "600", color: "#64748B" },
