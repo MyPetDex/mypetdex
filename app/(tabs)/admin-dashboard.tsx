@@ -62,7 +62,7 @@ export default function AdminDashboard() {
     <ScrollView style={s.container} contentContainerStyle={s.content}>
       <View style={s.header}>
         <View>
-          <Text style={s.title}>Admin Dashboard</Text>
+          <Text style={s.title}>Admin Dashboard v2</Text>
           <Text style={s.subtitle}>MyPetDex Overview</Text>
         </View>
         <TouchableOpacity style={s.signOutBtn} onPress={handleSignOut}>
