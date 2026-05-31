@@ -98,7 +98,7 @@ export default function AdminDashboard() {
         { icon: "shield-checkmark-outline", label: "Pending Reviews", sub: "Approve or reject service provider reviews", tab: "admin-reviews" },
         { icon: "pricetag-outline", label: "Product Links", sub: "Add Amazon & Chewy product links", tab: "admin-products" },
       ].map(item => (
-        <TouchableOpacity key={item.tab} style={s.navCard} onPress={() => router.push(`/(tabs)/${item.tab}` as any)}>
+        <TouchableOpacity key={item.tab} style={s.navCard} onPress={() => router.navigate(`/(tabs)/${item.tab}` as any)}>
           <View style={s.navIcon}>
             <Ionicons name={item.icon as any} size={22} color={BRAND} />
           </View>
@@ -109,6 +109,11 @@ export default function AdminDashboard() {
           <Ionicons name="chevron-forward" size={18} color="#ccc" />
         </TouchableOpacity>
       ))}
+
+      <TouchableOpacity style={s.signOutCard} onPress={handleSignOut}>
+        <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+        <Text style={s.signOutCardText}>Sign Out</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -146,4 +151,6 @@ const s = StyleSheet.create({
   navIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(76,175,130,0.1)", alignItems: "center", justifyContent: "center" },
   navLabel: { fontSize: 15, fontWeight: "700", color: "#1E293B" },
   navSub: { fontSize: 12, color: "#64748B", marginTop: 2 },
+  signOutCard: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#FEF2F2", borderRadius: 14, padding: 16, marginTop: 10, borderWidth: 1, borderColor: "#FECACA" },
+  signOutCardText: { fontSize: 15, fontWeight: "700", color: "#EF4444" },
 });
