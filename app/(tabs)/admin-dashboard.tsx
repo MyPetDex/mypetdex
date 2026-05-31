@@ -98,7 +98,7 @@ export default function AdminDashboard() {
         { icon: "shield-checkmark-outline", label: "Pending Reviews", sub: "Approve or reject service provider reviews", tab: "admin-reviews" },
         { icon: "pricetag-outline", label: "Product Links", sub: "Add Amazon & Chewy product links", tab: "admin-products" },
       ].map(item => (
-        <TouchableOpacity key={item.tab} style={s.navCard}>
+        <TouchableOpacity key={item.tab} style={s.navCard} onPress={() => router.push(`/(tabs)/${item.tab}` as any)}>
           <View style={s.navIcon}>
             <Ionicons name={item.icon as any} size={22} color={BRAND} />
           </View>
