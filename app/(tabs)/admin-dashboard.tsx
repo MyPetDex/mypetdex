@@ -72,10 +72,6 @@ export default function AdminDashboard() {
 
   return (
     <View style={{ flex: 1 }}>
-      <TouchableOpacity style={s.fixedSignOut} onPress={handleSignOut}>
-        <Ionicons name="log-out-outline" size={18} color="#fff" />
-        <Text style={s.fixedSignOutText}>Sign Out</Text>
-      </TouchableOpacity>
     <ScrollView style={s.container} contentContainerStyle={s.content}>
       <View style={s.header}>
         <View>
@@ -128,6 +124,7 @@ export default function AdminDashboard() {
         <Text style={s.signOutCardText}>Sign Out</Text>
       </TouchableOpacity>
     </ScrollView>
+    </View>
   );
 }
 
