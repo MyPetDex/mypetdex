@@ -63,16 +63,17 @@ export default function AdminDashboard() {
   const monthlyRevenue = stats.plusUsers * PLAN_PRICES.plus + stats.familyUsers * PLAN_PRICES.family;
 
   return (
+    <View style={{ flex: 1 }}>
+      <TouchableOpacity style={s.fixedSignOut} onPress={handleSignOut}>
+        <Ionicons name="log-out-outline" size={18} color="#fff" />
+        <Text style={s.fixedSignOutText}>Sign Out</Text>
+      </TouchableOpacity>
     <ScrollView style={s.container} contentContainerStyle={s.content}>
       <View style={s.header}>
         <View>
-          <Text style={s.title}>Admin Dashboard v2</Text>
+          <Text style={s.title}>Admin Dashboard</Text>
           <Text style={s.subtitle}>MyPetDex Overview</Text>
         </View>
-        <TouchableOpacity style={s.signOutBtn} onPress={handleSignOut}>
-          <Ionicons name="log-out-outline" size={20} color="#64748B" />
-          <Text style={s.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Revenue */}

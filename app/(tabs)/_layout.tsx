@@ -1,9 +1,9 @@
 import { Tabs } from "expo-router";
-import { Platform } from "react-native";
+import { Platform, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { isWeb, webAuth, webDb } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
 const BRAND = "#4CAF82";
@@ -200,6 +200,14 @@ export default function TabLayout() {
           href: isAdmin ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bar-chart-outline" size={size} color={color} />
+          ),
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => signOut(webAuth).then(() => { if (typeof window !== "undefined") window.location.href = "/"; })}
+              style={{ marginRight: 16, flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+            </TouchableOpacity>
           ),
         }}
       />
