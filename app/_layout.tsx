@@ -69,6 +69,9 @@ function AuthGuard() {
 
     if (authLoading || (user && profileLoading)) return;
 
+    // Admin portal is always accessible — no auth required
+    if (typeof window !== "undefined" && window.location.pathname.includes("mypetdex-admin")) return;
+
     const inAuthGroup = segments.some(s => s === "(auth)");
     const inOnboarding = segments.some(s => s === "onboarding");
     const inExplore = segments.some(s => s === "explore");
