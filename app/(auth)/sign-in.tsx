@@ -515,12 +515,14 @@ export default function SignInScreen() {
               </Pressable>
 
               {/* Age confirmation — required for all roles */}
-              <Pressable style={styles.checkRow} onPress={() => setConfirmedAge(v => !v)}>
-                <View style={[styles.checkbox, confirmedAge && styles.checkboxChecked]}>
-                  {confirmedAge && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
-                </View>
-                <Text style={styles.checkLabel}>I confirm I am 18 years of age or older.</Text>
-              </Pressable>
+              <View style={{ backgroundColor: "#FFF8E1", borderRadius: 10, borderWidth: 1.5, borderColor: "#F5A623", padding: 10, marginBottom: 12 }}>
+                <Pressable style={[styles.checkRow, { marginBottom: 0 }]} onPress={() => setConfirmedAge(v => !v)}>
+                  <View style={[styles.checkbox, confirmedAge && styles.checkboxChecked, { borderColor: "#F5A623" }]}>
+                    {confirmedAge && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
+                  </View>
+                  <Text style={[styles.checkLabel, { color: "#7B4F00", fontWeight: "600" }]}>I confirm I am 18 years of age or older.</Text>
+                </Pressable>
+              </View>
 
               {/* Social auth */}
               {appleAvailable && (
