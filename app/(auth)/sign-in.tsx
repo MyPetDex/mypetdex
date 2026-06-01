@@ -515,14 +515,24 @@ export default function SignInScreen() {
               </Pressable>
 
               {/* Age confirmation — required for all roles */}
-              <View style={{ backgroundColor: "#FFF8E1", borderRadius: 10, borderWidth: 1.5, borderColor: "#F5A623", padding: 10, marginBottom: 12 }}>
-                <Pressable style={[styles.checkRow, { marginBottom: 0 }]} onPress={() => setConfirmedAge(v => !v)}>
-                  <View style={[styles.checkbox, confirmedAge && styles.checkboxChecked, { borderColor: "#F5A623" }]}>
+              {isWeb ? (
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12, cursor: "pointer", backgroundColor: "#FFF8E1", borderRadius: 10, border: "2px solid #F5A623", padding: 10 } as any}>
+                  <input
+                    type="checkbox"
+                    checked={confirmedAge}
+                    onChange={(e: any) => setConfirmedAge(e.target.checked)}
+                    style={{ marginTop: 2, width: 18, height: 18, accentColor: "#4486F4", flexShrink: 0, cursor: "pointer" } as any}
+                  />
+                  <span style={{ fontSize: 13, color: "#7B4F00", fontWeight: "600", lineHeight: "18px" } as any}>I confirm I am 18 years of age or older.</span>
+                </label>
+              ) : (
+                <Pressable style={styles.checkRow} onPress={() => setConfirmedAge(v => !v)}>
+                  <View style={[styles.checkbox, confirmedAge && styles.checkboxChecked]}>
                     {confirmedAge && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
                   </View>
-                  <Text style={[styles.checkLabel, { color: "#7B4F00", fontWeight: "600" }]}>I confirm I am 18 years of age or older.</Text>
+                  <Text style={styles.checkLabel}>I confirm I am 18 years of age or older.</Text>
                 </Pressable>
-              </View>
+              )}
 
               {/* Social auth */}
               {appleAvailable && (
