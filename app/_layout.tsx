@@ -69,12 +69,13 @@ function AuthGuard() {
 
     if (authLoading || (user && profileLoading)) return;
 
-    // Admin portal is always accessible — no auth required
-    if (typeof window !== "undefined" && window.location.pathname.includes("mypetdex-admin")) return;
-
     const inAuthGroup = segments.some(s => s === "(auth)");
     const inOnboarding = segments.some(s => s === "onboarding");
     const inExplore = segments.some(s => s === "explore");
+    const inAdminPortal = segments.some(s => s === "mypetdex-admin");
+
+    // Admin portal is always accessible — no auth required
+    if (inAdminPortal) return;
 
     const isAdmin = user?.email === "mypetdexapp@gmail.com";
 
@@ -131,6 +132,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)/sign-in" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="mypetdex-admin" />
         <Stack.Screen
           name="pet/[id]"
           options={{
