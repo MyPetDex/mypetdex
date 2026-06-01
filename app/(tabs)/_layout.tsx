@@ -192,62 +192,11 @@ export default function TabLayout() {
         }}
       />
 
-      {/* ── Admin tabs ─────────────────────────────────────────────── */}
-      <Tabs.Screen
-        name="admin-dashboard"
-        options={{
-          title: "Dashboard",
-          href: isAdmin ? undefined : null,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bar-chart-outline" size={size} color={color} />
-          ),
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={async () => {
-                try { await signOut(webAuth); } catch {}
-                if (typeof window !== "undefined") {
-                  try { localStorage.clear(); } catch {}
-                  try { sessionStorage.clear(); } catch {}
-                  window.location.href = "/";
-                }
-              }}
-              style={{ marginRight: 16, flexDirection: "row", alignItems: "center", gap: 4 }}
-            >
-              <Ionicons name="log-out-outline" size={22} color="#EF4444" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="admin-users"
-        options={{
-          title: "Users",
-          href: isAdmin ? undefined : null,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="admin-reviews"
-        options={{
-          title: "Reviews",
-          href: isAdmin ? undefined : null,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="shield-checkmark-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="admin-products"
-        options={{
-          title: "Products",
-          href: isAdmin ? undefined : null,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="pricetag-outline" size={size} color={color} />
-          ),
-        }}
-      />
+      {/* ── Admin tabs — hidden, files kept for future use ─────────── */}
+      <Tabs.Screen name="admin-dashboard" options={{ href: null }} />
+      <Tabs.Screen name="admin-users" options={{ href: null }} />
+      <Tabs.Screen name="admin-reviews" options={{ href: null }} />
+      <Tabs.Screen name="admin-products" options={{ href: null }} />
 
       {/* ── Always hidden ──────────────────────────────────────────── */}
       <Tabs.Screen name="pets" options={{ href: null }} />

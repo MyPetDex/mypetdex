@@ -73,10 +73,24 @@ function AuthGuard() {
     const inOnboarding = segments.some(s => s === "onboarding");
     const inExplore = segments.some(s => s === "explore");
 
-    // Admin always bypasses onboarding
     const isAdmin = user?.email === "mypetdexapp@gmail.com";
+
+    // Admin account: sign out and send to sign-in page — dashboard removed
+    if (isAdmin && !inAuthGroup) {
+      signOut(webAuth).finally(() => {
+        if (typeof window !== "undefined") {
+          try { localStorage.clear(); } catch {}
+          try { sessionStorage.clear(); } catch {}
+          window.location.href = "/";
+        } else {
+          router.replace("/(auth)/sign-in");
+        }
+      });
+      return;
+    }
+
     // User has completed onboarding if they have city, businessName, or shelterName
-    const hasCompletedOnboarding = isAdmin || !!(profile?.city || profile?.businessName || profile?.shelterName || profile?.onboardingComplete);
+    const hasCompletedOnboarding = !!(profile?.city || profile?.businessName || profile?.shelterName || profile?.onboardingComplete);
 
     if (!user && !inAuthGroup && !inExplore) {
       router.replace("/(auth)/sign-in");
