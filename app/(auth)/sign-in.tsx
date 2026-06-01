@@ -514,15 +514,13 @@ export default function SignInScreen() {
                 </Text>
               </Pressable>
 
-              {/* Extra age checkbox for shelter */}
-              {role === "shelter" && (
-                <Pressable style={styles.checkRow} onPress={() => setConfirmedAge(v => !v)}>
-                  <View style={[styles.checkbox, confirmedAge && styles.checkboxChecked]}>
-                    {confirmedAge && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
-                  </View>
-                  <Text style={styles.checkLabel}>I confirm I am 13 years of age or older.</Text>
-                </Pressable>
-              )}
+              {/* Age confirmation — required for all roles */}
+              <Pressable style={styles.checkRow} onPress={() => setConfirmedAge(v => !v)}>
+                <View style={[styles.checkbox, confirmedAge && styles.checkboxChecked]}>
+                  {confirmedAge && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
+                </View>
+                <Text style={styles.checkLabel}>I confirm I am 18 years of age or older.</Text>
+              </Pressable>
 
               {/* Social auth */}
               {appleAvailable && (
@@ -562,9 +560,9 @@ export default function SignInScreen() {
               <TextInput style={styles.input} value={form.confirmPassword} onChangeText={set("confirmPassword")} placeholder="Re-enter password" placeholderTextColor="#aaa" secureTextEntry />
 
               <Pressable
-                style={[styles.primaryBtn, { backgroundColor: BLUE }, loading && { opacity: 0.6 }]}
+                style={[styles.primaryBtn, { backgroundColor: BLUE }, (loading || !agreedToTerms || !confirmedAge) && { opacity: 0.4 }]}
                 onPress={handleRegisterStep1}
-                disabled={loading}
+                disabled={loading || !agreedToTerms || !confirmedAge}
               >
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>{rc.cta}</Text>}
               </Pressable>
