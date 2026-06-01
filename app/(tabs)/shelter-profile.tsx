@@ -45,8 +45,13 @@ export default function ShelterProfile() {
   }
 
   async function handleSignOut() {
-    await webSignOut(webAuth);
-    router.replace("/(auth)/sign-in");
+    try { await webSignOut(webAuth); } catch {}
+    if (typeof window !== "undefined") {
+      try { localStorage.clear(); } catch {}
+      window.location.href = "/";
+    } else {
+      router.replace("/(auth)/sign-in");
+    }
   }
 
   if (loading) return <View style={s.center}><ActivityIndicator color={BRAND} size="large" /></View>;
@@ -111,10 +116,9 @@ export default function ShelterProfile() {
         </View>
       )}
 
-      <TouchableOpacity style={s.signOutBtn} onPress={handleSignOut}>
-        <Ionicons name="log-out-outline" size={18} color="#EF4444" />
-        <Text style={s.signOutText}>Sign Out</Text>
-      </TouchableOpacity>
+      <button onClick={handleSignOut} style={{ display:"flex", alignItems:"center", gap:8, background:"#FEF2F2", border:"1px solid #FECACA", borderRadius:12, padding:"14px", cursor:"pointer", width:"100%", justifyContent:"center" } as any}>
+        <span style={{ color:"#EF4444", fontWeight:700, fontSize:15 }}>Sign Out</span>
+      </button>
     </ScrollView>
   );
 }

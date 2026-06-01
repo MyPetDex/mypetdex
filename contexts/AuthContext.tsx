@@ -207,7 +207,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ── Sign Out ──────────────────────────────────────────────────────────────
   const signOut = useCallback(async () => {
     if (isWeb) {
-      await webSignOut(webAuth);
+      try { await webSignOut(webAuth); } catch {}
+      try { localStorage.clear(); } catch {}
+      try { sessionStorage.clear(); } catch {}
+      window.location.href = "/";
     } else {
       await Promise.allSettled([nativeAuth().signOut(), GoogleSignin.signOut()]);
     }
