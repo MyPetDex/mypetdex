@@ -56,12 +56,7 @@ export default function SignInScreen() {
   const [screen, setScreen] = useState<Screen>(() => getInitialRoleAndScreen().screen);
   const [role, setRole] = useState<Role>(() => getInitialRoleAndScreen().role);
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(() => {
-    if (isWeb && typeof window !== "undefined") {
-      return new URLSearchParams(window.location.search).get("demo") === "true";
-    }
-    return false;
-  });
+  const [loading, setLoading] = useState(false);
 
   // Auto sign-in for demo mode (?demo=true in URL)
   useEffect(() => {
@@ -90,8 +85,9 @@ export default function SignInScreen() {
   // the sign-in screen for users who are already authenticated.
   if (authLoading || user) return null;
 
-  // Show spinner while demo auto-login is in progress
-  if (loading && isWeb && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("demo") === "true") {
+  // Always show spinner for ?demo=true — prevents landing screen flash
+  // while auto-login is in progress (useState initializer can't read window on static export)
+  if (isWeb && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("demo") === "true") {
     return (
       <SafeAreaView style={styles.safeContainer}>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", gap: 16 }}>
