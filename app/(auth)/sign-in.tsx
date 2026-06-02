@@ -344,16 +344,23 @@ export default function SignInScreen() {
             </Pressable>
           </View>
 
+          <Pressable
+            style={[styles.guestBtn, loading && { opacity: 0.6 }]}
+            onPress={handleGuest}
+            disabled={loading}
+          >
+            {loading
+              ? <ActivityIndicator color={BRAND} size="small" />
+              : <Text style={styles.guestBtnText}>👀 Explore as Guest — No account needed</Text>
+            }
+          </Pressable>
+
           <View style={styles.bottomLinks}>
             <Text style={styles.legalText}>Already have an account? </Text>
             <Pressable onPress={() => setScreen("login")}>
               <Text style={styles.linkText}>Sign In</Text>
             </Pressable>
           </View>
-
-          <Pressable onPress={handleGuest}>
-            <Text style={styles.guestText}>Continue as Guest</Text>
-          </Pressable>
 
           <Text style={styles.legal}>🔒 Your data is encrypted and never shared with third parties.</Text>
         </View>
@@ -754,7 +761,21 @@ const styles = StyleSheet.create({
   bottomLinks: { flexDirection: "row", justifyContent: "center", alignItems: "center" },
   legalText: { fontSize: 14, color: "#888" },
   linkText: { fontSize: 14, color: BRAND, fontWeight: "700" },
-  guestText: { textAlign: "center", fontSize: 14, color: "#aaa" },
+  guestBtn: {
+    backgroundColor: "#F0F8F4",
+    borderRadius: 14,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: BRAND + "44",
+    marginTop: 4,
+  },
+  guestBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: BRAND,
+  },
   legal: { fontSize: 11, color: "#bbb", textAlign: "center" },
   backBtn: { paddingHorizontal: 20, paddingVertical: 12 },
   backBtnText: { fontSize: 17, color: BRAND, fontWeight: "600" },

@@ -4,7 +4,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { isWeb, webAuth, webDb } from "@/lib/firebase";
 import {
   onAuthStateChanged,
-  signInAnonymously as webSignInAnonymously,
+  signInWithEmailAndPassword as webSignInWithEmail,
   signOut as webSignOut,
   GoogleAuthProvider,
   OAuthProvider,
@@ -37,6 +37,7 @@ if (!isWeb) {
 
 const DEMO_UID = "2ck9xpwPcigFrAEzOVqTuUuwfxG2";
 export const DEMO_EMAIL = "demo@mypetdex.app";
+const DEMO_PASSWORD = "Demo2026!";
 
 interface AuthContextValue {
   user: any;
@@ -200,13 +201,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // ── Anonymous ─────────────────────────────────────────────────────────────
+  // ── Guest / Demo sign-in ──────────────────────────────────────────────────
+  // Signs into the shared demo account so guest users see real data.
+  // isDemoMode becomes true → demo banner shows, all writes are blocked.
   const signInAnonymously = useCallback(async () => {
-    isNewUser.current = true;
     if (isWeb) {
-      await webSignInAnonymously(webAuth);
+      await webSignInWithEmail(webAuth, DEMO_EMAIL, DEMO_PASSWORD);
     } else {
-      await nativeAuth().signInAnonymously();
+      await nativeAuth().signInWithEmailAndPassword(DEMO_EMAIL, DEMO_PASSWORD);
     }
   }, []);
 
