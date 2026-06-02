@@ -302,24 +302,37 @@ export default function MeScreen() {
           <View style={styles.settingsCard}>
             <View style={styles.settingsRow}>
               <Text style={styles.settingsRowLabel}>Push notifications</Text>
-              <Switch value={notifications} onValueChange={(v) => { if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to manage your settings."); return; } setNotifications(v); }} trackColor={{ true: BRAND }} />
+              <Switch
+                value={notifications}
+                disabled={isDemoMode}
+                onValueChange={(v) => setNotifications(v)}
+                trackColor={{ true: BRAND }}
+                style={isDemoMode ? { opacity: 0.4 } : undefined}
+              />
             </View>
             <View style={[styles.settingsRow, styles.settingsRowLast]}>
               <Text style={styles.settingsRowLabel}>Vaccine reminders</Text>
-              <Switch value={reminders} onValueChange={(v) => { if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to manage your settings."); return; } setReminders(v); }} trackColor={{ true: BRAND }} />
+              <Switch
+                value={reminders}
+                disabled={isDemoMode}
+                onValueChange={(v) => setReminders(v)}
+                trackColor={{ true: BRAND }}
+                style={isDemoMode ? { opacity: 0.4 } : undefined}
+              />
             </View>
           </View>
 
           <Text style={styles.settingsSectionTitle}>Account</Text>
           <View style={styles.settingsCard}>
             {[
-              { label: "Privacy Policy", icon: "🔒" },
-              { label: "Terms of Service", icon: "📄" },
-              { label: "Rate MyPetDex", icon: "⭐" },
+              { label: "Privacy Policy", icon: "🔒", url: "https://home.mypetdex.app/privacy" },
+              { label: "Terms of Service", icon: "📄", url: "https://home.mypetdex.app/terms" },
+              { label: "Rate MyPetDex", icon: "⭐", url: "https://apps.apple.com/app/mypetdex/id6772248051" },
             ].map((item, i, arr) => (
               <Pressable
                 key={item.label}
                 style={[styles.settingsRow, i === arr.length - 1 && styles.settingsRowLast]}
+                onPress={() => Linking.openURL(item.url).catch(() => {})}
               >
                 <Text style={styles.settingsRowIcon}>{item.icon}</Text>
                 <Text style={styles.settingsRowLabel}>{item.label}</Text>

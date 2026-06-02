@@ -63,7 +63,12 @@ function StateDropdown({ value, onSelect }: { value: string; onSelect: (v: strin
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isDemoMode } = useAuth();
+
+  // Demo users must never see onboarding — redirect immediately
+  useEffect(() => {
+    if (isDemoMode) router.replace("/(tabs)");
+  }, [isDemoMode]);
 
   async function handleSignOut() {
     try {

@@ -1,5 +1,6 @@
 import {
   View, Text, StyleSheet, Pressable, ActionSheetIOS, Platform,
+  Modal, FlatList, SafeAreaView,
 } from "react-native";
 import { useState, useEffect } from "react";
 
@@ -38,6 +39,12 @@ export default function DatePicker({
   const [minute, setMinute] = useState("00");
   const [ampm, setAmpm] = useState("AM");
 
+  // Web picker state
+  const [webPickerVisible, setWebPickerVisible] = useState(false);
+  const [webPickerTitle, setWebPickerTitle] = useState("");
+  const [webPickerOptions, setWebPickerOptions] = useState<string[]>([]);
+  const [webPickerCallback, setWebPickerCallback] = useState<((val: string) => void) | null>(null);
+
   useEffect(() => {
     if (value) {
       const [datePart, timePart] = value.split(" ");
@@ -70,12 +77,18 @@ export default function DatePicker({
     }
   }
 
-  function pick(title: string, options: string[], current: string, onPick: (val: string) => void) {
+  function pick(title: string, options: string[], _current: string, onPick: (val: string) => void) {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         { options: ["Cancel", ...options], cancelButtonIndex: 0, title },
         (idx) => { if (idx > 0) onPick(options[idx - 1]); }
       );
+    } else {
+      // Web / Android: show a custom modal picker
+      setWebPickerTitle(title);
+      setWebPickerOptions(options);
+      setWebPickerCallback(() => onPick);
+      setWebPickerVisible(true);
     }
   }
 
@@ -155,6 +168,41 @@ export default function DatePicker({
           </View>
         </View>
       )}
+
+      {/* Web / Android picker modal */}
+      <Modal
+        visible={webPickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setWebPickerVisible(false)}
+      >
+        <Pressable style={styles.overlay} onPress={() => setWebPickerVisible(false)}>
+          <View style={styles.sheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>{webPickerTitle}</Text>
+              <Pressable onPress={() => setWebPickerVisible(false)}>
+                <Text style={styles.sheetCancel}>Cancel</Text>
+              </Pressable>
+            </View>
+            <FlatList
+              data={webPickerOptions}
+              keyExtractor={(item) => item}
+              style={styles.optionList}
+              renderItem={({ item }) => (
+                <Pressable
+                  style={styles.optionRow}
+                  onPress={() => {
+                    setWebPickerVisible(false);
+                    if (webPickerCallback) webPickerCallback(item);
+                  }}
+                >
+                  <Text style={styles.optionText}>{item}</Text>
+                </Pressable>
+              )}
+            />
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -180,4 +228,35 @@ const styles = StyleSheet.create({
   timeRow: { marginTop: 10 },
   timeLabel: { fontSize: 13, fontWeight: "600", color: "#555", marginBottom: 6 },
   timeSep: { fontSize: 18, color: "#555", fontWeight: "700" },
+  // Web picker modal
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "60%",
+    paddingBottom: 32,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  sheetTitle: { fontSize: 16, fontWeight: "700", color: "#1a1a1a" },
+  sheetCancel: { fontSize: 15, color: BRAND, fontWeight: "600" },
+  optionList: { flexGrow: 0 },
+  optionRow: {
+    paddingVertical: 15,
+    paddingHorizontal: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f5f5f5",
+  },
+  optionText: { fontSize: 16, color: "#1a1a1a" },
 });
