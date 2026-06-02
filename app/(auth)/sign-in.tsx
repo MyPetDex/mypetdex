@@ -501,6 +501,14 @@ export default function SignInScreen() {
 
           {step === 1 && (
             <>
+              {/* Age confirmation — shown first */}
+              <Pressable style={styles.checkRow} onPress={() => setConfirmedAge(v => !v)}>
+                <View style={[styles.checkbox, confirmedAge && styles.checkboxChecked]}>
+                  {confirmedAge && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
+                </View>
+                <Text style={styles.checkLabel}>I confirm I am 13 years of age or older.</Text>
+              </Pressable>
+
               {/* Checkbox — agree to terms */}
               <Pressable style={styles.checkRow} onPress={() => setAgreedToTerms(v => !v)}>
                 <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
@@ -512,14 +520,6 @@ export default function SignInScreen() {
                   {" "}and agree to the{" "}
                   <Text style={{ color: BLUE }}>Terms of Service</Text>.
                 </Text>
-              </Pressable>
-
-              {/* Age confirmation — required for all roles */}
-              <Pressable style={styles.checkRow} onPress={() => setConfirmedAge(v => !v)}>
-                <View style={[styles.checkbox, confirmedAge && styles.checkboxChecked]}>
-                  {confirmedAge && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
-                </View>
-                <Text style={styles.checkLabel}>I confirm I am 13 years of age or older.</Text>
               </Pressable>
 
               {/* Social auth */}
