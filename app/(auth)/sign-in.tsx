@@ -56,7 +56,12 @@ export default function SignInScreen() {
   const [screen, setScreen] = useState<Screen>(() => getInitialRoleAndScreen().screen);
   const [role, setRole] = useState<Role>(() => getInitialRoleAndScreen().role);
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => {
+    if (isWeb && typeof window !== "undefined") {
+      return new URLSearchParams(window.location.search).get("demo") === "true";
+    }
+    return false;
+  });
 
   // Auto sign-in for demo mode (?demo=true in URL)
   useEffect(() => {
@@ -84,6 +89,18 @@ export default function SignInScreen() {
   // AuthGuard in _layout.tsx handles the redirect — this prevents any flash of
   // the sign-in screen for users who are already authenticated.
   if (authLoading || user) return null;
+
+  // Show spinner while demo auto-login is in progress
+  if (loading && isWeb && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("demo") === "true") {
+    return (
+      <SafeAreaView style={styles.safeContainer}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", gap: 16 }}>
+          <ActivityIndicator size="large" color={BRAND} />
+          <Text style={{ color: "#888", fontSize: 14 }}>Loading demo…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   function set(key: string) {
     return (val: string) => setForm(f => ({ ...f, [key]: val }));
