@@ -499,29 +499,30 @@ export default function SignInScreen() {
 
           {error ? <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View> : null}
 
+          {/* Checkboxes always in DOM — visibility toggled so conditional rendering can't drop them */}
+          <View style={{ display: step === 1 ? "flex" : "none" }}>
+            <Pressable style={styles.checkRow} onPress={() => setConfirmedAge(v => !v)}>
+              <View style={[styles.checkbox, confirmedAge && styles.checkboxChecked]}>
+                {confirmedAge && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
+              </View>
+              <Text style={styles.checkLabel}>I confirm I am 13 years of age or older.</Text>
+            </Pressable>
+
+            <Pressable style={styles.checkRow} onPress={() => setAgreedToTerms(v => !v)}>
+              <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+                {agreedToTerms && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
+              </View>
+              <Text style={styles.checkLabel}>
+                I confirm I am signing up as a{" "}
+                {role === "owner" ? "Pet Owner" : role === "provider" ? "Service Provider" : "an Animal Shelter"}
+                {" "}and agree to the{" "}
+                <Text style={{ color: BLUE }}>Terms of Service</Text>.
+              </Text>
+            </Pressable>
+          </View>
+
           {step === 1 && (
             <View>
-              {/* Age confirmation — shown first */}
-              <Pressable style={styles.checkRow} onPress={() => setConfirmedAge(v => !v)}>
-                <View style={[styles.checkbox, confirmedAge && styles.checkboxChecked]}>
-                  {confirmedAge && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
-                </View>
-                <Text style={styles.checkLabel}>I confirm I am 13 years of age or older.</Text>
-              </Pressable>
-
-              {/* Checkbox — agree to terms */}
-              <Pressable style={styles.checkRow} onPress={() => setAgreedToTerms(v => !v)}>
-                <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-                  {agreedToTerms && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
-                </View>
-                <Text style={styles.checkLabel}>
-                  I confirm I am signing up as a{" "}
-                  {role === "owner" ? "Pet Owner" : role === "provider" ? "Service Provider" : "an Animal Shelter"}
-                  {" "}and agree to the{" "}
-                  <Text style={{ color: BLUE }}>Terms of Service</Text>.
-                </Text>
-              </Pressable>
-
               {/* Social auth */}
               {appleAvailable && (
                 isWeb ? (
