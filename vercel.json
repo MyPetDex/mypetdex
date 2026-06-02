@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm install && npx expo export -p web",
+  "buildCommand": "npm install && npx expo export -p web --clear",
   "outputDirectory": "dist",
   "headers": [
     {
