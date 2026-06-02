@@ -500,7 +500,7 @@ export default function SignInScreen() {
           {error ? <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View> : null}
 
           {step === 1 && (
-            <>
+            <View>
               {/* Age confirmation — shown first */}
               <Pressable style={styles.checkRow} onPress={() => setConfirmedAge(v => !v)}>
                 <View style={[styles.checkbox, confirmedAge && styles.checkboxChecked]}>
@@ -568,7 +568,7 @@ export default function SignInScreen() {
               </Pressable>
 
               <Text style={styles.pricingText}>{rc.pricing}</Text>
-            </>
+            </View>
           )}
 
           {step === 2 && role === "owner" && (
