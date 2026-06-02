@@ -523,14 +523,14 @@ export default function SignInScreen() {
                     onChange={(e: any) => setConfirmedAge(e.target.checked)}
                     style={{ marginTop: 2, width: 18, height: 18, accentColor: "#4486F4", flexShrink: 0, cursor: "pointer" } as any}
                   />
-                  <span style={{ fontSize: 13, color: "#7B4F00", fontWeight: "600", lineHeight: "18px" } as any}>I confirm I am 18 years of age or older.</span>
+                  <span style={{ fontSize: 13, color: "#7B4F00", fontWeight: "600", lineHeight: "18px" } as any}>I confirm I am 13 years of age or older.</span>
                 </label>
               ) : (
                 <Pressable style={styles.checkRow} onPress={() => setConfirmedAge(v => !v)}>
                   <View style={[styles.checkbox, confirmedAge && styles.checkboxChecked]}>
                     {confirmedAge && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>✓</Text>}
                   </View>
-                  <Text style={styles.checkLabel}>I confirm I am 18 years of age or older.</Text>
+                  <Text style={styles.checkLabel}>I confirm I am 13 years of age or older.</Text>
                 </Pressable>
               )}
 
