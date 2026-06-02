@@ -283,7 +283,7 @@ export default function SignInScreen() {
           </View>
 
           <View style={styles.roleCards}>
-            <Pressable style={styles.roleCard} onPress={() => { setRole("owner"); setScreen("register"); }}>
+            <Pressable style={styles.roleCard} onPress={() => { setRole("owner"); setScreen("register"); setStep(1); setAgreedToTerms(false); setConfirmedAge(false); }}>
               <Text style={styles.roleCardEmoji}>🐾</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.roleCardTitle}>Pet Owner</Text>
@@ -292,7 +292,7 @@ export default function SignInScreen() {
               <Text style={styles.roleCardArrow}>›</Text>
             </Pressable>
 
-            <Pressable style={styles.roleCard} onPress={() => { setRole("provider"); setScreen("register"); }}>
+            <Pressable style={styles.roleCard} onPress={() => { setRole("provider"); setScreen("register"); setStep(1); setAgreedToTerms(false); setConfirmedAge(false); }}>
               <Text style={styles.roleCardEmoji}>🛎️</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.roleCardTitle}>Service Provider</Text>
@@ -301,7 +301,7 @@ export default function SignInScreen() {
               <Text style={styles.roleCardArrow}>›</Text>
             </Pressable>
 
-            <Pressable style={styles.roleCard} onPress={() => { setRole("shelter"); setScreen("register"); }}>
+            <Pressable style={styles.roleCard} onPress={() => { setRole("shelter"); setScreen("register"); setStep(1); setAgreedToTerms(false); setConfirmedAge(false); }}>
               <Text style={styles.roleCardEmoji}>🏠</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.roleCardTitle}>Animal Shelter</Text>
