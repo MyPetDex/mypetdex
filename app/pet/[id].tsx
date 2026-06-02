@@ -18,7 +18,7 @@ const TABS = ["Records", "Reminders", "Calories", "Recipes"];
 
 export default function PetProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const { plan } = usePlan();
   const router = useRouter();
 
@@ -276,6 +276,7 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
   };
 
   async function saveRecord() {
+    if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to add health records for your pet."); return; }
     if (!form.title.trim() || !form.date.trim()) {
       Alert.alert("Missing info", "Please add a title and date.");
       return;
@@ -301,6 +302,7 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
   }
 
   async function deleteRecord(recordId: string) {
+    if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to manage health records."); return; }
     Alert.alert("Delete Record", "This cannot be undone.", [
       { text: "Cancel", style: "cancel" },
       {
@@ -486,6 +488,7 @@ function RemindersTab({ pet, user }: { pet: any; user: any }) {
   }
 
   async function saveReminder() {
+    if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to set reminders for your pet."); return; }
     if (!form.title.trim()) {
       Alert.alert("Missing info", "Please add a title.");
       return;
@@ -535,6 +538,7 @@ function RemindersTab({ pet, user }: { pet: any; user: any }) {
   }
 
   async function deleteReminder(reminderId: string) {
+    if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to manage reminders."); return; }
     Alert.alert("Delete Reminder", "This cannot be undone.", [
       { text: "Cancel", style: "cancel" },
       {

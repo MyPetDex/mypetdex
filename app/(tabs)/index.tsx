@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  ActivityIndicator, Modal, FlatList,
+  ActivityIndicator, Modal, FlatList, Alert,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
@@ -15,7 +15,7 @@ const BRAND = "#4CAF82";
 const BLUE = "#4486F4";
 
 export default function HomeScreen() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const { maxPets } = usePlan();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -72,6 +72,7 @@ export default function HomeScreen() {
   }, [user]);
 
   function handleAddPet() {
+    if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to add your own pets and save data."); return; }
     if (pets.length >= maxPets) {
       setShowUpgrade(true);
     } else {

@@ -57,6 +57,17 @@ export default function SignInScreen() {
   const [role, setRole] = useState<Role>(() => getInitialRoleAndScreen().role);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+
+  // Auto sign-in for demo mode (?demo=true in URL)
+  useEffect(() => {
+    if (!isWeb || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("demo") !== "true") return;
+    setLoading(true);
+    webSignIn(webAuth, "demo@mypetdex.app", "Demo2026!")
+      .catch(() => setError("Could not load demo. Please try again."))
+      .finally(() => setLoading(false));
+  }, []);
   const [error, setError] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [confirmedAge, setConfirmedAge] = useState(false);

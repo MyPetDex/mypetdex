@@ -22,7 +22,7 @@ const APP_MESSAGE = "🐾 Check out MyPetDex — the ultimate pet care app! Trac
 
 export default function MeScreen() {
   const [activeTab, setActiveTab] = useState<MeTab>("pets");
-  const { user, signOut } = useAuth();
+  const { user, signOut, isDemoMode } = useAuth();
   const { plan, maxPets } = usePlan();
   const router = useRouter();
   const [pets, setPets] = useState<any[]>([]);
@@ -70,6 +70,7 @@ export default function MeScreen() {
   );
 
   function handleAddPet() {
+    if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to add pets and save your data."); return; }
     if (pets.length >= maxPets) {
       setShowUpgrade(true);
     } else {
@@ -301,11 +302,11 @@ export default function MeScreen() {
           <View style={styles.settingsCard}>
             <View style={styles.settingsRow}>
               <Text style={styles.settingsRowLabel}>Push notifications</Text>
-              <Switch value={notifications} onValueChange={setNotifications} trackColor={{ true: BRAND }} />
+              <Switch value={notifications} onValueChange={(v) => { if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to manage your settings."); return; } setNotifications(v); }} trackColor={{ true: BRAND }} />
             </View>
             <View style={[styles.settingsRow, styles.settingsRowLast]}>
               <Text style={styles.settingsRowLabel}>Vaccine reminders</Text>
-              <Switch value={reminders} onValueChange={setReminders} trackColor={{ true: BRAND }} />
+              <Switch value={reminders} onValueChange={(v) => { if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to manage your settings."); return; } setReminders(v); }} trackColor={{ true: BRAND }} />
             </View>
           </View>
 

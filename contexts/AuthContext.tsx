@@ -35,9 +35,13 @@ if (!isWeb) {
   });
 }
 
+const DEMO_UID = "2ck9xpwPcigFrAEzOVqTuUuwfxG2";
+export const DEMO_EMAIL = "demo@mypetdex.app";
+
 interface AuthContextValue {
   user: any;
   loading: boolean;
+  isDemoMode: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithApple: () => Promise<void>;
   signInAnonymously: () => Promise<void>;
@@ -218,9 +222,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const isDemoMode = user?.uid === DEMO_UID;
+
   const value = useMemo(
-    () => ({ user, loading, signInWithGoogle, signInWithApple, signInAnonymously, signOut, appleAvailable }),
-    [user, loading, signInWithGoogle, signInWithApple, signInAnonymously, signOut, appleAvailable]
+    () => ({ user, loading, isDemoMode, signInWithGoogle, signInWithApple, signInAnonymously, signOut, appleAvailable }),
+    [user, loading, isDemoMode, signInWithGoogle, signInWithApple, signInAnonymously, signOut, appleAvailable]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -68,7 +68,7 @@ function DropdownPicker({
 
 export default function AddPetScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -86,6 +86,7 @@ export default function AddPetScreen() {
   const breeds = species === "dog" ? BREEDS_DOG : BREEDS_CAT;
 
   async function handleSave() {
+    if (isDemoMode) { setError("This is a demo — sign up free to add your own pets."); return; }
     if (!name.trim()) { setError("Please enter your pet's name"); return; }
     if (!age.trim()) { setError("Please enter your pet's age"); return; }
     if (!weight.trim()) { setError("Please enter your pet's weight"); return; }

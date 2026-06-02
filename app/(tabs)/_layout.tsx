@@ -1,14 +1,17 @@
-import { Tabs } from "expo-router";
-import { Platform, TouchableOpacity } from "react-native";
+import { Tabs, useRouter } from "expo-router";
+import { Platform, TouchableOpacity, View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { isWeb, webAuth, webDb } from "@/lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4CAF82";
 
 export default function TabLayout() {
+  const { isDemoMode } = useAuth();
+  const router = useRouter();
   const [role, setRole] = useState<string>("owner");
 
   useEffect(() => {
@@ -31,6 +34,18 @@ export default function TabLayout() {
   const isAdmin = role === "admin";
 
   return (
+    <View style={{ flex: 1 }}>
+      {isDemoMode && (
+        <View style={styles.demoBanner}>
+          <Text style={styles.demoBannerText}>👀 Demo Mode — view only, no changes saved</Text>
+          <Pressable
+            style={styles.demoBannerBtn}
+            onPress={() => router.replace("/(auth)/sign-in" as any)}
+          >
+            <Text style={styles.demoBannerBtnText}>Sign Up Free →</Text>
+          </Pressable>
+        </View>
+      )}
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: BRAND,
@@ -202,5 +217,35 @@ export default function TabLayout() {
       <Tabs.Screen name="pets" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  demoBanner: {
+    backgroundColor: "#1a1a2e",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  demoBannerText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+    flex: 1,
+  },
+  demoBannerBtn: {
+    backgroundColor: "#4CAF82",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  demoBannerBtnText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+});

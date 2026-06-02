@@ -50,7 +50,7 @@ function ModalCloseButton() {
 }
 
 function AuthGuard() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isDemoMode } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
   const segments = useSegments();
   const router = useRouter();
@@ -68,6 +68,9 @@ function AuthGuard() {
     }
 
     if (authLoading || (user && profileLoading)) return;
+
+    // Demo user goes straight to tabs — no onboarding needed
+    if (isDemoMode && user && inAuthGroup) { router.replace("/(tabs)"); return; }
 
     const inAuthGroup = segments.some(s => s === "(auth)");
     const inOnboarding = segments.some(s => s === "onboarding");
