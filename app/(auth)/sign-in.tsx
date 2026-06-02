@@ -79,6 +79,10 @@ export default function SignInScreen() {
   }
 
   async function handleGoogle() {
+    if (screen === "register" && (!agreedToTerms || !confirmedAge)) {
+      setError("Please confirm your age and agree to the Terms of Service before continuing.");
+      return;
+    }
     setError("");
     setLoading(true);
     // Save intended role so AuthContext and onboarding can read it after the popup
@@ -96,6 +100,10 @@ export default function SignInScreen() {
   }
 
   async function handleApple() {
+    if (screen === "register" && (!agreedToTerms || !confirmedAge)) {
+      setError("Please confirm your age and agree to the Terms of Service before continuing.");
+      return;
+    }
     setError("");
     setLoading(true);
     if (isWeb && typeof localStorage !== "undefined") {
