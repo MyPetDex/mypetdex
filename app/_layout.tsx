@@ -96,8 +96,8 @@ function AuthGuard() {
       return;
     }
 
-    // User has completed onboarding if they have city, businessName, or shelterName
-    const hasCompletedOnboarding = !!(profile?.city || profile?.businessName || profile?.shelterName || profile?.onboardingComplete);
+    // Demo users are always treated as onboarded — their account has no city but needs to go straight to tabs
+    const hasCompletedOnboarding = isDemoMode || !!(profile?.city || profile?.businessName || profile?.shelterName || profile?.onboardingComplete);
 
     if (!user && !inAuthGroup && !inExplore) {
       router.replace("/(auth)/sign-in");
