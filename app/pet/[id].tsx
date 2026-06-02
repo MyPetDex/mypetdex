@@ -8,6 +8,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import firestore from "@react-native-firebase/firestore";
+import { doc as webDoc, onSnapshot as webOnSnap, updateDoc } from "firebase/firestore";
+import { isWeb, webDb } from "@/lib/firebase";
 import DatePicker from "@/components/DatePicker";
 import QRCode from "react-native-qrcode-svg";
 
@@ -29,12 +31,10 @@ export default function PetProfileScreen() {
 
   useEffect(() => {
     if (!user || !id) return;
-    const unsub = firestore()
-      .collection("users")
-      .doc(user.uid)
-      .collection("pets")
-      .doc(id as string)
-      .onSnapshot(
+    if (isWeb) {
+      const ref = webDoc(webDb, "users", user.uid, "pets", id as string);
+      const unsub = webOnSnap(
+        ref,
         (snap) => {
           if (snap.exists()) {
             setPet({ id: snap.id, ...snap.data() });
@@ -49,7 +49,30 @@ export default function PetProfileScreen() {
           setLoading(false);
         }
       );
-    return unsub;
+      return unsub;
+    } else {
+      const unsub = firestore()
+        .collection("users")
+        .doc(user.uid)
+        .collection("pets")
+        .doc(id as string)
+        .onSnapshot(
+          (snap) => {
+            if (snap.exists) {
+              setPet({ id: snap.id, ...snap.data() });
+            } else {
+              Alert.alert("Not found", "This pet could not be found.");
+              router.back();
+            }
+            setLoading(false);
+          },
+          () => {
+            Alert.alert("Error", "Could not load pet.");
+            setLoading(false);
+          }
+        );
+      return unsub;
+    }
   }, [user, id]);
 
   if (loading) {
@@ -259,6 +282,7 @@ export default function PetProfileScreen() {
 
 // ── Records Tab ───────────────────────────────────────────────────────────────
 function RecordsTab({ pet, user }: { pet: any; user: any }) {
+  const { isDemoMode } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -287,12 +311,11 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
         ...vaccines,
         { ...form, id: Date.now().toString() },
       ];
-      await firestore()
-        .collection("users")
-        .doc(user.uid)
-        .collection("pets")
-        .doc(pet.id)
-        .update({ vaccines: updated });
+      if (isWeb) {
+        await updateDoc(webDoc(webDb, "users", user.uid, "pets", pet.id), { vaccines: updated });
+      } else {
+        await firestore().collection("users").doc(user.uid).collection("pets").doc(pet.id).update({ vaccines: updated });
+      }
       setShowModal(false);
       setForm({ title: "", type: "Vet Visit", date: "", note: "" });
     } catch {
@@ -310,12 +333,11 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
         style: "destructive",
         onPress: async () => {
           const updated = vaccines.filter((v: any) => v.id !== recordId);
-          await firestore()
-            .collection("users")
-            .doc(user.uid)
-            .collection("pets")
-            .doc(pet.id)
-            .update({ vaccines: updated });
+          if (isWeb) {
+            await updateDoc(webDoc(webDb, "users", user.uid, "pets", pet.id), { vaccines: updated });
+          } else {
+            await firestore().collection("users").doc(user.uid).collection("pets").doc(pet.id).update({ vaccines: updated });
+          }
         },
       },
     ]);
@@ -440,6 +462,7 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
 
 // ── Reminders Tab ─────────────────────────────────────────────────────────────
 function RemindersTab({ pet, user }: { pet: any; user: any }) {
+  const { isDemoMode } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -511,12 +534,11 @@ function RemindersTab({ pet, user }: { pet: any; user: any }) {
       } else {
         updated = [...reminders, { ...form, id: Date.now().toString(), done: false }];
       }
-      await firestore()
-        .collection("users")
-        .doc(user.uid)
-        .collection("pets")
-        .doc(pet.id)
-        .update({ reminders: updated });
+      if (isWeb) {
+        await updateDoc(webDoc(webDb, "users", user.uid, "pets", pet.id), { reminders: updated });
+      } else {
+        await firestore().collection("users").doc(user.uid).collection("pets").doc(pet.id).update({ reminders: updated });
+      }
       setShowModal(false);
       setForm({ title: "", due: "", repeat: "None", note: "" });
     } catch {
@@ -529,12 +551,11 @@ function RemindersTab({ pet, user }: { pet: any; user: any }) {
     const updated = reminders.map((r: any) =>
       r.id === reminderId ? { ...r, done: !r.done } : r
     );
-    await firestore()
-      .collection("users")
-      .doc(user.uid)
-      .collection("pets")
-      .doc(pet.id)
-      .update({ reminders: updated });
+    if (isWeb) {
+      await updateDoc(webDoc(webDb, "users", user.uid, "pets", pet.id), { reminders: updated });
+    } else {
+      await firestore().collection("users").doc(user.uid).collection("pets").doc(pet.id).update({ reminders: updated });
+    }
   }
 
   async function deleteReminder(reminderId: string) {
@@ -546,12 +567,11 @@ function RemindersTab({ pet, user }: { pet: any; user: any }) {
         style: "destructive",
         onPress: async () => {
           const updated = reminders.filter((r: any) => r.id !== reminderId);
-          await firestore()
-            .collection("users")
-            .doc(user.uid)
-            .collection("pets")
-            .doc(pet.id)
-            .update({ reminders: updated });
+          if (isWeb) {
+            await updateDoc(webDoc(webDb, "users", user.uid, "pets", pet.id), { reminders: updated });
+          } else {
+            await firestore().collection("users").doc(user.uid).collection("pets").doc(pet.id).update({ reminders: updated });
+          }
         },
       },
     ]);
