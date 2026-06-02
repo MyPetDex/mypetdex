@@ -99,12 +99,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }).catch(() => {});
 
       const unsub = onAuthStateChanged(webAuth, async (firebaseUser) => {
-        if (firebaseUser && isNewUser.current) {
-          await ensureUserDoc(firebaseUser);
-          isNewUser.current = false;
-        }
+        // Unblock the UI immediately so sign-in screen doesn't re-flash while
+        // ensureUserDoc writes to Firestore (can take 1-2s on first sign-in).
         setUser(firebaseUser);
         setLoading(false);
+        if (firebaseUser && isNewUser.current) {
+          isNewUser.current = false;
+          await ensureUserDoc(firebaseUser);
+        }
       });
       return unsub;
     } else {

@@ -97,7 +97,7 @@ export default function SignInScreen() {
 
   async function handleApple() {
     setError("");
-    // Save intended role so AuthContext and onboarding can read it after the popup
+    setLoading(true);
     if (isWeb && typeof localStorage !== "undefined") {
       localStorage.setItem("mypetdex_role", role);
       localStorage.setItem("mypetdex_onboarding_role", role);
@@ -105,10 +105,11 @@ export default function SignInScreen() {
     try {
       await signInWithApple();
     } catch (e: any) {
-      // Ignore user cancellation
       if (e.code !== "ERR_REQUEST_CANCELED" && e.code !== "1001") {
         setError("Could not sign in with Apple. Please try again.");
       }
+    } finally {
+      setLoading(false);
     }
   }
 
