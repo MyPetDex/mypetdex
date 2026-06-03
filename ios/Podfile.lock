@@ -1668,6 +1668,8 @@ PODS:
   - nanopb/decode (3.30910.0)
   - nanopb/encode (3.30910.0)
   - PromisesObjC (2.4.0)
+  - PurchasesHybridCommon (18.8.0):
+    - RevenueCat (= 5.74.0)
   - RCTDeprecation (0.85.3)
   - RCTRequired (0.85.3)
   - RCTSwiftUI (0.85.3)
@@ -3522,6 +3524,7 @@ PODS:
     - ReactNativeDependencies
   - ReactNativeDependencies (0.85.3)
   - RecaptchaInterop (101.0.0)
+  - RevenueCat (5.74.0)
   - RNCMaskedView (0.3.2):
     - hermes-engine
     - RCTRequired
@@ -3731,6 +3734,9 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - RNPurchases (10.2.0):
+    - PurchasesHybridCommon (= 18.8.0)
+    - React-Core
   - RNReanimated (4.3.1):
     - hermes-engine
     - RCTRequired
@@ -4086,6 +4092,7 @@ DEPENDENCIES:
   - "RNFBStorage (from `../node_modules/@react-native-firebase/storage`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - "RNGoogleSignin (from `../node_modules/@react-native-google-signin/google-signin`)"
+  - RNPurchases (from `../node_modules/react-native-purchases`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
@@ -4120,7 +4127,9 @@ SPEC REPOS:
     - leveldb-library
     - nanopb
     - PromisesObjC
+    - PurchasesHybridCommon
     - RecaptchaInterop
+    - RevenueCat
 
 EXTERNAL SOURCES:
   EXConstants:
@@ -4352,6 +4361,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-gesture-handler"
   RNGoogleSignin:
     :path: "../node_modules/@react-native-google-signin/google-signin"
+  RNPurchases:
+    :path: "../node_modules/react-native-purchases"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
@@ -4388,7 +4399,7 @@ SPEC CHECKSUMS:
   ExpoKeepAwake: 359c47a1d9ccc3a3c519bca6e39562cce230c5bb
   ExpoLinking: 63319fd84bfa6d2ba4b565fc2af1947c65281478
   ExpoLogBox: 7aa03244fe5eeced5129e4ec7ad5bd9a3994378e
-  ExpoModulesCore: 106789ca6194ea5dafc536a6cbecbd9e96f69dee
+  ExpoModulesCore: 7a2e56cdc55c33d90c59c6d311344ddac77e0448
   ExpoModulesJSI: 31051e6e3d88a96cc48747eabad1d4a6a29c554e
   ExpoModulesWorklets: 5349d7281651a11e0a5d14f32db8bb47e32c2ff4
   ExpoModulesWorkletsAdapter: 4a172433f248128cb998ef39e274a0775b798ffc
@@ -4423,6 +4434,7 @@ SPEC CHECKSUMS:
   leveldb-library: cc8b8f8e013647a295ad3f8cd2ddf49a6f19be19
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
+  PurchasesHybridCommon: e723f7c9b109be51f7ec6c85a104791369f1b562
   RCTDeprecation: a4c521821fab57cbb125b36effe84d897d0dfa12
   RCTRequired: 9f3a7e5645d4bc3f551593de7550bb66ab6e42bc
   RCTSwiftUI: 239ed2eb9e73de5a6f518810630f0c95e01c8702
@@ -4496,6 +4508,7 @@ SPEC CHECKSUMS:
   ReactCommon: 7dfc3250793bf36cf221096ff59e1179e13eef7f
   ReactNativeDependencies: bbc95a1e26bf50a2d909c8ad9a450a531a102631
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
+  RevenueCat: efcd02bf9b14ffce229e57dc6863a2513136b9ca
   RNCMaskedView: 8069b4d4e23b3d28b4fcac70bf266be43ffc3d2e
   RNCPicker: a3921be99ae291e420e3e8940e5b2b53e572c543
   RNFBApp: 23b522ea93fea737803402ea6daad6eab75f699c
@@ -4505,6 +4518,7 @@ SPEC CHECKSUMS:
   RNFBStorage: fc7c7b50e7c2b33ed2cdba4b384ec8248270a04e
   RNGestureHandler: a97cc64efbfcb7a53969a38310a189a3d5246c65
   RNGoogleSignin: 6fa1cf7f7fb24d68cc41a89bd6370f302bbe2dcc
+  RNPurchases: 814d23250d91856382f2d1d7c5e255b3d6b4b8ef
   RNReanimated: dbe1365727409813696964826b407873304f4d51
   RNScreens: 5c391b926f07d8e745986d438fa78627ab0d1b55
   RNSVG: 2d3af77f13e69994bb8957f69d46d8bcba1a6be8

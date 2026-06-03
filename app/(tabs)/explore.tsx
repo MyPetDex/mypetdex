@@ -4,6 +4,9 @@ import {
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { isWeb, webDb } from "@/lib/firebase";
+import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import _nativeFirestore from "@react-native-firebase/firestore";
 
 const BRAND = "#4CAF82";
 const BLUE = "#4486F4";
@@ -90,6 +93,36 @@ export default function ExploreScreen() {
     if (profile?.city && !cityFilter) setCityFilter(profile.city);
   }, [profile]);
 
+  // Providers state
+  const [providers, setProviders] = useState<any[]>([]);
+  const [providerLoading, setProviderLoading] = useState(false);
+
+  async function searchProviders() {
+    setProviderLoading(true);
+    setProviders([]);
+    try {
+      if (isWeb) {
+        let q = query(collection(webDb, "seedProviders"), limit(50));
+        if (stateFilter) q = query(collection(webDb, "seedProviders"), where("state", "==", stateFilter), limit(50));
+        const snap = await getDocs(q);
+        let results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (cityFilter) results = results.filter((p: any) => p.city?.toLowerCase().includes(cityFilter.toLowerCase()));
+        if (serviceFilter) results = results.filter((p: any) => p.serviceType === serviceFilter || p.service === serviceFilter);
+        setProviders(results);
+      } else {
+        let q: any = _nativeFirestore().collection("seedProviders");
+        if (stateFilter) q = q.where("state", "==", stateFilter);
+        q = q.limit(50);
+        const snap = await q.get();
+        let results = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+        if (cityFilter) results = results.filter((p: any) => p.city?.toLowerCase().includes(cityFilter.toLowerCase()));
+        if (serviceFilter) results = results.filter((p: any) => p.serviceType === serviceFilter || p.service === serviceFilter);
+        setProviders(results);
+      }
+    } catch (e) { console.error("Provider search error:", e); }
+    setProviderLoading(false);
+  }
+
   // Adopt state
   const [petType, setPetType] = useState<"Dog" | "Cat">("Dog");
   const [zipCode, setZipCode] = useState("");
@@ -132,12 +165,10 @@ export default function ExploreScreen() {
     setAdoptPets([]);
     const state = getStateFromZip(zipCode);
     try {
-      const res = await fetch("https://api.rescuegroups.org/v5/public/animals/search", {
+      // Call our secure Firebase Function proxy — key never exposed to client
+      const res = await fetch("https://rescueproxy-lnlfhdpryq-uc.a.run.app", {
         method: "POST",
-        headers: {
-          Authorization: process.env.EXPO_PUBLIC_RESCUEGROUPS_API_KEY || "",
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
             filters: [
@@ -223,7 +254,7 @@ export default function ExploreScreen() {
               onChangeText={setCityFilter}
               onSubmitEditing={() => setSearched(true)}
             />
-            <Pressable style={styles.searchBtn} onPress={() => setSearched(true)}>
+            <Pressable style={styles.searchBtn} onPress={() => { setSearched(true); searchProviders(); }}>
               <Text style={styles.searchBtnText}>Search</Text>
             </Pressable>
           </View>
@@ -251,16 +282,45 @@ export default function ExploreScreen() {
           </View>
 
           {searched && (
-            <View style={styles.comingSoonBox}>
-              <Text style={styles.comingSoonEmoji}>🛎️</Text>
-              <Text style={styles.comingSoonTitle}>
-                {serviceFilter ? `${serviceFilter} providers` : "Service providers"} near{" "}
-                {[cityFilter, stateFilter].filter(Boolean).join(", ") || "you"}
-              </Text>
-              <Text style={styles.comingSoonSub}>
-                Live provider listings coming soon! In the meantime, use the service cards above to browse.
-              </Text>
-            </View>
+            providerLoading ? (
+              <ActivityIndicator color={BRAND} size="large" style={{ marginTop: 32 }} />
+            ) : providers.length > 0 ? (
+              <View>
+                <Text style={styles.resultsCount}>{providers.length} providers found</Text>
+                {providers.map((p: any) => (
+                  <Pressable
+                    key={p.id}
+                    style={styles.providerCard}
+                    onPress={() => p.website && Linking.openURL(p.website.startsWith("http") ? p.website : `https://${p.website}`)}
+                  >
+                    <View style={styles.providerHeader}>
+                      <View style={styles.providerIcon}>
+                        <Text style={{ fontSize: 22 }}>
+                          {SERVICE_TYPES.find(s => s.label === p.serviceType || s.label === p.service)?.emoji || "🐾"}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.providerName}>{p.businessName || p.name}</Text>
+                        <Text style={styles.providerType}>{p.serviceType || p.service}</Text>
+                        <Text style={styles.providerLocation}>📍 {[p.city, p.state].filter(Boolean).join(", ")}</Text>
+                      </View>
+                      {p.rating && (
+                        <View style={styles.ratingBadge}>
+                          <Text style={styles.ratingText}>⭐ {p.rating}</Text>
+                        </View>
+                      )}
+                    </View>
+                    {p.phone && <Text style={styles.providerPhone}>📞 {p.phone}</Text>}
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.comingSoonBox}>
+                <Text style={styles.comingSoonEmoji}>🔍</Text>
+                <Text style={styles.comingSoonTitle}>No providers found</Text>
+                <Text style={styles.comingSoonSub}>Try a different city or state</Text>
+              </View>
+            )
           )}
         </ScrollView>
       )}
@@ -451,6 +511,16 @@ const styles = StyleSheet.create({
   serviceDesc: { fontSize: 10, color: "#888", textAlign: "center", marginTop: 2 },
 
   // Coming soon
+  resultsCount: { fontSize: 13, color: "#888", marginBottom: 12, marginTop: 4 },
+  providerCard: { backgroundColor: "#fff", borderRadius: 14, padding: 14, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  providerHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  providerIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#f0faf5", alignItems: "center", justifyContent: "center" },
+  providerName: { fontSize: 15, fontWeight: "700", color: "#1a1a1a", flex: 1 },
+  providerType: { fontSize: 12, color: BRAND, fontWeight: "600", marginTop: 2 },
+  providerLocation: { fontSize: 12, color: "#888", marginTop: 2 },
+  providerPhone: { fontSize: 13, color: "#555", marginTop: 8 },
+  ratingBadge: { backgroundColor: "#FEF3C7", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  ratingText: { fontSize: 12, fontWeight: "700", color: "#92400E" },
   comingSoonBox: {
     backgroundColor: "#fff",
     borderRadius: 16,

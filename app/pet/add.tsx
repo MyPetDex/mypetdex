@@ -1,10 +1,13 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Switch, ActivityIndicator, Modal, FlatList } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Switch, ActivityIndicator, Modal, FlatList, Image, Alert, Platform } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { isWeb, webDb } from "@/lib/firebase";
+import { isWeb, webDb, webStorage } from "@/lib/firebase";
 import { collection as webCollection, addDoc, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import _nativeFirestore from "@react-native-firebase/firestore";
+import _nativeStorage from "@react-native-firebase/storage";
+import * as ImagePicker from "expo-image-picker";
 
 const BRAND = "#4CAF82";
 
@@ -71,6 +74,39 @@ export default function AddPetScreen() {
   const { user, isDemoMode } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+
+  async function pickPhoto() {
+    if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to add photos!"); return; }
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") { Alert.alert("Permission needed", "Please allow photo access to add a pet photo."); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  }
+
+  async function uploadPhoto(uid: string, petId: string): Promise<string | null> {
+    if (!photoUri) return null;
+    try {
+      if (isWeb) {
+        const response = await fetch(photoUri);
+        const blob = await response.blob();
+        const storageRef = ref(webStorage, `users/${uid}/pets/${petId}/photo.jpg`);
+        await uploadBytes(storageRef, blob);
+        return await getDownloadURL(storageRef);
+      } else {
+        const storageRef = _nativeStorage().ref(`users/${uid}/pets/${petId}/photo.jpg`);
+        await storageRef.putFile(photoUri);
+        return await storageRef.getDownloadURL();
+      }
+    } catch { return null; }
+  }
 
   const [name, setName] = useState("");
   const [species, setSpecies] = useState("dog");
@@ -109,13 +145,15 @@ export default function AddPetScreen() {
       };
       if (licenseNumber.trim()) petData.licenseNumber = licenseNumber.trim();
 
+      let petId: string;
       if (isWeb) {
-        await addDoc(webCollection(webDb, "users", user.uid, "pets"), {
+        const docRef = await addDoc(webCollection(webDb, "users", user.uid, "pets"), {
           ...petData,
           createdAt: serverTimestamp(),
         });
+        petId = docRef.id;
       } else {
-        await _nativeFirestore()
+        const docRef = await _nativeFirestore()
           .collection("users")
           .doc(user.uid)
           .collection("pets")
@@ -123,6 +161,19 @@ export default function AddPetScreen() {
             ...petData,
             createdAt: _nativeFirestore.FieldValue.serverTimestamp(),
           });
+        petId = docRef.id;
+      }
+      // Upload photo if selected
+      if (photoUri) {
+        const photoURL = await uploadPhoto(user.uid, petId);
+        if (photoURL) {
+          if (isWeb) {
+            const { doc, updateDoc } = await import("firebase/firestore");
+            await updateDoc(doc(webDb, "users", user.uid, "pets", petId), { photoURL });
+          } else {
+            await _nativeFirestore().collection("users").doc(user.uid).collection("pets").doc(petId).update({ photoURL });
+          }
+        }
       }
       router.back();
     } catch (e) {
@@ -134,6 +185,18 @@ export default function AddPetScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+
+      {/* Photo */}
+      <Pressable style={styles.photoBtn} onPress={pickPhoto}>
+        {photoUri
+          ? <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+          : <View style={styles.photoPlaceholder}>
+              <Text style={styles.photoIcon}>📷</Text>
+              <Text style={styles.photoText}>Add Pet Photo</Text>
+              <Text style={styles.photoSub}>Tap to choose from library</Text>
+            </View>
+        }
+      </Pressable>
 
       {/* Name */}
       <View style={styles.section}>
@@ -265,6 +328,12 @@ const styles = StyleSheet.create({
   activityTextActive: { color: "#fff", fontWeight: "600" },
   switchRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   error: { color: "#E53935", fontSize: 14, textAlign: "center", marginBottom: 8 },
+  photoBtn: { alignItems: "center", marginBottom: 24 },
+  photoPreview: { width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: BRAND },
+  photoPlaceholder: { width: 120, height: 120, borderRadius: 60, backgroundColor: "#f0faf5", borderWidth: 2, borderColor: BRAND + "44", borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
+  photoIcon: { fontSize: 32, marginBottom: 4 },
+  photoText: { fontSize: 12, fontWeight: "700", color: BRAND },
+  photoSub: { fontSize: 10, color: "#888", marginTop: 2 },
   saveBtn: { backgroundColor: BRAND, borderRadius: 14, paddingVertical: 16, alignItems: "center", marginTop: 8 },
   saveBtnDisabled: { backgroundColor: "#ccc" },
   saveBtnText: { color: "#fff", fontSize: 17, fontWeight: "700" },

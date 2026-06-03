@@ -10,6 +10,7 @@ const db = admin.firestore();
 
 const sendgridKey = defineSecret("SENDGRID_API_KEY");
 const anthropicKey = defineSecret("ANTHROPIC_API_KEY");
+const rescuegroupsKey = defineSecret("RESCUEGROUPS_API_KEY");
 
 const FROM_EMAIL = "help@mypetdex.app";
 const FROM_NAME = "MyPetDex";
@@ -728,6 +729,30 @@ function verificationEmailHTML(name, role, plan, verifyLink) {
     </div>
   `);
 }
+
+// ─── RescueGroups Proxy ───────────────────────────────────────────────────────
+// Proxies RescueGroups v5 API — key never exposed to client
+exports.rescueProxy = onRequest(
+  { cors: true, secrets: [rescuegroupsKey] },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+    try {
+      const response = await fetch("https://api.rescuegroups.org/v5/public/animals/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": rescuegroupsKey.value(),
+        },
+        body: JSON.stringify(req.body),
+      });
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (err) {
+      console.error("rescueProxy error:", err);
+      res.status(500).json({ error: "Failed to fetch from RescueGroups" });
+    }
+  }
+);
 
 // ─── Get Recipe (Verified Library — No AI Generation) ────────────────────────
 // Pulls pre-vetted recipes from Firestore, scales to pet's calorie target,
