@@ -19,7 +19,7 @@ export default function AIVetScreen() {
   const { aiAssistant, loading: planLoading } = usePlan();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", text: "Hi! I'm your MyPetDex Assistant 🐾 Ask me anything about your pet's health, nutrition, or behavior." }
+    { role: "assistant", text: "Hi! I'm your PetDex AI Assistant 🐾 Ask me anything about your pet's health, nutrition, or behavior." }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,7 +30,7 @@ export default function AIVetScreen() {
     return (
       <View style={styles.upgradeWall}>
         <Text style={styles.upgradeEmoji}>🤖</Text>
-        <Text style={styles.upgradeTitle}>AI Pet Assistant</Text>
+        <Text style={styles.upgradeTitle}>PetDex AI Assistant</Text>
         <Text style={styles.upgradeDesc}>
           Get instant answers about your pet's health, nutrition, and behavior from our AI vet assistant.
         </Text>
@@ -78,13 +78,13 @@ export default function AIVetScreen() {
       <ScrollView ref={scrollRef} style={styles.messages} contentContainerStyle={styles.messagesContent}>
         {messages.map((msg, i) => (
           <View key={i} style={[styles.bubble, msg.role === "user" ? styles.userBubble : styles.aiBubble]}>
-            {msg.role === "assistant" && <Text style={styles.aiLabel}>🐾 MyPetDex Assistant</Text>}
+            {msg.role === "assistant" && <Text style={styles.aiLabel}>🐾 PetDex AI Assistant</Text>}
             <Text style={[styles.bubbleText, msg.role === "user" && styles.userText]}>{msg.text}</Text>
           </View>
         ))}
         {loading && (
           <View style={styles.aiBubble}>
-            <Text style={styles.aiLabel}>🐾 MyPetDex Assistant</Text>
+            <Text style={styles.aiLabel}>🐾 PetDex AI Assistant</Text>
             <Text style={styles.bubbleText}>Thinking...</Text>
           </View>
         )}

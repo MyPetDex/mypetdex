@@ -81,17 +81,25 @@ export default function ExploreScreen() {
   const { profile } = useUserProfile();
   const [activeTab, setActiveTab] = useState<ExploreTab>("services");
 
-  // Services state — pre-fill from user profile
+  // Services state — always starts fresh
   const [serviceFilter, setServiceFilter] = useState("");
   const [stateFilter, setStateFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
   const [searched, setSearched] = useState(false);
 
-  // Pre-fill location from profile on load
+  // Clear all filters when screen is unmounted (user navigates away)
   useEffect(() => {
-    if (profile?.state && !stateFilter) setStateFilter(profile.state);
-    if (profile?.city && !cityFilter) setCityFilter(profile.city);
-  }, [profile]);
+    return () => {
+      setServiceFilter("");
+      setStateFilter("");
+      setCityFilter("");
+      setSearched(false);
+      setProviders([]);
+      setAdoptPets([]);
+      setAdoptError("");
+      setZipCode("");
+    };
+  }, []);
 
   // Providers state
   const [providers, setProviders] = useState<any[]>([]);
@@ -183,30 +191,33 @@ export default function ExploreScreen() {
       });
       const data = await res.json();
       const animals: AdoptPet[] = (data.data || [])
-        .filter((a: any) => {
-          const attr = a.attributes;
-          const orgId = a.relationships?.orgs?.data?.[0]?.id;
-          const org = data.included?.find((i: any) => i.type === "orgs" && i.id === orgId);
-          return (attr.url && attr.url.startsWith("http")) ||
-            (org?.attributes?.url && org.attributes.url.startsWith("http"));
-        })
         .map((a: any) => {
           const attr = a.attributes;
           const locId = a.relationships?.locations?.data?.[0]?.id;
           const orgId = a.relationships?.orgs?.data?.[0]?.id;
           const loc = data.included?.find((i: any) => i.type === "locations" && i.id === locId);
           const org = data.included?.find((i: any) => i.type === "orgs" && i.id === orgId);
+
+          // Build the best possible direct-to-pet URL:
+          // 1. attr.url — direct pet page (most reliable, works for dogs)
+          // 2. RescueGroups hosted page — always links to exact pet
+          // 3. org website — fallback
+          const petDirectUrl = attr.url && attr.url.startsWith("http") && !attr.url.includes("rescuegroups.org/org/")
+            ? attr.url
+            : `https://www.rescuegroups.org/animals/detail/${a.id}/`;
+
           return {
             id: a.id,
-            name: attr.name,
+            name: attr.name || "Unknown",
             breed: attr.breedString || attr.breedPrimary || "",
             age: attr.ageGroup || "",
             sex: attr.sex || "",
-            photo: attr.pictureThumbnailUrl || "",
-            url: attr.url || org?.attributes?.url || "",
+            photo: attr.pictureThumbnailUrl || attr.pictureThumbUrl || "",
+            url: petDirectUrl,
             city: loc?.attributes?.city || org?.attributes?.city || state,
           };
-        });
+        })
+        .filter((a: AdoptPet) => a.name && a.name !== "Unknown");
       setAdoptPets(animals);
       if (animals.length === 0) setAdoptError("No pets found near that zip code. Try another!");
     } catch {
@@ -248,7 +259,7 @@ export default function ExploreScreen() {
             <StateDropdown value={stateFilter} onSelect={setStateFilter} />
             <TextInput
               style={styles.cityInput}
-              placeholder="City"
+              placeholder="Enter city name"
               placeholderTextColor="#aaa"
               value={cityFilter}
               onChangeText={setCityFilter}
