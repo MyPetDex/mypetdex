@@ -166,7 +166,7 @@ export default function ExploreScreen() {
     const state = getStateFromZip(zipCode);
     try {
       // Call our secure Firebase Function proxy — key never exposed to client
-      const res = await fetch("https://rescueproxy-lnlfhdpryq-uc.a.run.app", {
+      const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/rescueProxy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
