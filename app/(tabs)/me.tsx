@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { isWeb, webDb } from "@/lib/firebase";
-import { collection as webCollection, onSnapshot as webOnSnapshot } from "firebase/firestore";
+import { collection as webCollection, onSnapshot as webOnSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
 import _nativeFirestore from "@react-native-firebase/firestore";
 
 const BRAND = "#4CAF82";
@@ -105,17 +105,27 @@ export default function MeScreen() {
   }
 
   async function sendFeedback() {
-    if (!feedbackMessage.trim() || feedbackMessage.trim().length < 10) {
-      Alert.alert("Too short", "Please write at least 10 characters.");
+    const trimmed = feedbackMessage.trim();
+    if (trimmed.length < 20) {
+      Alert.alert("Too short", "Please write at least 20 characters so we can understand your feedback.");
       return;
     }
     setFeedbackSending(true);
     try {
-      const subject = encodeURIComponent(`[MyPetDex Feedback] ${feedbackSubject}`);
-      const body = encodeURIComponent(
-        `From: ${user?.displayName || "User"} (${user?.email})\n\nSubject: ${feedbackSubject}\n\n${feedbackMessage}`
-      );
-      await Linking.openURL(`mailto:help@mypetdex.app?subject=${subject}&body=${body}`);
+      const payload = {
+        uid: user?.uid || null,
+        email: user?.email || null,
+        displayName: user?.displayName || null,
+        subject: feedbackSubject,
+        message: trimmed,
+        createdAt: isWeb ? serverTimestamp() : _nativeFirestore.FieldValue.serverTimestamp(),
+        platform: Platform.OS,
+      };
+      if (isWeb) {
+        await addDoc(webCollection(webDb, "feedback"), payload);
+      } else {
+        await _nativeFirestore().collection("feedback").add(payload);
+      }
       setFeedbackSent(true);
       setTimeout(() => {
         setShowFeedback(false);
@@ -124,7 +134,7 @@ export default function MeScreen() {
         setFeedbackSubject("General Feedback");
       }, 2000);
     } catch {
-      Alert.alert("Error", "Could not open mail app. Please email help@mypetdex.app directly.");
+      Alert.alert("Error", "Could not send feedback. Please try again or email help@mypetdex.app directly.");
     }
     setFeedbackSending(false);
   }
@@ -400,17 +410,22 @@ export default function MeScreen() {
                   style={styles.modalTextarea}
                   value={feedbackMessage}
                   onChangeText={setFeedbackMessage}
-                  placeholder="Describe your issue, suggestion or question... (min 10 characters)"
+                  placeholder="Describe your issue, suggestion or question... (min 20 characters)"
                   placeholderTextColor="#aaa"
                   multiline
                   numberOfLines={6}
                   textAlignVertical="top"
                 />
-                <Text style={styles.modalHint}>We'll reply to {user?.email}</Text>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <Text style={styles.modalHint}>We'll reply to {user?.email}</Text>
+                  <Text style={{ fontSize: 12, color: feedbackMessage.trim().length >= 20 ? BRAND : "#aaa" }}>
+                    {feedbackMessage.trim().length}/20 min
+                  </Text>
+                </View>
                 <Pressable
-                  style={[styles.sendBtn, (feedbackSending || feedbackMessage.trim().length < 10) && { opacity: 0.5 }]}
+                  style={[styles.sendBtn, (feedbackSending || feedbackMessage.trim().length < 20) && { opacity: 0.5 }]}
                   onPress={sendFeedback}
-                  disabled={feedbackSending || feedbackMessage.trim().length < 10}
+                  disabled={feedbackSending || feedbackMessage.trim().length < 20}
                 >
                   {feedbackSending ? (
                     <ActivityIndicator color="#fff" />
