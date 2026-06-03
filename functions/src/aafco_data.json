@@ -1,0 +1,176 @@
+{
+  "nutrient_targets": {
+    "dog_puppy": {
+      "label": "Dog - Growth & Reproduction",
+      "life_stage": "puppy",
+      "species": "dog",
+      "calories_per_day_formula": "RER * 2.0",
+      "nutrients": {
+        "protein_min_pct": 22.5,
+        "fat_min_pct": 8.5,
+        "calcium_min_pct": 1.2,
+        "phosphorus_min_pct": 1.0,
+        "calcium_phosphorus_ratio_min": 1.1,
+        "calcium_phosphorus_ratio_max": 2.0,
+        "potassium_min_pct": 0.44,
+        "sodium_min_pct": 0.3,
+        "chloride_min_pct": 0.45,
+        "magnesium_min_pct": 0.06,
+        "iron_min_mg_per_kg": 88,
+        "copper_min_mg_per_kg": 12.4,
+        "zinc_min_mg_per_kg": 100,
+        "vitamin_a_min_iu_per_kg": 5000,
+        "vitamin_d_min_iu_per_kg": 500,
+        "vitamin_e_min_iu_per_kg": 50
+      },
+      "source": "AAFCO 2023 Dog Food Nutrient Profiles"
+    },
+    "dog_adult": {
+      "label": "Dog - Adult Maintenance",
+      "life_stage": "adult",
+      "species": "dog",
+      "calories_per_day_formula": "RER * 1.6",
+      "nutrients": {
+        "protein_min_pct": 18.0,
+        "fat_min_pct": 5.5,
+        "calcium_min_pct": 0.5,
+        "phosphorus_min_pct": 0.4,
+        "calcium_phosphorus_ratio_min": 1.1,
+        "calcium_phosphorus_ratio_max": 2.0,
+        "potassium_min_pct": 0.44,
+        "sodium_min_pct": 0.08,
+        "chloride_min_pct": 0.12,
+        "magnesium_min_pct": 0.04,
+        "iron_min_mg_per_kg": 40,
+        "copper_min_mg_per_kg": 7.3,
+        "zinc_min_mg_per_kg": 80,
+        "vitamin_a_min_iu_per_kg": 5000,
+        "vitamin_d_min_iu_per_kg": 500,
+        "vitamin_e_min_iu_per_kg": 50
+      },
+      "source": "AAFCO 2023 Dog Food Nutrient Profiles"
+    },
+    "dog_senior": {
+      "label": "Dog - Senior",
+      "life_stage": "senior",
+      "species": "dog",
+      "calories_per_day_formula": "RER * 1.4",
+      "nutrients": {
+        "protein_min_pct": 18.0,
+        "fat_min_pct": 5.5,
+        "calcium_min_pct": 0.5,
+        "phosphorus_min_pct": 0.4,
+        "potassium_min_pct": 0.44,
+        "sodium_min_pct": 0.08,
+        "chloride_min_pct": 0.12,
+        "magnesium_min_pct": 0.04,
+        "iron_min_mg_per_kg": 40,
+        "copper_min_mg_per_kg": 7.3,
+        "zinc_min_mg_per_kg": 80,
+        "vitamin_a_min_iu_per_kg": 5000,
+        "vitamin_d_min_iu_per_kg": 500,
+        "vitamin_e_min_iu_per_kg": 50
+      },
+      "source": "AAFCO 2023 Dog Food Nutrient Profiles / WSAVA Senior Guidelines"
+    },
+    "cat_kitten": {
+      "label": "Cat - Growth & Reproduction",
+      "life_stage": "kitten",
+      "species": "cat",
+      "calories_per_day_formula": "RER * 2.5",
+      "nutrients": {
+        "protein_min_pct": 30.0,
+        "fat_min_pct": 9.0,
+        "calcium_min_pct": 1.0,
+        "phosphorus_min_pct": 0.8,
+        "potassium_min_pct": 0.6,
+        "sodium_min_pct": 0.2,
+        "chloride_min_pct": 0.3,
+        "magnesium_min_pct": 0.08,
+        "taurine_min_pct": 0.1,
+        "arachidonic_acid_min_pct": 0.02,
+        "iron_min_mg_per_kg": 80,
+        "copper_min_mg_per_kg": 15,
+        "zinc_min_mg_per_kg": 75,
+        "vitamin_a_min_iu_per_kg": 9000,
+        "vitamin_d_min_iu_per_kg": 750,
+        "vitamin_e_min_iu_per_kg": 40,
+        "niacin_min_mg_per_kg": 40
+      },
+      "source": "AAFCO 2023 Cat Food Nutrient Profiles"
+    },
+    "cat_adult": {
+      "label": "Cat - Adult Maintenance",
+      "life_stage": "adult",
+      "species": "cat",
+      "calories_per_day_formula": "RER * 1.4",
+      "nutrients": {
+        "protein_min_pct": 26.0,
+        "fat_min_pct": 9.0,
+        "calcium_min_pct": 0.6,
+        "phosphorus_min_pct": 0.5,
+        "potassium_min_pct": 0.6,
+        "sodium_min_pct": 0.2,
+        "chloride_min_pct": 0.3,
+        "magnesium_min_pct": 0.04,
+        "taurine_min_pct": 0.1,
+        "arachidonic_acid_min_pct": 0.02,
+        "iron_min_mg_per_kg": 80,
+        "copper_min_mg_per_kg": 5,
+        "zinc_min_mg_per_kg": 75,
+        "vitamin_a_min_iu_per_kg": 9000,
+        "vitamin_d_min_iu_per_kg": 750,
+        "vitamin_e_min_iu_per_kg": 40,
+        "niacin_min_mg_per_kg": 40
+      },
+      "source": "AAFCO 2023 Cat Food Nutrient Profiles"
+    },
+    "cat_senior": {
+      "label": "Cat - Senior",
+      "life_stage": "senior",
+      "species": "cat",
+      "calories_per_day_formula": "RER * 1.2",
+      "nutrients": {
+        "protein_min_pct": 30.0,
+        "fat_min_pct": 9.0,
+        "calcium_min_pct": 0.6,
+        "phosphorus_min_pct": 0.5,
+        "potassium_min_pct": 0.6,
+        "sodium_min_pct": 0.2,
+        "taurine_min_pct": 0.1,
+        "vitamin_a_min_iu_per_kg": 9000,
+        "vitamin_d_min_iu_per_kg": 750,
+        "vitamin_e_min_iu_per_kg": 40
+      },
+      "source": "AAFCO 2023 / WSAVA Senior Cat Nutritional Guidelines"
+    }
+  },
+  "rer_multipliers": {
+    "dog_intact_adult": 1.8,
+    "dog_neutered_adult": 1.6,
+    "dog_puppy_under_4mo": 3.0,
+    "dog_puppy_4mo_to_adult": 2.0,
+    "dog_senior": 1.4,
+    "dog_weight_loss": 1.0,
+    "dog_weight_gain": 1.7,
+    "dog_working_light": 2.0,
+    "dog_working_heavy": 4.0,
+    "cat_intact_adult": 1.4,
+    "cat_neutered_adult": 1.2,
+    "cat_kitten": 2.5,
+    "cat_senior": 1.1,
+    "cat_weight_loss": 0.8,
+    "cat_pregnant": 1.6,
+    "cat_lactating": 2.0
+  },
+  "toxic_ingredients": {
+    "dogs": ["grapes", "raisins", "onions", "garlic", "chives", "macadamia nuts", "xylitol", "chocolate", "avocado", "alcohol", "caffeine", "raw yeast dough", "nutmeg"],
+    "cats": ["onions", "garlic", "chives", "grapes", "raisins", "xylitol", "chocolate", "alcohol", "caffeine", "raw yeast dough", "raw fish (high amounts)", "dog food (long term)"]
+  },
+  "metadata": {
+    "standard": "AAFCO 2023",
+    "secondary_source": "WSAVA Global Nutrition Guidelines",
+    "last_updated": "2024-01",
+    "note": "All percentages are on a dry matter basis. Always consult a veterinarian for pets with health conditions."
+  }
+}
