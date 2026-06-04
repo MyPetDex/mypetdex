@@ -4,7 +4,7 @@ import {
 } from "react-native";
 import { useState, useEffect } from "react";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",

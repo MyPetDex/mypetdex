@@ -8,7 +8,7 @@ import { isWeb, webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import _nativeFirestore from "@react-native-firebase/firestore";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const BLUE = "#4486F4";
 
 type ExploreTab = "services" | "adopt";
@@ -109,25 +109,41 @@ export default function ExploreScreen() {
     setProviderLoading(true);
     setProviders([]);
     try {
+      // Always fetch by state first (single-field index, no composite needed)
+      // Then filter city + service type in memory
       if (isWeb) {
-        let q = query(collection(webDb, "seedProviders"), limit(50));
-        if (stateFilter) q = query(collection(webDb, "seedProviders"), where("state", "==", stateFilter), limit(50));
+        const q = stateFilter
+          ? query(collection(webDb, "seedProviders"), where("state", "==", stateFilter), limit(100))
+          : query(collection(webDb, "seedProviders"), limit(50));
         const snap = await getDocs(q);
         let results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        if (cityFilter) results = results.filter((p: any) => p.city?.toLowerCase().includes(cityFilter.toLowerCase()));
-        if (serviceFilter) results = results.filter((p: any) => p.serviceType === serviceFilter || p.service === serviceFilter);
+        if (cityFilter) results = results.filter((p: any) =>
+          p.city?.toLowerCase().includes(cityFilter.toLowerCase())
+        );
+        if (serviceFilter) results = results.filter((p: any) =>
+          p.serviceType?.toLowerCase().includes(serviceFilter.toLowerCase()) ||
+          p.service?.toLowerCase().includes(serviceFilter.toLowerCase()) ||
+          p.type?.toLowerCase().includes(serviceFilter.toLowerCase())
+        );
         setProviders(results);
       } else {
         let q: any = _nativeFirestore().collection("seedProviders");
         if (stateFilter) q = q.where("state", "==", stateFilter);
-        q = q.limit(50);
-        const snap = await q.get();
+        const snap = await q.limit(100).get();
         let results = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-        if (cityFilter) results = results.filter((p: any) => p.city?.toLowerCase().includes(cityFilter.toLowerCase()));
-        if (serviceFilter) results = results.filter((p: any) => p.serviceType === serviceFilter || p.service === serviceFilter);
+        if (cityFilter) results = results.filter((p: any) =>
+          p.city?.toLowerCase().includes(cityFilter.toLowerCase())
+        );
+        if (serviceFilter) results = results.filter((p: any) =>
+          p.serviceType?.toLowerCase().includes(serviceFilter.toLowerCase()) ||
+          p.service?.toLowerCase().includes(serviceFilter.toLowerCase()) ||
+          p.type?.toLowerCase().includes(serviceFilter.toLowerCase())
+        );
         setProviders(results);
       }
-    } catch (e) { console.error("Provider search error:", e); }
+    } catch (e) {
+      console.error("Provider search error:", e);
+    }
     setProviderLoading(false);
   }
 

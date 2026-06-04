@@ -4,7 +4,7 @@ import { webDb } from "@/lib/firebase";
 import { collection, getDocs, doc, updateDoc, query, where } from "firebase/firestore";
 
 const ADMIN_PASSWORD = "MPD@admin2026";
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const PLAN_PRICES: Record<string, number> = { plus: 3.0, family: 5.0 };
 
 // ── Styles (plain CSS injected once) ──────────────────────────────────────────
@@ -16,7 +16,7 @@ const CSS = `
   h2 { font-size: 16px; font-weight: 700; color: #1E293B; margin: 28px 0 12px; }
   .subtitle { color: #64748B; font-size: 14px; margin-top: 4px; margin-bottom: 28px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 8px; }
-  .stat { background: #fff; border-radius: 14px; padding: 16px; border-left: 4px solid #4CAF82; }
+  .stat { background: #fff; border-radius: 14px; padding: 16px; border-left: 4px solid #4486F4; }
   .stat-num { font-size: 28px; font-weight: 900; color: #1E293B; }
   .stat-label { font-size: 12px; color: #64748B; margin-top: 4px; }
   .revenue { background: #1E293B; border-radius: 18px; padding: 24px; text-align: center; margin-bottom: 8px; }
@@ -34,14 +34,14 @@ const CSS = `
   .actions { display: flex; gap: 8px; }
   .btn { border: none; border-radius: 8px; padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer; }
   .btn-approve { background: #DCFCE7; color: #166534; }
-  .btn-approve:hover { background: #4CAF82; color: #fff; }
+  .btn-approve:hover { background: #4486F4; color: #fff; }
   .btn-reject { background: #FEE2E2; color: #991B1B; }
   .btn-reject:hover { background: #EF4444; color: #fff; }
   .stars { color: #F5C842; font-size: 14px; }
   .review-text { color: #64748B; font-size: 14px; margin-top: 8px; line-height: 1.6; }
   .empty { text-align: center; padding: 32px; color: #94A3B8; font-size: 15px; }
   .divider { border: none; border-top: 1px solid #E2E8F0; margin: 8px 0 16px; }
-  .refresh { background: #4CAF82; color: #fff; border: none; border-radius: 10px; padding: 10px 20px; font-size: 14px; font-weight: 700; cursor: pointer; float: right; margin-top: -4px; }
+  .refresh { background: #4486F4; color: #fff; border: none; border-radius: 10px; padding: 10px 20px; font-size: 14px; font-weight: 700; cursor: pointer; float: right; margin-top: -4px; }
   .refresh:hover { background: #3a9e6f; }
   /* Login screen */
   .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #F1F5F9; }
@@ -49,8 +49,8 @@ const CSS = `
   .login-box h1 { margin-bottom: 6px; }
   .login-box p { color: #64748B; font-size: 14px; margin-bottom: 28px; }
   .login-input { width: 100%; border: 1.5px solid #E2E8F0; border-radius: 10px; padding: 12px 14px; font-size: 15px; margin-bottom: 14px; outline: none; }
-  .login-input:focus { border-color: #4CAF82; }
-  .login-btn { width: 100%; background: #4CAF82; color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .login-input:focus { border-color: #4486F4; }
+  .login-btn { width: 100%; background: #4486F4; color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 16px; font-weight: 700; cursor: pointer; }
   .login-btn:hover { background: #3a9e6f; }
   .login-error { color: #EF4444; font-size: 13px; margin-bottom: 10px; }
 `;
@@ -205,7 +205,7 @@ function Dashboard() {
       {/* Stats grid */}
       <h2>Users ({totalUsers} total)</h2>
       <div className="grid">
-        <StatBox num={stats.owners} label="Pet Owners" color="#4CAF82" />
+        <StatBox num={stats.owners} label="Pet Owners" color="#4486F4" />
         <StatBox num={stats.providers} label="Providers" color="#3B82F6" />
         <StatBox num={stats.shelters} label="Shelters" color="#F5A623" />
         <StatBox num={stats.plusUsers} label="Plus Plans" color="#8B5CF6" />

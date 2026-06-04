@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFocusEffect, router } from "expo-router";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 
 export default function ShelterHome() {
   const { user } = useAuth();

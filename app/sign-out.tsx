@@ -13,7 +13,7 @@ export default function SignOutPage() {
 
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" }}>
-      <ActivityIndicator size="large" color="#4CAF82" />
+      <ActivityIndicator size="large" color="#4486F4" />
     </View>
   );
 }

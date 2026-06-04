@@ -6,7 +6,7 @@ import firestore from "@react-native-firebase/firestore";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 
 export default function PetsScreen() {
   const router = useRouter();

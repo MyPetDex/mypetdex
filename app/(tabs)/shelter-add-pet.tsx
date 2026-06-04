@@ -5,7 +5,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const SPECIES = ["Dog", "Cat", "Rabbit", "Bird", "Other"];
 const GENDERS = ["Male", "Female", "Unknown"];
 const STATUSES = ["Available", "Pending", "Adopted"];

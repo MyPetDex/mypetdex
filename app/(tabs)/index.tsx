@@ -10,11 +10,13 @@ import UpgradePrompt from "@/components/UpgradePrompt";
 import { PetCardSkeleton } from "@/components/SkeletonLoader";
 import AnimatedPetCard from "@/components/AnimatedPetCard";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "react-native";
 import { isWeb, webDb } from "@/lib/firebase";
 import { collection as webCollection, onSnapshot as webOnSnapshot, doc, getDoc } from "firebase/firestore";
 import _nativeFirestore from "@react-native-firebase/firestore";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const BLUE = "#4486F4";
 
 export default function HomeScreen() {
@@ -223,29 +225,28 @@ export default function HomeScreen() {
       {/* Quick Access */}
       <Text style={styles.sectionTitle}>Quick Access</Text>
       <View style={styles.quickGrid}>
-        <Pressable
-          style={styles.quickCard}
-          onPress={() => router.push("/(tabs)/ai")}
-        >
-          <Text style={styles.quickEmoji}>🤖</Text>
-          <Text style={styles.quickLabel}>Pet Assistant</Text>
+        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/ai")}>
+          <View style={[styles.quickIconBg, { backgroundColor: "#EEF4FF" }]}>
+            <Ionicons name="sparkles" size={24} color={BLUE} />
+          </View>
+          <Text style={styles.quickLabel}>PetDex AI</Text>
         </Pressable>
-        <Pressable
-          style={styles.quickCard}
-          onPress={() => router.push("/(tabs)/shopping")}
-        >
-          <Text style={styles.quickEmoji}>🛒</Text>
+        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/shopping")}>
+          <View style={[styles.quickIconBg, { backgroundColor: "#FFF5EB" }]}>
+            <Ionicons name="cart" size={24} color="#F59E0B" />
+          </View>
           <Text style={styles.quickLabel}>Shop</Text>
         </Pressable>
-        <Pressable
-          style={styles.quickCard}
-          onPress={() => router.push("/(tabs)/explore")}
-        >
-          <Text style={styles.quickEmoji}>🔍</Text>
+        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/explore")}>
+          <View style={[styles.quickIconBg, { backgroundColor: "#EDFFF5" }]}>
+            <Ionicons name="search" size={24} color="#10B981" />
+          </View>
           <Text style={styles.quickLabel}>Services</Text>
         </Pressable>
         <Pressable style={styles.quickCard} onPress={handleAddPet}>
-          <Text style={styles.quickEmoji}>➕</Text>
+          <View style={[styles.quickIconBg, { backgroundColor: "#FFF0F5" }]}>
+            <Ionicons name="add-circle" size={24} color="#EC4899" />
+          </View>
           <Text style={styles.quickLabel}>Add Pet</Text>
         </Pressable>
       </View>
@@ -463,8 +464,8 @@ const styles = StyleSheet.create({
     width: "47%",
     gap: 8,
   },
-  quickEmoji: { fontSize: 32 },
-  quickLabel: { fontSize: 13, fontWeight: "600", color: "#1a1a1a" },
+  quickIconBg: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  quickLabel: { fontSize: 12, fontWeight: "700", color: "#1a1a1a", textAlign: "center" },
 
   // Discover
   discoverCard: {

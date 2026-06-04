@@ -12,7 +12,7 @@ import { isWeb, webDb } from "@/lib/firebase";
 import { collection as webCollection, onSnapshot as webOnSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
 import _nativeFirestore from "@react-native-firebase/firestore";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const BLUE = "#4486F4";
 
 type MeTab = "pets" | "settings";

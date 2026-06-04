@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFocusEffect } from "expo-router";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const STATUS_COLORS: Record<string, string> = { available: BRAND, pending: "#F5A623", adopted: "#3B82F6" };
 
 export default function ShelterPets() {

@@ -4,7 +4,7 @@ import {
 } from "react-native";
 import { useState } from "react";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const BLUE = "#4486F4";
 
 type ShopTab = "amazon" | "chewy";

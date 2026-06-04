@@ -9,7 +9,7 @@ import _nativeFirestore from "@react-native-firebase/firestore";
 import _nativeStorage from "@react-native-firebase/storage";
 import * as ImagePicker from "expo-image-picker";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 
 const SPECIES = ["dog", "cat"];
 const ACTIVITY_LEVELS = ["sedentary", "indoor", "active", "very active"];

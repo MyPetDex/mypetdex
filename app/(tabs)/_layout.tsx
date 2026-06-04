@@ -1,5 +1,5 @@
 import { Tabs, useRouter } from "expo-router";
-import { Platform, TouchableOpacity, View, Text, Pressable, StyleSheet } from "react-native";
+import { Platform, TouchableOpacity, View, Text, Pressable, StyleSheet, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { isWeb, webAuth, webDb } from "@/lib/firebase";
@@ -7,7 +7,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 
 export default function TabLayout() {
   const { isDemoMode } = useAuth();
@@ -66,7 +66,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          headerTitle: () => (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Image
+                source={require("../../assets/images/logo-transparent.png")}
+                style={{ width: 28, height: 28, borderRadius: 6 }}
+              />
+              <Text style={{ fontSize: 18, fontWeight: "800", color: "#1a1a1a" }}>MyPetDex</Text>
+            </View>
+          ),
           href: isProvider || isShelter || isAdmin ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
@@ -239,7 +247,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   demoBannerBtn: {
-    backgroundColor: "#4CAF82",
+    backgroundColor: "#4486F4",
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 6,
