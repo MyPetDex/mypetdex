@@ -78,17 +78,37 @@ export default function AddPetScreen() {
 
   async function pickPhoto() {
     if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to add photos!"); return; }
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") { Alert.alert("Permission needed", "Please allow photo access to add a pet photo."); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
-    }
+
+    Alert.alert("Add Pet Photo", "Choose a source", [
+      {
+        text: "📷 Camera",
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== "granted") { Alert.alert("Permission needed", "Please allow camera access in Settings."); return; }
+          const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          });
+          if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri);
+        },
+      },
+      {
+        text: "🖼️ Photo Library",
+        onPress: async () => {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== "granted") { Alert.alert("Permission needed", "Please allow photo access in Settings."); return; }
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: "images",
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          });
+          if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri);
+        },
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
   }
 
   async function uploadPhoto(uid: string, petId: string): Promise<string | null> {

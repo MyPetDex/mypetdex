@@ -1,9 +1,10 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   ActivityIndicator, Alert, TextInput, Modal, Platform,
-  Share, Linking,
+  Share, Linking, Image,
 } from "react-native";
 import { generatePetRecipe } from "@/lib/ai";
+import * as ImagePicker from "expo-image-picker";
 import { useState, useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +30,73 @@ export default function PetProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Records");
   const [showQR, setShowQR] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  async function changePhoto() {
+    if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to edit photos!"); return; }
+    Alert.alert("Change Pet Photo", "Choose a source", [
+      {
+        text: "📷 Camera",
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== "granted") { Alert.alert("Permission needed", "Please allow camera access in Settings."); return; }
+          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          if (!result.canceled && result.assets[0]) await uploadAndSave(result.assets[0].uri);
+        },
+      },
+      {
+        text: "🖼️ Photo Library",
+        onPress: async () => {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== "granted") { Alert.alert("Permission needed", "Please allow photo access in Settings."); return; }
+          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: "images" as any, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          if (!result.canceled && result.assets[0]) await uploadAndSave(result.assets[0].uri);
+        },
+      },
+      ...(pet?.photoURL ? [{ text: "🗑️ Remove Photo", style: "destructive" as const, onPress: async () => {
+        if (isWeb) {
+          const { updateDoc } = await import("firebase/firestore");
+          await updateDoc(require("@/lib/firebase").petDoc(user!.uid, id as string), { photoURL: null });
+        } else {
+          await require("@react-native-firebase/firestore").default()
+            .collection("users").doc(user!.uid).collection("pets").doc(id as string)
+            .update({ photoURL: null });
+        }
+      }}] : []),
+      { text: "Cancel", style: "cancel" },
+    ]);
+  }
+
+  async function uploadAndSave(uri: string) {
+    if (!user || !id) return;
+    setUploadingPhoto(true);
+    try {
+      const { isWeb: web, webStorage } = require("@/lib/firebase");
+      let photoURL: string;
+      if (web) {
+        const { ref, uploadBytes, getDownloadURL } = require("firebase/storage");
+        const res = await fetch(uri);
+        const blob = await res.blob();
+        const storageRef = ref(webStorage, `users/${user.uid}/pets/${id}/photo.jpg`);
+        await uploadBytes(storageRef, blob);
+        photoURL = await getDownloadURL(storageRef);
+        const { updateDoc } = await import("firebase/firestore");
+        await updateDoc(require("@/lib/firebase").petDoc(user.uid, id as string), { photoURL });
+      } else {
+        const storage = require("@react-native-firebase/storage").default;
+        const storageRef = storage().ref(`users/${user.uid}/pets/${id}/photo.jpg`);
+        await storageRef.putFile(uri);
+        photoURL = await storageRef.getDownloadURL();
+        await require("@react-native-firebase/firestore").default()
+          .collection("users").doc(user.uid).collection("pets").doc(id as string)
+          .update({ photoURL });
+      }
+    } catch (e) {
+      Alert.alert("Error", "Could not upload photo. Please try again.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   useEffect(() => {
     if (!user || !id) return;
@@ -92,11 +160,18 @@ export default function PetProfileScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarEmoji}>
-            {pet.species === "cat" ? "🐱" : "🐶"}
-          </Text>
-        </View>
+        <Pressable style={styles.avatar} onPress={changePhoto}>
+          {pet.photoURL
+            ? <Image source={{ uri: pet.photoURL }} style={styles.avatarPhoto} />
+            : <Text style={styles.avatarEmoji}>{pet.species === "cat" ? "🐱" : "🐶"}</Text>
+          }
+          <View style={styles.avatarEditBadge}>
+            {uploadingPhoto
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Text style={styles.avatarEditIcon}>✏️</Text>
+            }
+          </View>
+        </Pressable>
         <View style={styles.nameRow}>
           <Text style={styles.petName}>{pet.name}</Text>
           <Pressable style={styles.qrBtn} onPress={() => setShowQR(true)}>
@@ -988,7 +1063,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8f8f8" },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { backgroundColor: "#fff", padding: 20, alignItems: "center", borderBottomWidth: 1, borderBottomColor: "#f0f0f0" },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#f0f8f4", alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#f0f8f4", alignItems: "center", justifyContent: "center", marginBottom: 12, position: "relative" },
+  avatarPhoto: { width: 80, height: 80, borderRadius: 40 },
+  avatarEditBadge: { position: "absolute", bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: BRAND, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#fff" },
+  avatarEditIcon: { fontSize: 11 },
   avatarEmoji: { fontSize: 44 },
   petName: { fontSize: 24, fontWeight: "700", color: "#1a1a1a" },
   petBreed: { fontSize: 15, color: "#888", marginTop: 2 },
