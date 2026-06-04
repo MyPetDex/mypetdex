@@ -8,7 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { PetCardSkeleton } from "@/components/SkeletonLoader";
-import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
+import AnimatedPetCard from "@/components/AnimatedPetCard";
+import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import { isWeb, webDb } from "@/lib/firebase";
 import { collection as webCollection, onSnapshot as webOnSnapshot, doc, getDoc } from "firebase/firestore";
 import _nativeFirestore from "@react-native-firebase/firestore";
@@ -147,9 +148,17 @@ export default function HomeScreen() {
               {/* Top row */}
               <View style={styles.petDashTop}>
                 <View style={styles.petDashAvatar}>
-                  <Text style={styles.petDashEmoji}>
-                    {selectedPet.species === "cat" ? "🐱" : "🐶"}
-                  </Text>
+                  {selectedPet.photoURL ? (
+                    <Animated.Image
+                      entering={FadeIn.duration(400)}
+                      source={{ uri: selectedPet.photoURL }}
+                      style={{ width: 56, height: 56, borderRadius: 28 }}
+                    />
+                  ) : (
+                    <Text style={styles.petDashEmoji}>
+                      {selectedPet.species === "cat" ? "🐱" : "🐶"}
+                    </Text>
+                  )}
                 </View>
                 <View style={styles.petDashInfo}>
                   <Text style={styles.petDashName}>{selectedPet.name}</Text>
@@ -286,32 +295,21 @@ export default function HomeScreen() {
         >
           <View style={styles.modalSheet}>
             <Text style={styles.modalTitle}>Select a Pet</Text>
-            {pets.map((pet) => (
-              <Pressable
-                key={pet.id}
-                style={[
-                  styles.modalPetRow,
-                  selectedPet?.id === pet.id && styles.modalPetRowActive,
-                ]}
-                onPress={() => {
-                  setSelectedPet(pet);
-                  setShowPicker(false);
-                }}
-              >
-                <Text style={styles.modalPetEmoji}>
-                  {pet.species === "cat" ? "🐱" : "🐶"}
-                </Text>
-                <View style={styles.modalPetInfo}>
-                  <Text style={styles.modalPetName}>{pet.name}</Text>
-                  <Text style={styles.modalPetBreed}>
-                    {pet.breed || pet.species}
-                  </Text>
-                </View>
-                {selectedPet?.id === pet.id && (
-                  <Text style={styles.modalCheck}>✓</Text>
-                )}
-              </Pressable>
-            ))}
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "center", paddingVertical: 8 }}>
+              {pets.map((pet, i) => (
+                <AnimatedPetCard
+                  key={pet.id}
+                  pet={pet}
+                  index={i}
+                  isSelected={selectedPet?.id === pet.id}
+                  selectedColor={BLUE}
+                  onPress={() => {
+                    setSelectedPet(pet);
+                    setShowPicker(false);
+                  }}
+                />
+              ))}
+            </View>
           </View>
         </Pressable>
       </Modal>
