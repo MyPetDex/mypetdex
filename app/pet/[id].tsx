@@ -3,6 +3,7 @@ import {
   ActivityIndicator, Alert, TextInput, Modal, Platform,
   Share, Linking,
 } from "react-native";
+import { generatePetRecipe } from "@/lib/ai";
 import { useState, useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -876,47 +877,18 @@ function RecipesTab({ pet, canUseAI }: { pet: any; canUseAI: boolean }) {
     if (allSelected.length < 2 || !canUseAI) return;
     setLoading(true);
     setStep("result");
-    const prompt = `You are a veterinary nutritionist for MyPetDex. Generate a personalized homemade meal recipe for:
-
-Pet: ${pet.name}
-Species: ${pet.species || pet.type}
-Breed: ${pet.breed}
-Age: ${pet.age} years
-Weight: ${pet.weight} ${pet.weightUnit || "lbs"} (${weightKg.toFixed(1)} kg)
-Neutered: ${pet.neutered ? "Yes" : "No"}
-Activity: ${pet.activityLevel || "moderate"}
-Daily calorie need (AAFCO/WSAVA): ${der} kcal/day
-Available ingredients: ${allSelected.join(", ")}
-
-Provide:
-1. RECIPE NAME
-2. INGREDIENTS with exact gram amounts for ${der} kcal daily need split into 2 meals
-3. PREPARATION STEPS
-4. NUTRITIONAL BREAKDOWN
-5. REQUIRED SUPPLEMENTS
-6. BREED-SPECIFIC NOTES for ${pet.breed}
-7. TOXIC FOODS WARNING for ${pet.species || pet.type}s
-
-Keep it practical and science-based.`;
-
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1200,
-          messages: [{ role: "user", content: prompt }],
-        }),
+      const result = await generatePetRecipe({
+        name: pet.name,
+        species: pet.species || pet.type || "dog",
+        breed: pet.breed,
+        age: pet.age,
+        weight: pet.weight,
+        weightUnit: pet.weightUnit,
+        activityLevel: pet.activityLevel,
+        neutered: pet.neutered,
       });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `API error ${response.status}`);
-      }
-      const data = await response.json();
-      setRecipe(data.content?.[0]?.text || "Could not generate recipe. Please try again.");
+      setRecipe(result.recipe);
     } catch (e: any) {
       setRecipe(`Could not generate recipe: ${e?.message || "Please check your connection and try again."}`);
     } finally {

@@ -7,6 +7,8 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
+import { PetCardSkeleton } from "@/components/SkeletonLoader";
+import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import { isWeb, webDb } from "@/lib/firebase";
 import { collection as webCollection, onSnapshot as webOnSnapshot, doc, getDoc } from "firebase/firestore";
 import _nativeFirestore from "@react-native-firebase/firestore";
@@ -106,7 +108,10 @@ export default function HomeScreen() {
       <Text style={styles.sectionTitle}>Your Pet</Text>
 
       {loading ? (
-        <ActivityIndicator color={BRAND} style={{ marginTop: 20 }} />
+        <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
+          <PetCardSkeleton />
+          <PetCardSkeleton />
+        </View>
       ) : pets.length === 0 ? (
         // No pets yet
         <View style={styles.emptyCard}>

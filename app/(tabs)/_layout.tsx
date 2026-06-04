@@ -59,6 +59,7 @@ export default function TabLayout() {
         headerStyle: { backgroundColor: "#fff" },
         headerShadowVisible: false,
         headerTitleStyle: { fontWeight: "700", fontSize: 18 },
+        animation: "fade",
       }}
     >
       {/* ── Pet Owner tabs ─────────────────────────────────────────── */}

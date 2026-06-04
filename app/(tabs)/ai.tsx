@@ -1,105 +1,140 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  View, Text, StyleSheet, ScrollView, TextInput,
+  Pressable, KeyboardAvoidingView, Platform, ActivityIndicator,
+} from "react-native";
 import { useState, useRef } from "react";
+import Animated, { FadeInDown, FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { usePlan } from "@/hooks/usePlan";
-import UpgradePrompt from "@/components/UpgradePrompt";
 import { useRouter } from "expo-router";
+import { askPetDexAI, type ChatMessage } from "@/lib/ai";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
+const BRAND_LIGHT = "#EEF4FF";
 
 type Message = { role: "user" | "assistant"; text: string };
 
 const SUGGESTIONS = [
-  "Is my dog's diet healthy?",
-  "Signs of illness in cats",
-  "How often should I deworm?",
-  "Best flea prevention?",
+  "🐕 Is my dog's diet healthy?",
+  "🐈 Signs of illness in cats",
+  "💉 How often should I deworm?",
+  "🦟 Best flea prevention?",
+  "🦷 How to brush my pet's teeth?",
+  "🏃 How much exercise does my pet need?",
 ];
 
 export default function AIVetScreen() {
   const { aiAssistant, loading: planLoading } = usePlan();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", text: "Hi! I'm your PetDex AI Assistant 🐾 Ask me anything about your pet's health, nutrition, or behavior." }
+    { role: "assistant", text: "Hi! I'm PetDex AI 🐾 Ask me anything about your pet's health, nutrition, or behavior. I'm here to help!" }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
-  // Show upgrade wall for free users
+  // Upgrade wall for free users
   if (!planLoading && !aiAssistant) {
     return (
       <View style={styles.upgradeWall}>
-        <Text style={styles.upgradeEmoji}>🤖</Text>
-        <Text style={styles.upgradeTitle}>PetDex AI Assistant</Text>
-        <Text style={styles.upgradeDesc}>
-          Get instant answers about your pet's health, nutrition, and behavior from our AI vet assistant.
-        </Text>
-        <Pressable style={styles.upgradeBtn} onPress={() => router.push("/settings/subscription")}>
-          <Text style={styles.upgradeBtnText}>Upgrade to Plus — $2.99/mo</Text>
-        </Pressable>
-        <Text style={styles.upgradeNote}>Included in Plus and Family plans</Text>
+        <Animated.View entering={FadeInDown.duration(500)}>
+          <Text style={styles.upgradeEmoji}>🤖</Text>
+          <Text style={styles.upgradeTitle}>PetDex AI Assistant</Text>
+          <Text style={styles.upgradeDesc}>
+            Get instant answers about your pet's health, nutrition, and behavior — powered by AI, guided by veterinary knowledge.
+          </Text>
+          <Pressable style={styles.upgradeBtn} onPress={() => router.push("/settings/subscription")}>
+            <Text style={styles.upgradeBtnText}>Upgrade to Plus — $2.99/mo</Text>
+          </Pressable>
+          <Text style={styles.upgradeNote}>Included in Plus and Family plans</Text>
+        </Animated.View>
       </View>
     );
   }
 
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return;
-    const userMsg: Message = { role: "user", text };
-    setMessages(prev => [...prev, userMsg]);
+    const userMsg: Message = { role: "user", text: text.trim() };
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
     setInput("");
     setLoading(true);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 500,
-          system: "You are a helpful AI vet assistant for the MyPetDex app. Give concise, friendly advice about pet health, nutrition, and behavior. Always recommend seeing a real vet for serious concerns. Keep responses under 150 words.",
-          messages: [{ role: "user", content: text }],
-        }),
-      });
-      const data = await response.json();
-      const reply = data.content?.[0]?.text || "Sorry, I couldn't get a response. Please try again.";
+      // Build message history for context (last 10 messages)
+      const history: ChatMessage[] = updatedMessages
+        .slice(-10)
+        .map(m => ({ role: m.role, content: m.text }));
+
+      const reply = await askPetDexAI(history);
       setMessages(prev => [...prev, { role: "assistant", text: reply }]);
-    } catch {
-      setMessages(prev => [...prev, { role: "assistant", text: "Sorry, something went wrong. Please check your connection and try again." }]);
+    } catch (e: any) {
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        text: "Sorry, something went wrong. Please check your connection and try again. 🐾"
+      }]);
     } finally {
       setLoading(false);
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
     }
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView ref={scrollRef} style={styles.messages} contentContainerStyle={styles.messagesContent}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={90}
+    >
+      {/* Messages */}
+      <ScrollView
+        ref={scrollRef}
+        style={styles.messages}
+        contentContainerStyle={styles.messagesContent}
+        showsVerticalScrollIndicator={false}
+      >
         {messages.map((msg, i) => (
-          <View key={i} style={[styles.bubble, msg.role === "user" ? styles.userBubble : styles.aiBubble]}>
-            {msg.role === "assistant" && <Text style={styles.aiLabel}>🐾 PetDex AI Assistant</Text>}
-            <Text style={[styles.bubbleText, msg.role === "user" && styles.userText]}>{msg.text}</Text>
-          </View>
+          <Animated.View
+            key={i}
+            entering={msg.role === "user"
+              ? FadeInRight.duration(300)
+              : FadeInLeft.duration(300)}
+            style={[styles.bubble, msg.role === "user" ? styles.userBubble : styles.aiBubble]}
+          >
+            {msg.role === "assistant" && (
+              <Text style={styles.aiLabel}>🐾 PetDex AI</Text>
+            )}
+            <Text style={[styles.bubbleText, msg.role === "user" && styles.userText]}>
+              {msg.text}
+            </Text>
+          </Animated.View>
         ))}
+
+        {/* Typing indicator */}
         {loading && (
-          <View style={styles.aiBubble}>
-            <Text style={styles.aiLabel}>🐾 PetDex AI Assistant</Text>
-            <Text style={styles.bubbleText}>Thinking...</Text>
-          </View>
+          <Animated.View entering={FadeInLeft.duration(200)} style={styles.aiBubble}>
+            <Text style={styles.aiLabel}>🐾 PetDex AI</Text>
+            <View style={styles.typingDots}>
+              <ActivityIndicator size="small" color={BRAND} />
+              <Text style={styles.typingText}>Thinking...</Text>
+            </View>
+          </Animated.View>
         )}
       </ScrollView>
 
-      <View style={styles.suggestions}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {SUGGESTIONS.map((s, i) => (
-            <Pressable key={i} style={styles.suggestion} onPress={() => sendMessage(s)}>
-              <Text style={styles.suggestionText}>{s}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
+      {/* Suggestion chips */}
+      {messages.length <= 1 && (
+        <View style={styles.suggestions}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
+            {SUGGESTIONS.map((s, i) => (
+              <Pressable key={i} style={styles.suggestion} onPress={() => sendMessage(s)}>
+                <Text style={styles.suggestionText}>{s}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
+      {/* Input bar */}
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
@@ -108,9 +143,18 @@ export default function AIVetScreen() {
           value={input}
           onChangeText={setInput}
           multiline
+          maxLength={500}
+          onSubmitEditing={() => sendMessage(input)}
         />
-        <Pressable style={[styles.sendBtn, !input.trim() && styles.sendBtnDisabled]} onPress={() => sendMessage(input)}>
-          <Text style={styles.sendBtnText}>➤</Text>
+        <Pressable
+          style={[styles.sendBtn, (!input.trim() || loading) && styles.sendBtnDisabled]}
+          onPress={() => sendMessage(input)}
+          disabled={!input.trim() || loading}
+        >
+          {loading
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text style={styles.sendBtnText}>➤</Text>
+          }
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -118,28 +162,35 @@ export default function AIVetScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f8f8" },
-  messages: { flex: 1 },
-  messagesContent: { padding: 16, gap: 12 },
-  bubble: { maxWidth: "85%", borderRadius: 16, padding: 14 },
-  aiBubble: { backgroundColor: "#fff", alignSelf: "flex-start", borderWidth: 1, borderColor: "#eee" },
-  userBubble: { backgroundColor: BRAND, alignSelf: "flex-end" },
-  aiLabel: { fontSize: 11, fontWeight: "600", color: BRAND, marginBottom: 4 },
-  bubbleText: { fontSize: 15, color: "#1a1a1a", lineHeight: 22 },
-  userText: { color: "#fff" },
-  suggestions: { paddingVertical: 10, paddingHorizontal: 16 },
-  suggestion: { backgroundColor: "#fff", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, marginRight: 8, borderWidth: 1, borderColor: "#eee" },
-  suggestionText: { fontSize: 13, color: "#555" },
-  inputRow: { flexDirection: "row", alignItems: "flex-end", padding: 12, gap: 10, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#eee" },
-  input: { flex: 1, backgroundColor: "#f8f8f8", borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, maxHeight: 100, color: "#1a1a1a" },
-  sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: BRAND, alignItems: "center", justifyContent: "center" },
-  sendBtnDisabled: { backgroundColor: "#ccc" },
-  sendBtnText: { color: "#fff", fontSize: 18 },
-  upgradeWall: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, backgroundColor: "#f8f8f8" },
-  upgradeEmoji: { fontSize: 64, marginBottom: 16 },
-  upgradeTitle: { fontSize: 24, fontWeight: "700", color: "#1a1a1a", marginBottom: 12 },
-  upgradeDesc: { fontSize: 15, color: "#555", textAlign: "center", lineHeight: 22, marginBottom: 28 },
-  upgradeBtn: { backgroundColor: BRAND, borderRadius: 14, paddingVertical: 16, paddingHorizontal: 28, width: "100%", alignItems: "center", marginBottom: 12 },
-  upgradeBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  upgradeNote: { fontSize: 13, color: "#aaa" },
+  container:          { flex: 1, backgroundColor: "#F8FAFF" },
+  messages:           { flex: 1 },
+  messagesContent:    { padding: 16, gap: 12, paddingBottom: 8 },
+
+  bubble:             { maxWidth: "85%", borderRadius: 18, padding: 14 },
+  aiBubble:           { backgroundColor: "#fff", alignSelf: "flex-start", borderWidth: 1, borderColor: "#E8EFFF", shadowColor: "#4486F4", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  userBubble:         { backgroundColor: BRAND, alignSelf: "flex-end" },
+  aiLabel:            { fontSize: 11, fontWeight: "700", color: BRAND, marginBottom: 5, letterSpacing: 0.3 },
+  bubbleText:         { fontSize: 15, color: "#1a1a1a", lineHeight: 22 },
+  userText:           { color: "#fff" },
+
+  typingDots:         { flexDirection: "row", alignItems: "center", gap: 8 },
+  typingText:         { fontSize: 14, color: "#999" },
+
+  suggestions:        { paddingVertical: 10 },
+  suggestion:         { backgroundColor: BRAND_LIGHT, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: BRAND + "33" },
+  suggestionText:     { fontSize: 13, color: BRAND, fontWeight: "600" },
+
+  inputRow:           { flexDirection: "row", alignItems: "flex-end", padding: 12, gap: 10, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#eee" },
+  input:              { flex: 1, backgroundColor: "#F8FAFF", borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, maxHeight: 100, color: "#1a1a1a", borderWidth: 1, borderColor: "#E8EFFF" },
+  sendBtn:            { width: 44, height: 44, borderRadius: 22, backgroundColor: BRAND, alignItems: "center", justifyContent: "center" },
+  sendBtnDisabled:    { backgroundColor: "#C7D7FF" },
+  sendBtnText:        { color: "#fff", fontSize: 18 },
+
+  upgradeWall:        { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, backgroundColor: "#F8FAFF" },
+  upgradeEmoji:       { fontSize: 64, marginBottom: 16, textAlign: "center" },
+  upgradeTitle:       { fontSize: 24, fontWeight: "800", color: "#1a1a1a", marginBottom: 12, textAlign: "center" },
+  upgradeDesc:        { fontSize: 15, color: "#555", textAlign: "center", lineHeight: 22, marginBottom: 28 },
+  upgradeBtn:         { backgroundColor: BRAND, borderRadius: 14, paddingVertical: 16, paddingHorizontal: 28, alignItems: "center", marginBottom: 12 },
+  upgradeBtnText:     { color: "#fff", fontSize: 16, fontWeight: "700" },
+  upgradeNote:        { fontSize: 13, color: "#aaa", textAlign: "center" },
 });
