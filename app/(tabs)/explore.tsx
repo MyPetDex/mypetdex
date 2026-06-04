@@ -80,11 +80,6 @@ interface AdoptPet {
 export default function ExploreScreen() {
   const { profile } = useUserProfile();
   const [activeTab, setActiveTab] = useState<ExploreTab>("services");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
-
-  if (!mounted) return <View style={{ flex: 1, backgroundColor: "#f8f9ff" }} />;
 
   // Services state — always starts fresh
   const [serviceFilter, setServiceFilter] = useState("");
