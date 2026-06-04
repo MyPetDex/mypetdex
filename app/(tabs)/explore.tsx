@@ -80,6 +80,11 @@ interface AdoptPet {
 export default function ExploreScreen() {
   const { profile } = useUserProfile();
   const [activeTab, setActiveTab] = useState<ExploreTab>("services");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted) return <View style={{ flex: 1, backgroundColor: "#f8f9ff" }} />;
 
   // Services state — always starts fresh
   const [serviceFilter, setServiceFilter] = useState("");
@@ -87,19 +92,8 @@ export default function ExploreScreen() {
   const [cityFilter, setCityFilter] = useState("");
   const [searched, setSearched] = useState(false);
 
-  // Clear all filters when screen is unmounted (user navigates away)
-  useEffect(() => {
-    return () => {
-      setServiceFilter("");
-      setStateFilter("");
-      setCityFilter("");
-      setSearched(false);
-      setProviders([]);
-      setAdoptPets([]);
-      setAdoptError("");
-      setZipCode("");
-    };
-  }, []);
+  // No cleanup needed — state resets naturally on each fresh mount
+  // (Expo Router unmounts tabs when navigating away, so state is always fresh)
 
   // Providers state
   const [providers, setProviders] = useState<any[]>([]);
