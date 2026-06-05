@@ -36,6 +36,9 @@ export default function PetProfileScreen() {
   async function changePhoto() {
     if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to edit photos!"); return; }
     const IP = require("expo-image-picker");
+    if (!IP?.launchImageLibraryAsync) {
+      Alert.alert("Coming Soon", "Photo upload will be available in the next update. 🐾"); return;
+    }
     Alert.alert("Change Pet Photo", "Choose a source", [
       {
         text: "📷 Camera",
