@@ -217,11 +217,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* ── Admin tabs — hidden, files kept for future use ─────────── */}
-      <Tabs.Screen name="admin-dashboard" options={{ href: null }} />
-      <Tabs.Screen name="admin-users" options={{ href: null }} />
-      <Tabs.Screen name="admin-reviews" options={{ href: null }} />
-      <Tabs.Screen name="admin-products" options={{ href: null }} />
+      {/* Admin tabs removed — no admin routes in native app */}
 
       {/* ── Always hidden ──────────────────────────────────────────── */}
       <Tabs.Screen name="pets" options={{ href: null }} />

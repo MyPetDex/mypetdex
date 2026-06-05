@@ -7,7 +7,8 @@ import { collection as webCollection, addDoc, serverTimestamp } from "firebase/f
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import _nativeFirestore from "@react-native-firebase/firestore";
 import _nativeStorage from "@react-native-firebase/storage";
-import * as ImagePicker from "expo-image-picker";
+let ImagePicker: typeof import("expo-image-picker") | null = null;
+try { ImagePicker = require("expo-image-picker"); } catch {}
 
 const BRAND = "#4486F4";
 
@@ -78,14 +79,15 @@ export default function AddPetScreen() {
 
   async function pickPhoto() {
     if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to add photos!"); return; }
+    if (!ImagePicker) { Alert.alert("Not available", "Photo picker not available in this build."); return; }
 
     Alert.alert("Add Pet Photo", "Choose a source", [
       {
         text: "📷 Camera",
         onPress: async () => {
-          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          const { status } = await ImagePicker!.requestCameraPermissionsAsync();
           if (status !== "granted") { Alert.alert("Permission needed", "Please allow camera access in Settings."); return; }
-          const result = await ImagePicker.launchCameraAsync({
+          const result = await ImagePicker!.launchCameraAsync({
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
@@ -96,9 +98,9 @@ export default function AddPetScreen() {
       {
         text: "🖼️ Photo Library",
         onPress: async () => {
-          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          const { status } = await ImagePicker!.requestMediaLibraryPermissionsAsync();
           if (status !== "granted") { Alert.alert("Permission needed", "Please allow photo access in Settings."); return; }
-          const result = await ImagePicker.launchImageLibraryAsync({
+          const result = await ImagePicker!.launchImageLibraryAsync({
             mediaTypes: "images",
             allowsEditing: true,
             aspect: [1, 1],

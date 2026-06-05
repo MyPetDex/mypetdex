@@ -4,7 +4,8 @@ import {
   Share, Linking, Image,
 } from "react-native";
 import { generatePetRecipe } from "@/lib/ai";
-import * as ImagePicker from "expo-image-picker";
+let ImagePicker: typeof import("expo-image-picker") | null = null;
+try { ImagePicker = require("expo-image-picker"); } catch {}
 import { useState, useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,18 +39,18 @@ export default function PetProfileScreen() {
       {
         text: "📷 Camera",
         onPress: async () => {
-          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          const { status } = await ImagePicker!.requestCameraPermissionsAsync();
           if (status !== "granted") { Alert.alert("Permission needed", "Please allow camera access in Settings."); return; }
-          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          const result = await ImagePicker!.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
           if (!result.canceled && result.assets[0]) await uploadAndSave(result.assets[0].uri);
         },
       },
       {
         text: "🖼️ Photo Library",
         onPress: async () => {
-          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          const { status } = await ImagePicker!.requestMediaLibraryPermissionsAsync();
           if (status !== "granted") { Alert.alert("Permission needed", "Please allow photo access in Settings."); return; }
-          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: "images" as any, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          const result = await ImagePicker!.launchImageLibraryAsync({ mediaTypes: "images" as any, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
           if (!result.canceled && result.assets[0]) await uploadAndSave(result.assets[0].uri);
         },
       },
