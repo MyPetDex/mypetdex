@@ -7,8 +7,7 @@ import { collection as webCollection, addDoc, serverTimestamp } from "firebase/f
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import _nativeFirestore from "@react-native-firebase/firestore";
 import _nativeStorage from "@react-native-firebase/storage";
-let ImagePicker: typeof import("expo-image-picker") | null = null;
-try { ImagePicker = require("expo-image-picker"); } catch {}
+import * as ImagePicker from "expo-image-picker";
 
 const BRAND = "#4486F4";
 
@@ -85,9 +84,9 @@ export default function AddPetScreen() {
       {
         text: "📷 Camera",
         onPress: async () => {
-          const { status } = await ImagePicker!.requestCameraPermissionsAsync();
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
           if (status !== "granted") { Alert.alert("Permission needed", "Please allow camera access in Settings."); return; }
-          const result = await ImagePicker!.launchCameraAsync({
+          const result = await ImagePicker.launchCameraAsync({
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
@@ -98,9 +97,9 @@ export default function AddPetScreen() {
       {
         text: "🖼️ Photo Library",
         onPress: async () => {
-          const { status } = await ImagePicker!.requestMediaLibraryPermissionsAsync();
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
           if (status !== "granted") { Alert.alert("Permission needed", "Please allow photo access in Settings."); return; }
-          const result = await ImagePicker!.launchImageLibraryAsync({
+          const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: "images",
             allowsEditing: true,
             aspect: [1, 1],
