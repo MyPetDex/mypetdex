@@ -35,15 +35,6 @@ export default function PetProfileScreen() {
 
   async function changePhoto() {
     if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to edit photos!"); return; }
-    // Check native module is linked before opening picker
-    try {
-      const { NativeModules } = require("react-native");
-      if (!NativeModules.ExponentImagePicker) {
-        Alert.alert("Coming Soon", "Photo upload available in the next update. 🐾"); return;
-      }
-    } catch {
-      Alert.alert("Coming Soon", "Photo upload available in the next update. 🐾"); return;
-    }
     const IP = require("expo-image-picker");
     Alert.alert("Change Pet Photo", "Choose a source", [
       {
