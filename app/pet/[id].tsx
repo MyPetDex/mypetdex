@@ -33,12 +33,22 @@ export default function PetProfileScreen() {
   const [showQR, setShowQR] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
+  // Check if native ImagePicker module is linked in this build
+  const imagePickerAvailable = (() => {
+    try {
+      const m = require("expo-image-picker");
+      // Verify native bridge is actually linked (not just JS wrapper)
+      const { NativeModules } = require("react-native");
+      return !!NativeModules.ExponentImagePicker;
+    } catch { return false; }
+  })();
+
   async function changePhoto() {
     if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to edit photos!"); return; }
-    let IP: any;
-    try { IP = require("expo-image-picker"); } catch {
-      Alert.alert("Update required", "Please rebuild the app to enable photo upload."); return;
+    if (!imagePickerAvailable) {
+      Alert.alert("Coming Soon", "Photo upload will be available in the next app update. 🐾"); return;
     }
+    const IP = require("expo-image-picker");
     Alert.alert("Change Pet Photo", "Choose a source", [
       {
         text: "📷 Camera",

@@ -78,10 +78,11 @@ export default function AddPetScreen() {
 
   async function pickPhoto() {
     if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to add photos!"); return; }
-    let IP: any;
-    try { IP = require("expo-image-picker"); } catch {
-      Alert.alert("Update required", "Please rebuild the app to enable photo upload."); return;
+    const { NativeModules } = require("react-native");
+    if (!NativeModules.ExponentImagePicker) {
+      Alert.alert("Coming Soon", "Photo upload will be available in the next app update. 🐾"); return;
     }
+    const IP = require("expo-image-picker");
     Alert.alert("Add Pet Photo", "Choose a source", [
       {
         text: "📷 Camera",
