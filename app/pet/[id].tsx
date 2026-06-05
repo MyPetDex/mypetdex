@@ -4,7 +4,8 @@ import {
   Share, Linking, Image,
 } from "react-native";
 import { generatePetRecipe } from "@/lib/ai";
-import * as ImagePicker from "expo-image-picker";
+// ImagePicker loaded lazily — only when user taps photo button
+// Prevents crash if native module not yet linked in current build
 import { useState, useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,22 +35,26 @@ export default function PetProfileScreen() {
 
   async function changePhoto() {
     if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to edit photos!"); return; }
+    let IP: any;
+    try { IP = require("expo-image-picker"); } catch {
+      Alert.alert("Update required", "Please rebuild the app to enable photo upload."); return;
+    }
     Alert.alert("Change Pet Photo", "Choose a source", [
       {
         text: "📷 Camera",
         onPress: async () => {
-          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          const { status } = await IP.requestCameraPermissionsAsync();
           if (status !== "granted") { Alert.alert("Permission needed", "Please allow camera access in Settings."); return; }
-          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          const result = await IP.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
           if (!result.canceled && result.assets[0]) await uploadAndSave(result.assets[0].uri);
         },
       },
       {
         text: "🖼️ Photo Library",
         onPress: async () => {
-          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          const { status } = await IP.requestMediaLibraryPermissionsAsync();
           if (status !== "granted") { Alert.alert("Permission needed", "Please allow photo access in Settings."); return; }
-          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: "images" as any, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          const result = await IP.launchImageLibraryAsync({ mediaTypes: "images", allowsEditing: true, aspect: [1, 1], quality: 0.8 });
           if (!result.canceled && result.assets[0]) await uploadAndSave(result.assets[0].uri);
         },
       },

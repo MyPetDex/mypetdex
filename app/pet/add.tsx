@@ -7,7 +7,7 @@ import { collection as webCollection, addDoc, serverTimestamp } from "firebase/f
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import _nativeFirestore from "@react-native-firebase/firestore";
 import _nativeStorage from "@react-native-firebase/storage";
-import * as ImagePicker from "expo-image-picker";
+// ImagePicker loaded lazily in pickPhoto()
 
 const BRAND = "#4486F4";
 
@@ -78,33 +78,26 @@ export default function AddPetScreen() {
 
   async function pickPhoto() {
     if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to add photos!"); return; }
-    if (!ImagePicker) { Alert.alert("Not available", "Photo picker not available in this build."); return; }
-
+    let IP: any;
+    try { IP = require("expo-image-picker"); } catch {
+      Alert.alert("Update required", "Please rebuild the app to enable photo upload."); return;
+    }
     Alert.alert("Add Pet Photo", "Choose a source", [
       {
         text: "📷 Camera",
         onPress: async () => {
-          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          const { status } = await IP.requestCameraPermissionsAsync();
           if (status !== "granted") { Alert.alert("Permission needed", "Please allow camera access in Settings."); return; }
-          const result = await ImagePicker.launchCameraAsync({
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-          });
+          const result = await IP.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
           if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri);
         },
       },
       {
         text: "🖼️ Photo Library",
         onPress: async () => {
-          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          const { status } = await IP.requestMediaLibraryPermissionsAsync();
           if (status !== "granted") { Alert.alert("Permission needed", "Please allow photo access in Settings."); return; }
-          const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: "images",
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-          });
+          const result = await IP.launchImageLibraryAsync({ mediaTypes: "images", allowsEditing: true, aspect: [1, 1], quality: 0.8 });
           if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri);
         },
       },
