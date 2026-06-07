@@ -165,7 +165,7 @@ export default function PetProfileScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.avatar} onPress={changePhoto}>
+        <View style={styles.avatar}>
           {pet.photoURL
             ? <Image source={{ uri: pet.photoURL }} style={styles.avatarPhoto} />
             : <Text style={styles.avatarEmoji}>{pet.species === "cat" ? "🐱" : "🐶"}</Text>
