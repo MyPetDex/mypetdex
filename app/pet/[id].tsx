@@ -13,6 +13,7 @@ import { usePlan } from "@/hooks/usePlan";
 import firestore from "@react-native-firebase/firestore";
 import { doc as webDoc, onSnapshot as webOnSnap, updateDoc } from "firebase/firestore";
 import { isWeb, webDb } from "@/lib/firebase";
+import * as ImagePicker from "expo-image-picker";
 import DatePicker from "@/components/DatePicker";
 import QRCode from "react-native-qrcode-svg";
 
@@ -35,26 +36,18 @@ export default function PetProfileScreen() {
 
   async function changePhoto() {
     if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to edit photos!"); return; }
-    const IP = require("expo-image-picker");
-    if (!IP?.launchImageLibraryAsync) {
-      Alert.alert("Coming Soon", "Photo upload will be available in the next update. 🐾"); return;
-    }
     Alert.alert("Change Pet Photo", "Choose a source", [
       {
         text: "📷 Camera",
         onPress: async () => {
-          const { status } = await IP.requestCameraPermissionsAsync();
-          if (status !== "granted") { Alert.alert("Permission needed", "Please allow camera access in Settings."); return; }
-          const result = await IP.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
           if (!result.canceled && result.assets[0]) await uploadAndSave(result.assets[0].uri);
         },
       },
       {
         text: "🖼️ Photo Library",
         onPress: async () => {
-          const { status } = await IP.requestMediaLibraryPermissionsAsync();
-          if (status !== "granted") { Alert.alert("Permission needed", "Please allow photo access in Settings."); return; }
-          const result = await IP.launchImageLibraryAsync({ mediaTypes: "images", allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: "images", allowsEditing: true, aspect: [1, 1], quality: 0.8 });
           if (!result.canceled && result.assets[0]) await uploadAndSave(result.assets[0].uri);
         },
       },
@@ -165,7 +158,7 @@ export default function PetProfileScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.avatar}>
+        <Pressable style={styles.avatar} onPress={changePhoto}>
           {pet.photoURL
             ? <Image source={{ uri: pet.photoURL }} style={styles.avatarPhoto} />
             : <Text style={styles.avatarEmoji}>{pet.species === "cat" ? "🐱" : "🐶"}</Text>
