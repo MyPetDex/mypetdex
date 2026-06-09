@@ -1,7 +1,7 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   ActivityIndicator, Alert, TextInput, Modal, Platform,
-  Share, Linking, Image,
+  Share, Linking, Image, Switch, FlatList,
 } from "react-native";
 import { generatePetRecipe } from "@/lib/ai";
 // ImagePicker loaded lazily — only when user taps photo button
@@ -21,6 +21,49 @@ const BRAND = "#4486F4";
 const BLUE = "#4486F4";
 
 const TABS = ["Records", "Reminders", "Calories", "Recipes"];
+const BREEDS_DOG = ['Affenpinscher','Afghan Hound','Airedale Terrier','Akita','Alaskan Malamute','American Bulldog','American Eskimo','American Pit Bull Terrier','Australian Shepherd','Basenji','Basset Hound','Beagle','Belgian Malinois','Bernese Mountain Dog','Bichon Frise','Border Collie','Boston Terrier','Boxer','Bulldog','Cairn Terrier','Cane Corso','Cavalier King Charles Spaniel','Chihuahua','Chow Chow','Cocker Spaniel','Dachshund','Dalmatian','Doberman Pinscher','French Bulldog','German Shepherd','Golden Retriever','Great Dane','Greyhound','Havanese','Irish Setter','Jack Russell Terrier','Labrador Retriever','Maltese','Mastiff','Miniature Schnauzer','Pomeranian','Poodle','Pug','Rottweiler','Saint Bernard','Samoyed','Shiba Inu','Shih Tzu','Siberian Husky','Yorkshire Terrier','Mixed/Other'];
+const BREEDS_CAT = ['Abyssinian','American Shorthair','Bengal','Birman','British Shorthair','Burmese','Devon Rex','Exotic Shorthair','Himalayan','Maine Coon','Manx','Munchkin','Norwegian Forest Cat','Persian','Ragdoll','Russian Blue','Scottish Fold','Siamese','Siberian','Sphynx','Turkish Angora','Mixed/Other'];
+const ACTIVITY_LEVELS = ["sedentary", "indoor", "active", "very active"];
+const SEX_OPTIONS = ["male", "female"];
+
+function BreedPicker({ label, value, options, onSelect }: { label: string; value: string; options: string[]; onSelect: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
+  return (
+    <>
+      <Text style={styles.modalLabel}>{label}</Text>
+      <Pressable style={styles.dropdown} onPress={() => setOpen(true)}>
+        <Text style={styles.dropdownValue}>{value || "Select..."}</Text>
+        <Text style={styles.dropdownArrow}>▾</Text>
+      </Pressable>
+      <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(false)}>
+        <View style={styles.pickerModal}>
+          <View style={styles.pickerHeader}>
+            <Text style={styles.pickerTitle}>{label}</Text>
+            <Pressable onPress={() => { setOpen(false); setSearch(""); }}>
+              <Text style={styles.pickerDone}>Done</Text>
+            </Pressable>
+          </View>
+          <View style={{ padding: 12 }}>
+            <TextInput style={styles.modalInput} placeholder="Search..." value={search} onChangeText={setSearch} autoFocus placeholderTextColor="#aaa" />
+          </View>
+          <FlatList
+            data={filtered}
+            keyExtractor={item => item}
+            renderItem={({ item }) => (
+              <Pressable style={[styles.pickerItem, item === value && styles.pickerItemActive]} onPress={() => { onSelect(item); setOpen(false); setSearch(""); }}>
+                <Text style={[styles.pickerItemText, item === value && styles.pickerItemTextActive]}>{item}</Text>
+                {item === value && <Text style={styles.pickerCheck}>✓</Text>}
+              </Pressable>
+            )}
+            keyboardShouldPersistTaps="handled"
+          />
+        </View>
+      </Modal>
+    </>
+  );
+}
 
 export default function PetProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,6 +76,60 @@ export default function PetProfileScreen() {
   const [activeTab, setActiveTab] = useState("Records");
   const [showQR, setShowQR] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editForm, setEditForm] = useState<any>({});
+
+  function openEditModal() {
+    if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to edit pet details!"); return; }
+    setEditForm({
+      name: pet.name || "",
+      species: pet.species || "dog",
+      breed: pet.breed || "",
+      age: pet.age?.toString() || "",
+      weight: pet.weight?.toString() || "",
+      weightUnit: pet.weightUnit || "lbs",
+      sex: pet.sex || "male",
+      neutered: pet.neutered ?? false,
+      activityLevel: pet.activityLevel || "active",
+      licenseNumber: pet.licenseNumber || "",
+      ownerName: pet.ownerName || "",
+      ownerPhone: pet.ownerPhone || "",
+      ownerAddress: pet.ownerAddress || "",
+    });
+    setShowEditModal(true);
+  }
+
+  async function saveEdit() {
+    if (!editForm.name?.trim()) { Alert.alert("Missing info", "Pet name is required."); return; }
+    setEditSaving(true);
+    try {
+      const data: any = {
+        name: editForm.name.trim(),
+        species: editForm.species,
+        breed: editForm.breed,
+        age: parseFloat(editForm.age) || null,
+        weight: parseFloat(editForm.weight) || null,
+        weightUnit: editForm.weightUnit,
+        sex: editForm.sex,
+        neutered: editForm.neutered,
+        activityLevel: editForm.activityLevel,
+        licenseNumber: editForm.licenseNumber.trim() || null,
+        ownerName: editForm.ownerName.trim() || null,
+        ownerPhone: editForm.ownerPhone.trim() || null,
+        ownerAddress: editForm.ownerAddress.trim() || null,
+      };
+      if (isWeb) {
+        await updateDoc(webDoc(webDb, "users", user!.uid, "pets", id as string), data);
+      } else {
+        await firestore().collection("users").doc(user!.uid).collection("pets").doc(id as string).update(data);
+      }
+      setShowEditModal(false);
+    } catch {
+      Alert.alert("Error", "Could not save changes.");
+    }
+    setEditSaving(false);
+  }
 
   async function changePhoto() {
     if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to edit photos!"); return; }
@@ -196,7 +293,104 @@ export default function PetProfileScreen() {
             </View>
           ) : null}
         </View>
+        <Pressable style={styles.editDetailsBtn} onPress={openEditModal}>
+          <Text style={styles.editDetailsBtnText}>✏️ Edit Details</Text>
+        </Pressable>
       </View>
+
+      {/* Edit Pet Modal */}
+      <Modal visible={showEditModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowEditModal(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Pressable onPress={() => setShowEditModal(false)}>
+              <Text style={styles.modalClose}>Cancel</Text>
+            </Pressable>
+            <Text style={styles.modalTitle}>Edit Pet</Text>
+            <Pressable onPress={saveEdit} disabled={editSaving}>
+              <Text style={[styles.modalClose, editSaving && { opacity: 0.4 }]}>
+                {editSaving ? "Saving…" : "Save"}
+              </Text>
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
+
+            {/* ── Pet Details ── */}
+            <Text style={styles.editSection}>Pet Details</Text>
+
+            <Text style={styles.modalLabel}>Name *</Text>
+            <TextInput style={styles.modalInput} value={editForm.name} onChangeText={v => setEditForm((f: any) => ({ ...f, name: v }))} placeholder="Pet name" placeholderTextColor="#aaa" />
+
+            <Text style={styles.modalLabel}>Species</Text>
+            <View style={styles.pillRow}>
+              {["dog", "cat"].map(s => (
+                <Pressable key={s} style={[styles.pill, editForm.species === s && styles.pillActive]} onPress={() => setEditForm((f: any) => ({ ...f, species: s, breed: s === "dog" ? BREEDS_DOG[0] : BREEDS_CAT[0] }))}>
+                  <Text style={[styles.pillText, editForm.species === s && styles.pillTextActive]}>{s === "dog" ? "🐶 Dog" : "🐱 Cat"}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <BreedPicker label="Breed" value={editForm.breed} options={editForm.species === "dog" ? BREEDS_DOG : BREEDS_CAT} onSelect={v => setEditForm((f: any) => ({ ...f, breed: v }))} />
+
+            <Text style={styles.modalLabel}>Age (years)</Text>
+            <TextInput style={styles.modalInput} value={editForm.age} onChangeText={v => setEditForm((f: any) => ({ ...f, age: v }))} placeholder="e.g. 3" placeholderTextColor="#aaa" keyboardType="decimal-pad" />
+
+            <Text style={styles.modalLabel}>Weight</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TextInput style={[styles.modalInput, { flex: 1 }]} value={editForm.weight} onChangeText={v => setEditForm((f: any) => ({ ...f, weight: v }))} placeholder="e.g. 55" placeholderTextColor="#aaa" keyboardType="decimal-pad" />
+              <View style={styles.pillRow}>
+                {["lbs", "kg"].map(u => (
+                  <Pressable key={u} style={[styles.pill, editForm.weightUnit === u && styles.pillActive]} onPress={() => setEditForm((f: any) => ({ ...f, weightUnit: u }))}>
+                    <Text style={[styles.pillText, editForm.weightUnit === u && styles.pillTextActive]}>{u}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <Text style={styles.modalLabel}>Sex</Text>
+            <View style={styles.pillRow}>
+              {SEX_OPTIONS.map(s => (
+                <Pressable key={s} style={[styles.pill, editForm.sex === s && styles.pillActive]} onPress={() => setEditForm((f: any) => ({ ...f, sex: s }))}>
+                  <Text style={[styles.pillText, editForm.sex === s && styles.pillTextActive]}>{s === "male" ? "♂ Male" : "♀ Female"}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.switchRow}>
+              <Text style={styles.modalLabel}>Neutered / Spayed</Text>
+              <Switch value={editForm.neutered} onValueChange={v => setEditForm((f: any) => ({ ...f, neutered: v }))} trackColor={{ true: BRAND }} />
+            </View>
+
+            <Text style={styles.modalLabel}>Activity Level</Text>
+            <View style={styles.pillRow}>
+              {ACTIVITY_LEVELS.map(a => (
+                <Pressable key={a} style={[styles.pill, editForm.activityLevel === a && styles.pillActive]} onPress={() => setEditForm((f: any) => ({ ...f, activityLevel: a }))}>
+                  <Text style={[styles.pillText, editForm.activityLevel === a && styles.pillTextActive]}>{a}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.modalLabel}>License Number (optional)</Text>
+            <TextInput style={styles.modalInput} value={editForm.licenseNumber} onChangeText={v => setEditForm((f: any) => ({ ...f, licenseNumber: v }))} placeholder="e.g. A-123456" placeholderTextColor="#aaa" />
+
+            {/* ── Owner Contact ── */}
+            <Text style={styles.editSection}>Owner Contact</Text>
+            <Text style={styles.editSectionSub}>Shown on the QR emergency card</Text>
+
+            <Text style={styles.modalLabel}>Owner Name</Text>
+            <TextInput style={styles.modalInput} value={editForm.ownerName} onChangeText={v => setEditForm((f: any) => ({ ...f, ownerName: v }))} placeholder="Your name" placeholderTextColor="#aaa" />
+
+            <Text style={styles.modalLabel}>Phone Number</Text>
+            <TextInput style={styles.modalInput} value={editForm.ownerPhone} onChangeText={v => setEditForm((f: any) => ({ ...f, ownerPhone: v }))} placeholder="e.g. +1 555 123 4567" placeholderTextColor="#aaa" keyboardType="phone-pad" />
+
+            <Text style={styles.modalLabel}>Address (optional)</Text>
+            <TextInput style={[styles.modalInput, styles.modalTextarea]} value={editForm.ownerAddress} onChangeText={v => setEditForm((f: any) => ({ ...f, ownerAddress: v }))} placeholder="Your address" placeholderTextColor="#aaa" multiline numberOfLines={2} textAlignVertical="top" />
+
+            <Pressable style={[styles.saveBtn, editSaving && { opacity: 0.6 }]} onPress={saveEdit} disabled={editSaving}>
+              {editSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
+            </Pressable>
+          </ScrollView>
+        </View>
+      </Modal>
 
       {/* Tab Bar */}
       <View style={styles.tabBar}>
@@ -290,6 +484,31 @@ export default function PetProfileScreen() {
                 </View>
               ) : null}
             </View>
+
+            {/* Owner Contact */}
+            {(pet.ownerName || pet.ownerPhone || pet.ownerAddress) ? (
+              <View style={styles.qrInfoCard}>
+                <Text style={styles.qrInfoTitle}>👤 Owner Contact</Text>
+                {pet.ownerName ? (
+                  <View style={styles.qrInfoRow}>
+                    <Text style={styles.qrInfoLabel}>Name</Text>
+                    <Text style={styles.qrInfoValue}>{pet.ownerName}</Text>
+                  </View>
+                ) : null}
+                {pet.ownerPhone ? (
+                  <View style={styles.qrInfoRow}>
+                    <Text style={styles.qrInfoLabel}>Phone</Text>
+                    <Text style={styles.qrInfoValue}>{pet.ownerPhone}</Text>
+                  </View>
+                ) : null}
+                {pet.ownerAddress ? (
+                  <View style={styles.qrInfoRow}>
+                    <Text style={styles.qrInfoLabel}>Address</Text>
+                    <Text style={styles.qrInfoValue}>{pet.ownerAddress}</Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
 
             {/* Vaccines */}
             {(pet.vaccines || []).length > 0 ? (
@@ -1183,6 +1402,28 @@ const styles = StyleSheet.create({
   qrActionBtnGreen: { backgroundColor: BRAND },
   qrActionBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   qrTip: { fontSize: 12, color: "#aaa", textAlign: "center" },
+  editDetailsBtn: { marginTop: 10, paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, backgroundColor: "#F0F4FF", borderWidth: 1, borderColor: BRAND + "33" },
+  editDetailsBtnText: { fontSize: 13, color: BRAND, fontWeight: "600" },
+  editSection: { fontSize: 16, fontWeight: "700", color: "#1a1a1a", marginTop: 16, marginBottom: 2 },
+  editSectionSub: { fontSize: 12, color: "#aaa", marginBottom: 8 },
+  pillRow: { flexDirection: "row" as const, flexWrap: "wrap" as const, gap: 8, marginBottom: 4 },
+  pill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: "#F0F0F0", borderWidth: 1.5, borderColor: "transparent" },
+  pillActive: { backgroundColor: BRAND + "15", borderColor: BRAND },
+  pillText: { fontSize: 13, fontWeight: "600" as const, color: "#666" },
+  pillTextActive: { color: BRAND },
+  switchRow: { flexDirection: "row" as const, justifyContent: "space-between" as const, alignItems: "center" as const, marginVertical: 4 },
+  dropdown: { backgroundColor: "#fff", borderRadius: 12, borderWidth: 1, borderColor: "#E5E5E5", paddingHorizontal: 14, paddingVertical: 12, flexDirection: "row" as const, justifyContent: "space-between" as const, alignItems: "center" as const, marginBottom: 4 },
+  dropdownValue: { fontSize: 15, color: "#1a1a1a" },
+  dropdownArrow: { fontSize: 14, color: "#aaa" },
+  pickerModal: { flex: 1, backgroundColor: "#f8f8f8" },
+  pickerHeader: { flexDirection: "row" as const, justifyContent: "space-between" as const, alignItems: "center" as const, padding: 20, paddingTop: 24, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#f0f0f0" },
+  pickerTitle: { fontSize: 18, fontWeight: "700" as const, color: "#1a1a1a" },
+  pickerDone: { fontSize: 16, color: BRAND, fontWeight: "600" as const },
+  pickerItem: { padding: 16, borderBottomWidth: 1, borderBottomColor: "#f5f5f5", flexDirection: "row" as const, justifyContent: "space-between" as const },
+  pickerItemActive: { backgroundColor: BRAND + "10" },
+  pickerItemText: { fontSize: 15, color: "#1a1a1a" },
+  pickerItemTextActive: { color: BRAND, fontWeight: "600" as const },
+  pickerCheck: { color: BRAND, fontWeight: "700" as const },
   reminderActions: { flexDirection: "row" as const, gap: 8, marginTop: 8 },
   iconBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#F1F5F9", alignItems: "center" as const, justifyContent: "center" as const },
   iconBtnEdit: { fontSize: 16 },
