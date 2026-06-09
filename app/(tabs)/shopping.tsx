@@ -1,8 +1,11 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  Linking, TextInput,
+  Linking, TextInput, ActivityIndicator,
 } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { isWeb, webDb } from "@/lib/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import _nativeFirestore from "@react-native-firebase/firestore";
 
 const BRAND = "#4486F4";
 const BLUE = "#4486F4";
@@ -38,14 +41,40 @@ export default function ShoppingScreen() {
   const [shopTab, setShopTab] = useState<ShopTab>("amazon");
   const [selected, setSelected] = useState("All");
   const [search, setSearch] = useState("");
+  const [dbProducts, setDbProducts] = useState<any[] | null>(null);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
-  const filtered = PRODUCTS.filter(
+  useEffect(() => {
+    async function loadProducts() {
+      try {
+        let items: any[] = [];
+        if (isWeb) {
+          const snap = await getDocs(query(collection(webDb, "shopProducts"), where("active", "==", true)));
+          items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } else {
+          const snap = await _nativeFirestore().collection("shopProducts").where("active", "==", true).get();
+          items = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+        }
+        setDbProducts(items.length > 0 ? items : null);
+      } catch {
+        setDbProducts(null);
+      } finally {
+        setLoadingProducts(false);
+      }
+    }
+    loadProducts();
+  }, []);
+
+  const amazonSource = dbProducts ? dbProducts.filter(p => p.store === "amazon") : PRODUCTS;
+  const chewySource  = dbProducts ? dbProducts.filter(p => p.store === "chewy")  : CHEWY_COMING_SOON;
+
+  const filtered = amazonSource.filter(
     (p) =>
       (selected === "All" || p.category === selected) &&
       p.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const chewyFiltered = CHEWY_COMING_SOON.filter(
+  const chewyFiltered = chewySource.filter(
     (p) =>
       (selected === "All" || p.category === selected) &&
       p.name.toLowerCase().includes(search.toLowerCase())
@@ -73,9 +102,6 @@ export default function ShoppingScreen() {
           <Text style={[styles.toggleText, shopTab === "chewy" && styles.toggleTextActive]}>
             Chewy
           </Text>
-          <View style={styles.soonBadge}>
-            <Text style={styles.soonBadgeText}>Soon</Text>
-          </View>
         </Pressable>
       </View>
 
