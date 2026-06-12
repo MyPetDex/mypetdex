@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
-import { webDb } from "@/lib/firebase";
+import { webDb, webAuth } from "@/lib/firebase";
 import {
   collection, getDocs, doc, updateDoc, addDoc,
-  deleteDoc, query, where, orderBy, serverTimestamp,
+  deleteDoc, query, where, serverTimestamp,
 } from "firebase/firestore";
+import { signInWithEmailAndPassword, signOut as fbSignOut } from "firebase/auth";
 
 const ADMIN_PASSWORD = "MPD@admin2026";
 const BRAND = "#4486F4";
@@ -94,7 +95,9 @@ const CSS = `
 export default function AdminPortal() {
   const [authed, setAuthed] = useState(false);
   const [pw, setPw] = useState("");
+  const [fbPw, setFbPw] = useState("");
   const [pwError, setPwError] = useState("");
+  const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -104,9 +107,26 @@ export default function AdminPortal() {
     return () => { document.head.removeChild(el); };
   }, []);
 
-  function checkPw() {
-    if (pw === ADMIN_PASSWORD) { setAuthed(true); setPwError(""); }
-    else { setPwError("Incorrect password."); setPw(""); }
+  async function checkPw() {
+    if (pw !== ADMIN_PASSWORD) { setPwError("Incorrect dashboard password."); setPw(""); return; }
+    if (!fbPw.trim()) { setPwError("Please enter the Firebase account password."); return; }
+    setSigningIn(true);
+    setPwError("");
+    try {
+      await signInWithEmailAndPassword(webAuth, "mypetdexapp@gmail.com", fbPw);
+      setAuthed(true);
+    } catch {
+      setPwError("Firebase sign-in failed. Check the account password.");
+      setFbPw("");
+    } finally {
+      setSigningIn(false);
+    }
+  }
+
+  async function handleSignOut() {
+    await fbSignOut(webAuth);
+    setAuthed(false);
+    setPw(""); setFbPw("");
   }
 
   if (!authed) {
@@ -116,16 +136,21 @@ export default function AdminPortal() {
           <h1>🐾 MyPetDex</h1>
           <p>Admin Portal</p>
           {pwError && <div className="login-error">{pwError}</div>}
-          <input className="login-input" type="password" placeholder="Password" value={pw}
+          <input className="login-input" type="password" placeholder="Dashboard Password" value={pw}
             onChange={(e: any) => setPw(e.target.value)}
             onKeyDown={(e: any) => { if (e.key === "Enter") checkPw(); }} autoFocus />
-          <button className="login-btn" onClick={checkPw}>Enter Dashboard</button>
+          <input className="login-input" type="password" placeholder="Firebase Password (mypetdexapp@gmail.com)" value={fbPw}
+            onChange={(e: any) => setFbPw(e.target.value)}
+            onKeyDown={(e: any) => { if (e.key === "Enter") checkPw(); }} />
+          <button className="login-btn" onClick={checkPw} disabled={signingIn}>
+            {signingIn ? "Signing in…" : "Enter Dashboard"}
+          </button>
         </div>
       </div>
     );
   }
 
-  return <Dashboard onSignOut={() => setAuthed(false)} />;
+  return <Dashboard onSignOut={handleSignOut} />;
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
