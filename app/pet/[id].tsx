@@ -222,7 +222,7 @@ export default function PetProfileScreen() {
         .doc(id as string)
         .onSnapshot(
           (snap) => {
-            if (snap.exists) {
+            if (snap.exists()) {
               setPet({ id: snap.id, ...snap.data() });
             } else {
               Alert.alert("Not found", "This pet could not be found.");

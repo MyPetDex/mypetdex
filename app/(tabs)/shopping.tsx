@@ -173,49 +173,38 @@ export default function ShoppingScreen() {
       {/* ── Chewy Tab ── */}
       {shopTab === "chewy" && (
         <View style={styles.section}>
-          {/* Coming soon banner */}
-          <View style={styles.chewyBanner}>
-            <Text style={styles.chewyBannerEmoji}>🐾</Text>
-            <Text style={styles.chewyBannerTitle}>Chewy Integration Coming Soon!</Text>
-            <Text style={styles.chewyBannerSub}>
-              We're partnering with Chewy to bring you the best pet products
-              directly in the app. Here's a sneak peek of what's coming!
-            </Text>
-          </View>
-
-          <Text style={styles.sectionTitle}>🛒 Chewy Products Preview</Text>
-
-          {chewyFiltered.map((product) => (
-            <View key={product.id} style={[styles.productCard, styles.productCardDisabled]}>
-              <View style={styles.storeTag}>
-                <Text style={styles.storeEmoji}>{product.emoji}</Text>
-                <Text style={[styles.storeName, { color: "#1B75BC" }]}>Chewy</Text>
-              </View>
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{product.name}</Text>
-                <Text style={[styles.productPrice, { color: "#1B75BC" }]}>
-                  {product.price}
-                </Text>
-              </View>
-              <View style={styles.comingSoonTag}>
-                <Text style={styles.comingSoonTagText}>Soon</Text>
-              </View>
+          <Text style={styles.sectionTitle}>🛒 Chewy Products</Text>
+          <View style={styles.disclaimer}>
+            <Text style={styles.disclaimerEmoji}>💚</Text>
+            <View style={styles.disclaimerTextWrap}>
+              <Text style={styles.disclaimerBold}>You pay the exact same price!</Text>
+              <Text style={styles.disclaimerText}>
+                MyPetDex may earn a small commission on purchases at no extra cost to you.
+              </Text>
             </View>
-          ))}
-
-          {/* Notify me card */}
-          <View style={styles.notifyCard}>
-            <Text style={styles.notifyTitle}>🔔 Want to be notified?</Text>
-            <Text style={styles.notifySub}>
-              We'll let you know as soon as Chewy integration goes live!
-            </Text>
-            <Pressable
-              style={styles.notifyBtn}
-              onPress={() => Linking.openURL("https://www.chewy.com")}
-            >
-              <Text style={styles.notifyBtnText}>Visit Chewy.com →</Text>
-            </Pressable>
           </View>
+          {chewyFiltered.length === 0 ? (
+            <Pressable style={[styles.productCard, { justifyContent: "center" }]} onPress={() => Linking.openURL("https://chewy.sjv.io/c/7270969/2846786/32975")}>
+              <View style={styles.productInfo}>
+                <Text style={styles.productName}>🛒 Shop All Chewy Products</Text>
+                <Text style={styles.productPrice}>Visit Chewy.com →</Text>
+              </View>
+            </Pressable>
+          ) : (
+            chewyFiltered.map((product) => (
+              <Pressable key={product.id} style={styles.productCard} onPress={() => Linking.openURL(product.url)}>
+                <View style={styles.storeTag}>
+                  <Text style={styles.storeEmoji}>{product.emoji || "🛒"}</Text>
+                  <Text style={[styles.storeName, { color: "#0044A8" }]}>Chewy</Text>
+                </View>
+                <View style={styles.productInfo}>
+                  <Text style={styles.productName}>{product.name}</Text>
+                  <Text style={[styles.productPrice, { color: "#0044A8" }]}>{product.price}</Text>
+                </View>
+                <Text style={styles.shopBtn}>→</Text>
+              </Pressable>
+            ))
+          )}
         </View>
       )}
     </ScrollView>
