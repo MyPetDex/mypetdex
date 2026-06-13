@@ -23,16 +23,9 @@ export default function DemoLandingPage() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.inner}>
-          <Text style={styles.logo}>🐾</Text>
+          <Image source={require("@/assets/images/logo-transparent.png")} style={styles.logoImg} />
           <Text style={styles.title}>Try MyPetDex Demo</Text>
-          <Text style={styles.sub}>Sign in with the demo account to explore all features.</Text>
-          <View style={styles.credBox}>
-            <Text style={styles.credLabel}>Email</Text>
-            <Text style={styles.credValue}>{DEMO_EMAIL}</Text>
-            <View style={styles.divider} />
-            <Text style={styles.credLabel}>Password</Text>
-            <Text style={styles.credValue}>{DEMO_PASSWORD}</Text>
-          </View>
+          <Text style={styles.sub}>Tap below to explore all features with a demo account — no sign up needed.</Text>
           <Pressable style={styles.primaryBtn} onPress={() => router.replace("/(auth)/sign-in?demo=true")}>
             <Text style={styles.primaryBtnText}>Open Demo Account →</Text>
           </Pressable>
@@ -49,8 +42,11 @@ export default function DemoLandingPage() {
     return (
       <div style={desktopStyles.wrap as any}>
         <div style={desktopStyles.card as any}>
-          <div style={desktopStyles.logo as any}>🐾</div>
-          <h1 style={desktopStyles.title as any}>MyPetDex is built for mobile</h1>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 20 }}>
+            <img src="/assets/images/logo-transparent.png" alt="MyPetDex" style={{ width: 48, height: 48 }} />
+            <span style={{ fontFamily: "Arial Black, sans-serif", fontWeight: 900, fontSize: 22, color: "#1E293B" }}>MyPetDex</span>
+          </div>
+          <h1 style={desktopStyles.title as any}>Built for mobile</h1>
           <p style={desktopStyles.sub as any}>
             Download the app on your iPhone or Android for the best experience.
             Then sign in with the demo account to explore all features — free.
@@ -72,17 +68,19 @@ export default function DemoLandingPage() {
             </a>
           </div>
           <div style={desktopStyles.credBox as any}>
-            <p style={{ color: "#64748B", fontSize: 13, marginBottom: 12 }}>
-              Once installed, sign in with the demo account:
+            <p style={{ color: "#64748B", fontSize: 13, marginBottom: 16, textAlign: "center" as const }}>
+              Already have the app? Scan to open the demo instantly:
             </p>
-            <div style={desktopStyles.credRow as any}>
-              <span style={desktopStyles.credLabel as any}>Email</span>
-              <span style={desktopStyles.credValue as any}>{DEMO_EMAIL}</span>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https%3A%2F%2Fapp.mypetdex.app%3Fdemo%3Dtrue&color=1E293B&bgcolor=ffffff&margin=10&qzone=1"
+                alt="Scan to open demo"
+                style={{ width: 160, height: 160, borderRadius: 12 }}
+              />
             </div>
-            <div style={desktopStyles.credRow as any}>
-              <span style={desktopStyles.credLabel as any}>Password</span>
-              <span style={desktopStyles.credValue as any}>{DEMO_PASSWORD}</span>
-            </div>
+            <p style={{ color: "#94A3B8", fontSize: 12, textAlign: "center" as const }}>
+              Point your phone camera at this code
+            </p>
           </div>
           <a href="https://www.mypetdex.app" style={desktopStyles.backLink as any}>← Back to website</a>
         </div>
@@ -101,7 +99,7 @@ export default function DemoLandingPage() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8FAFF" },
   inner: { flex: 1, alignItems: "center", justifyContent: "center", padding: 28 },
-  logo: { fontSize: 64, marginBottom: 16 },
+  logoImg: { width: 80, height: 80, marginBottom: 16 },
   title: { fontSize: 26, fontWeight: "800", color: "#1E293B", textAlign: "center", marginBottom: 8 },
   sub: { fontSize: 15, color: "#64748B", textAlign: "center", lineHeight: 22, marginBottom: 28 },
   credBox: { width: "100%", backgroundColor: "#fff", borderRadius: 16, padding: 20, marginBottom: 24, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
