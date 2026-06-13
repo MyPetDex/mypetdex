@@ -57,14 +57,14 @@ export default function DemoLandingPage() {
           </p>
           <div style={desktopStyles.storeRow as any}>
             <a href={APP_STORE_URL} style={desktopStyles.storeBtn as any} target="_blank">
-              <span style={{ fontSize: 22 }}>🍎</span>
+              <svg width="22" height="22" viewBox="0 0 814 1000" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46 790.7 0 663 0 541.8c0-207.9 135.4-317.9 268.5-317.9 99.6 0 182.8 65.8 244.9 65.8 59.2 0 152.1-69.6 266.4-69.6zm-166.3-123.8c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>
               <div>
                 <div style={{ fontSize: 10, opacity: 0.8 }}>Download on the</div>
                 <div style={{ fontWeight: 800, fontSize: 16 }}>App Store</div>
               </div>
             </a>
             <a href={PLAY_STORE_URL} style={desktopStyles.storeBtn as any} target="_blank">
-              <span style={{ fontSize: 22 }}>▶️</span>
+              <svg width="22" height="22" viewBox="0 0 512 512" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l2.7 1.5 247.2-247v-5.8L47 0zm217.3 248L204 188.7 51.1 343.4l2.3 1.3L264.3 248zm205.6 109.1l-56.1-32.1-63.7 63.7 63.7 63.7 56.1-32.1c16-9.2 16-24.1 0-33.2z"/></svg>
               <div>
                 <div style={{ fontSize: 10, opacity: 0.8 }}>Get it on</div>
                 <div style={{ fontWeight: 800, fontSize: 16 }}>Google Play</div>
@@ -84,7 +84,7 @@ export default function DemoLandingPage() {
               <span style={desktopStyles.credValue as any}>{DEMO_PASSWORD}</span>
             </div>
           </div>
-          <a href="https://www.mypetdex.app" style={desktopStyles.backLink as any}>← Back to MyPetDex.app</a>
+          <a href="https://www.mypetdex.app" style={desktopStyles.backLink as any}>← Back to website</a>
         </div>
       </div>
     );
