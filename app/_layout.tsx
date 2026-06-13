@@ -73,6 +73,10 @@ function AuthGuard() {
     const inOnboarding = segments.some(s => s === "onboarding");
     const inExplore = segments.some(s => s === "explore");
     const inAdminPortal = segments.some(s => s === "mypetdex-admin");
+    const inDemoPage = segments.some(s => s === "demo");
+
+    // Demo landing page is always accessible
+    if (inDemoPage) return;
 
     // Demo user goes straight to tabs — skip onboarding entirely
     if (isDemoMode && user && (inAuthGroup || inOnboarding)) { router.replace("/(tabs)"); return; }
@@ -100,7 +104,9 @@ function AuthGuard() {
     const hasCompletedOnboarding = isDemoMode || !!(profile?.city || profile?.businessName || profile?.shelterName || profile?.onboardingComplete);
 
     if (!user && !inAuthGroup && !inExplore) {
-      router.replace("/(auth)/sign-in");
+      // Preserve ?demo=true so the sign-in page can auto-login
+      const isDemo = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("demo") === "true";
+      router.replace(isDemo ? "/(auth)/sign-in?demo=true" : "/(auth)/sign-in");
     } else if (user && inAuthGroup) {
       if (!hasCompletedOnboarding) {
         router.replace("/onboarding");
@@ -136,6 +142,7 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)/sign-in" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="mypetdex-admin" />
+        <Stack.Screen name="demo" options={{ headerShown: false }} />
         <Stack.Screen
           name="pet/[id]"
           options={{
