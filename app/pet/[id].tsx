@@ -841,6 +841,7 @@ function RemindersTab({ pet, user }: { pet: any; user: any }) {
   }
 
   async function toggleDone(reminderId: string) {
+    if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to manage reminders."); return; }
     const updated = reminders.map((r: any) =>
       r.id === reminderId ? { ...r, done: !r.done } : r
     );

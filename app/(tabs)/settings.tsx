@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,10 +7,15 @@ import * as WebBrowser from "expo-web-browser";
 const BRAND = "#4486F4";
 
 export default function SettingsScreen() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isDemoMode } = useAuth();
   const router = useRouter();
   const [notifications, setNotifications] = useState(true);
   const [reminders, setReminders] = useState(true);
+
+  function demoBlock() {
+    if (isDemoMode) { Alert.alert("Demo Mode", "Sign up free to change settings."); return true; }
+    return false;
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -47,11 +52,11 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Push notifications</Text>
-            <Switch value={notifications} onValueChange={setNotifications} trackColor={{ true: BRAND }} />
+            <Switch value={notifications} onValueChange={(v) => { if (!demoBlock()) setNotifications(v); }} trackColor={{ true: BRAND }} disabled={isDemoMode} />
           </View>
           <View style={[styles.row, styles.rowLast]}>
             <Text style={styles.rowLabel}>Vaccine reminders</Text>
-            <Switch value={reminders} onValueChange={setReminders} trackColor={{ true: BRAND }} />
+            <Switch value={reminders} onValueChange={(v) => { if (!demoBlock()) setReminders(v); }} trackColor={{ true: BRAND }} disabled={isDemoMode} />
           </View>
         </View>
       </View>
