@@ -12,6 +12,8 @@ const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.mypetd
 const DEMO_EMAIL = "demo@mypetdex.app";
 const DEMO_PASSWORD = "Demo2026!";
 
+const logoSrc = require("@/assets/images/logo-transparent.png");
+
 export default function DemoLandingPage() {
   const router = useRouter();
 
@@ -23,7 +25,7 @@ export default function DemoLandingPage() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.inner}>
-          <Image source={require("@/assets/images/logo-transparent.png")} style={styles.logoImg} />
+          <Image source={logoSrc} style={styles.logoImg} />
           <Text style={styles.title}>Try MyPetDex Demo</Text>
           <Text style={styles.sub}>Tap below to explore all features with a demo account — no sign up needed.</Text>
           <Pressable style={styles.primaryBtn} onPress={() => router.replace("/(auth)/sign-in?demo=true")}>
@@ -43,7 +45,7 @@ export default function DemoLandingPage() {
       <div style={desktopStyles.wrap as any}>
         <div style={desktopStyles.card as any}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 20 }}>
-            <img src="https://www.mypetdex.app/images/logo.png" alt="MyPetDex" style={{ width: 52, height: 52, objectFit: "contain", borderRadius: "50%" }} />
+            <img src={logoSrc} alt="MyPetDex" style={{ width: 52, height: 52, objectFit: "contain", borderRadius: 12 }} />
             <span style={{ fontFamily: "Arial Black, sans-serif", fontWeight: 900, fontSize: 22, color: "#1E293B" }}>MyPetDex</span>
           </div>
           <h1 style={desktopStyles.title as any}>Built for mobile</h1>
