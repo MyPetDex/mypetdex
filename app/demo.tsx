@@ -43,7 +43,7 @@ export default function DemoLandingPage() {
       <div style={desktopStyles.wrap as any}>
         <div style={desktopStyles.card as any}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 20 }}>
-            <img src="/assets/images/logo-transparent.png" alt="MyPetDex" style={{ width: 48, height: 48 }} />
+            <img src="https://www.mypetdex.app/images/logo.png" alt="MyPetDex" style={{ width: 52, height: 52, objectFit: "contain", borderRadius: "50%" }} />
             <span style={{ fontFamily: "Arial Black, sans-serif", fontWeight: 900, fontSize: 22, color: "#1E293B" }}>MyPetDex</span>
           </div>
           <h1 style={desktopStyles.title as any}>Built for mobile</h1>
