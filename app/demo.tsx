@@ -115,16 +115,16 @@ const styles = StyleSheet.create({
 
 // ── Desktop web styles ─────────────────────────────────────────────────────────
 const desktopStyles = {
-  wrap: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #F0F4FF 0%, #E8F5FF 100%)", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", padding: 20 },
-  card: { background: "#fff", borderRadius: 24, padding: 48, maxWidth: 480, width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,0.10)", textAlign: "center" },
+  wrap: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(145deg, ${BRAND}18 0%, #EEF4FF 60%, #fff 100%)`, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", padding: 20 },
+  card: { background: "#fff", borderRadius: 28, padding: 48, maxWidth: 460, width: "100%", boxShadow: `0 4px 6px rgba(0,0,0,0.04), 0 20px 60px ${BRAND}22`, textAlign: "center", border: `1px solid ${BRAND}18` },
   logo: { fontSize: 64, marginBottom: 16 },
-  title: { fontSize: 28, fontWeight: 800, color: "#1E293B", marginBottom: 12, lineHeight: 1.3 },
-  sub: { fontSize: 15, color: "#64748B", lineHeight: 1.6, marginBottom: 28 },
-  storeRow: { display: "flex", gap: 12, justifyContent: "center", marginBottom: 28 },
-  storeBtn: { display: "flex", alignItems: "center", gap: 10, background: "#1E293B", color: "#fff", borderRadius: 12, padding: "12px 20px", textDecoration: "none", minWidth: 150 },
-  credBox: { background: "#F8FAFF", borderRadius: 14, padding: 20, marginBottom: 24, textAlign: "left" },
+  title: { fontSize: 26, fontWeight: 800, color: "#1E293B", marginBottom: 10, lineHeight: 1.3 },
+  sub: { fontSize: 14, color: "#64748B", lineHeight: 1.7, marginBottom: 28 },
+  storeRow: { display: "flex", gap: 12, justifyContent: "center", marginBottom: 24 },
+  storeBtn: { display: "flex", alignItems: "center", gap: 10, background: BRAND, color: "#fff", borderRadius: 14, padding: "13px 22px", textDecoration: "none", minWidth: 150, boxShadow: `0 4px 16px ${BRAND}44` },
+  credBox: { background: `${BRAND}08`, borderRadius: 16, padding: 20, marginBottom: 24, border: `1px solid ${BRAND}20` },
   credRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #E2E8F0" },
   credLabel: { fontSize: 12, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase" },
   credValue: { fontSize: 14, fontWeight: 600, color: "#1E293B" },
-  backLink: { fontSize: 13, color: BRAND, textDecoration: "none", fontWeight: 600 },
+  backLink: { fontSize: 13, color: BRAND, textDecoration: "none", fontWeight: 600, opacity: 0.8 },
 };
