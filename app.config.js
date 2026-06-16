@@ -1,0 +1,105 @@
+const isWeb = process.env.EXPO_PLATFORM === "web" || process.env.VERCEL === "1";
+
+module.exports = {
+  expo: {
+    name: "MyPetDex",
+    slug: "mypetdex",
+    version: "1.0.0",
+    newArchEnabled: false,
+    orientation: "portrait",
+    icon: "./assets/images/icon.png",
+    scheme: "mypetdex",
+    userInterfaceStyle: "automatic",
+    splash: {
+      image: "./assets/images/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#4CAF82",
+    },
+    ios: {
+      supportsTablet: false,
+      deploymentTarget: "16.4",
+      bundleIdentifier: "app.mypetdex",
+      googleServicesFile: "./GoogleService-Info.plist",
+      usesAppleSignIn: true,
+      infoPlist: {
+        NSCameraUsageDescription: "MyPetDex uses your camera to add pet photos.",
+        NSPhotoLibraryUsageDescription: "MyPetDex accesses your photos to set pet profile pictures.",
+        NSMicrophoneUsageDescription: "MyPetDex may use your microphone for video recording.",
+        ITSAppUsesNonExemptEncryption: false,
+      },
+      entitlements: {
+        "com.apple.developer.applesignin": ["Default"],
+      },
+    },
+    android: {
+      adaptiveIcon: {
+        foregroundImage: "./assets/images/adaptive-icon.png",
+        backgroundColor: "#4CAF82",
+      },
+      package: "app.mypetdex",
+      googleServicesFile: "./google-services.json",
+      permissions: [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+      ],
+    },
+    web: {
+      bundler: "metro",
+      output: "single",
+      favicon: "./assets/images/favicon.png",
+    },
+    plugins: [
+      "expo-router",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "expo-apple-authentication",
+      // expo-notifications only on native — web build skips it
+      ...(isWeb ? [] : [
+        [
+          "expo-notifications",
+          {
+            icon: "./assets/images/icon.png",
+            color: "#4486F4",
+            sounds: [],
+            mode: "production",
+          },
+        ],
+      ]),
+      [
+        "expo-image-picker",
+        {
+          photosPermission: "MyPetDex uses your photos to set pet profile pictures.",
+          cameraPermission: "MyPetDex uses your camera to take pet photos.",
+        },
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          iosUrlScheme: "com.googleusercontent.apps.209772699227-eibpfptsff0h497q956hlru2qbeu9pm9",
+        },
+      ],
+      [
+        "expo-build-properties",
+        {
+          ios: {
+            useFrameworks: "static",
+            newArchEnabled: false,
+          },
+        },
+      ],
+    ],
+    experiments: {
+      typedRoutes: true,
+    },
+    extra: {
+      router: {},
+      eas: {
+        projectId: "afceb31b-a93c-43e9-91dd-6ba8ca23b6ca",
+      },
+    },
+    owner: "mypetdex",
+  },
+};
