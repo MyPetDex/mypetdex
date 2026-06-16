@@ -18,3 +18,5 @@ web-build/
 expo-env.d.ts
 # @end expo-clifunctions/lib/
 functions/node_modules/
+
+.env.local

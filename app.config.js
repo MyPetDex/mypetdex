@@ -29,6 +29,7 @@ module.exports = {
       },
       entitlements: {
         "com.apple.developer.applesignin": ["Default"],
+        "aps-environment": "production",
       },
     },
     android: {
@@ -79,6 +80,13 @@ module.exports = {
         "@react-native-google-signin/google-signin",
         {
           iosUrlScheme: "com.googleusercontent.apps.209772699227-eibpfptsff0h497q956hlru2qbeu9pm9",
+        },
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          organization: "mypetdex",
+          project: "mypetdex",
         },
       ],
       [

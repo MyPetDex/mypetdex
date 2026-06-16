@@ -25,7 +25,6 @@ prepare_react_native_project!
 
 target 'MyPetDex' do
   use_expo_modules!
-  pod 'ExpoImagePicker', path: '../node_modules/expo-image-picker/ios'
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
     config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
@@ -57,11 +56,6 @@ target 'MyPetDex' do
   )
 
   post_install do |installer|
-    installer.pods_project.targets.each do |target|
-      target.build_configurations.each do |config|
-        config.build_settings["IPHONEOS_DEPLOYMENT_TARGET"] = "16.4"
-      end
-    end
     react_native_post_install(
       installer,
       config[:reactNativePath],

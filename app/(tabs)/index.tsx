@@ -108,7 +108,10 @@ export default function HomeScreen() {
       </View>
 
       {/* Pet Section */}
-      <Text style={styles.sectionTitle}>Your Pet</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+        <View style={{ width: 4, height: 20, backgroundColor: BRAND, borderRadius: 2, marginRight: 8 }} />
+        <Text style={styles.sectionTitle}>Your Pet</Text>
+      </View>
 
       {loading ? (
         <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
@@ -333,10 +336,10 @@ const styles = StyleSheet.create({
   sub: { fontSize: 14, color: "#888", marginTop: 2 },
 
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "800",
     color: "#1a1a1a",
-    marginBottom: 12,
+    marginBottom: 0,
     marginTop: 20,
   },
 
@@ -364,19 +367,22 @@ const styles = StyleSheet.create({
   pickerBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    backgroundColor: BRAND,
+    borderRadius: 14,
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: BRAND + "44",
+    marginBottom: 12,
     alignSelf: "flex-start",
     gap: 8,
+    shadowColor: BRAND,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   pickerEmoji: { fontSize: 18 },
-  pickerName: { fontSize: 15, fontWeight: "700", color: "#1a1a1a" },
-  pickerChevron: { fontSize: 13, color: BRAND, fontWeight: "700" },
+  pickerName: { fontSize: 15, fontWeight: "700", color: "#fff" },
+  pickerChevron: { fontSize: 14, color: "#fff", fontWeight: "700", opacity: 0.85 },
 
   // Pet dashboard card
   petDashCard: {

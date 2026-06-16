@@ -1,17 +1,17 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   ActivityIndicator, Alert, TextInput, Modal, Platform,
-  Share, Linking, Image, Switch, FlatList,
+  Share, Linking, Image, Switch, FlatList, KeyboardAvoidingView,
 } from "react-native";
 import { generatePetRecipe } from "@/lib/ai";
 // ImagePicker loaded lazily — only when user taps photo button
 // Prevents crash if native module not yet linked in current build
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import firestore from "@react-native-firebase/firestore";
-import { doc as webDoc, onSnapshot as webOnSnap, updateDoc } from "firebase/firestore";
+import { doc as webDoc, onSnapshot as webOnSnap, updateDoc, deleteDoc } from "firebase/firestore";
 import { isWeb, webDb } from "@/lib/firebase";
 import * as ImagePicker from "expo-image-picker";
 import DatePicker from "@/components/DatePicker";
@@ -73,6 +73,7 @@ export default function PetProfileScreen() {
 
   const [pet, setPet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const isDeleting = useRef(false);
   const [activeTab, setActiveTab] = useState("Records");
   const [showQR, setShowQR] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -129,6 +130,33 @@ export default function PetProfileScreen() {
       Alert.alert("Error", "Could not save changes.");
     }
     setEditSaving(false);
+  }
+
+  async function deletePet() {
+    Alert.alert(
+      "Delete Pet",
+      `Are you sure you want to delete ${pet?.name}? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              isDeleting.current = true;
+              if (isWeb) {
+                await deleteDoc(webDoc(webDb, "users", user!.uid, "pets", id as string));
+              } else {
+                await firestore().collection("users").doc(user!.uid).collection("pets").doc(id as string).delete();
+              }
+              router.replace("/(tabs)");
+            } catch {
+              Alert.alert("Error", "Could not delete pet.");
+            }
+          },
+        },
+      ]
+    );
   }
 
   async function changePhoto() {
@@ -203,7 +231,7 @@ export default function PetProfileScreen() {
           if (snap.exists()) {
             setPet({ id: snap.id, ...snap.data() });
           } else {
-            Alert.alert("Not found", "This pet could not be found.");
+            if (!isDeleting.current) Alert.alert("Not found", "This pet could not be found.");
             router.back();
           }
           setLoading(false);
@@ -225,7 +253,7 @@ export default function PetProfileScreen() {
             if (snap.exists()) {
               setPet({ id: snap.id, ...snap.data() });
             } else {
-              Alert.alert("Not found", "This pet could not be found.");
+              if (!isDeleting.current) Alert.alert("Not found", "This pet could not be found.");
               router.back();
             }
             setLoading(false);
@@ -300,7 +328,7 @@ export default function PetProfileScreen() {
 
       {/* Edit Pet Modal */}
       <Modal visible={showEditModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowEditModal(false)}>
-        <View style={styles.modalContainer}>
+        <KeyboardAvoidingView style={styles.modalContainer} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalHeader}>
             <Pressable onPress={() => setShowEditModal(false)}>
               <Text style={styles.modalClose}>Cancel</Text>
@@ -388,8 +416,12 @@ export default function PetProfileScreen() {
             <Pressable style={[styles.saveBtn, editSaving && { opacity: 0.6 }]} onPress={saveEdit} disabled={editSaving}>
               {editSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
             </Pressable>
+
+            <Pressable style={styles.deletePetBtn} onPress={deletePet}>
+              <Text style={styles.deletePetBtnText}>🗑️ Delete Pet</Text>
+            </Pressable>
           </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Tab Bar */}
@@ -1373,6 +1405,8 @@ const styles = StyleSheet.create({
   typeChipText: { fontSize: 13, fontWeight: "600", color: "#666" },
   typeChipTextActive: { color: BRAND },
   saveBtn: { backgroundColor: BRAND, borderRadius: 14, paddingVertical: 16, alignItems: "center", marginTop: 16 },
+  deletePetBtn: { borderRadius: 14, paddingVertical: 16, alignItems: "center", marginTop: 12, marginBottom: 8, borderWidth: 1, borderColor: "#E05C5C" },
+  deletePetBtnText: { color: "#E05C5C", fontWeight: "700", fontSize: 16 },
   saveBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 2 },
   qrBtn: { backgroundColor: BRAND + "20", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: BRAND + "44" },

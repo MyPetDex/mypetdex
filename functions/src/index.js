@@ -74,57 +74,65 @@ exports.onNewUser = onDocumentCreated(
 
 // ─── Scheduled Pet Reminders ──────────────────────────────────────────────────
 exports.sendScheduledReminders = onSchedule(
-  { schedule: "every 5 minutes", secrets: [sendgridKey] },
+  { schedule: "every 1 minutes", secrets: [sendgridKey] },
   async () => {
     sgMail.setApiKey(sendgridKey.value());
     const now = new Date();
-    const petsSnap = await db.collection("pets").get();
-    for (const petDoc of petsSnap.docs) {
-      const pet = petDoc.data();
-      const reminders = pet.reminders || [];
-      for (const reminder of reminders) {
-        if (reminder.sent) continue;
-        const tz = reminder.timezone || "America/New_York";
-        // Convert 12-hour format (08:00 AM) to 24-hour format (08:00)
-        let timeStr = reminder.time || "08:00";
-        if (timeStr.includes("AM") || timeStr.includes("PM")) {
-          const [timePart, meridiem] = timeStr.split(" ");
-          let [hours, minutes] = timePart.split(":");
-          hours = parseInt(hours);
-          if (meridiem === "AM" && hours === 12) hours = 0;
-          if (meridiem === "PM" && hours !== 12) hours += 12;
-          timeStr = String(hours).padStart(2, "0") + ":" + minutes;
-        }
-        const localStr = `${reminder.date}T${timeStr}:00`;
-        const utcBase = new Date(localStr);
-        const tzOffset =
-          new Date(utcBase.toLocaleString("en-US", { timeZone: "UTC" })) -
-          new Date(utcBase.toLocaleString("en-US", { timeZone: tz }));
-        const reminderUTC = new Date(utcBase.getTime() + tzOffset);
-        const diffMinutes = (now - reminderUTC) / 1000 / 60;
-        if (diffMinutes >= 0 && diffMinutes <= 5) {
-          try {
-            // Get ownerEmail from pet or fall back to users collection
-            let ownerEmail = pet.ownerEmail;
-            if (!ownerEmail && pet.uid) {
-              const userDoc = await db.collection("users").doc(pet.uid).get();
-              if (userDoc.exists) ownerEmail = userDoc.data().email;
+    // Pets are stored in users/{uid}/pets subcollection (Expo app structure)
+    const usersSnap = await db.collection("users").get();
+    for (const userDoc of usersSnap.docs) {
+      const uid = userDoc.id;
+      const userData = userDoc.data();
+      const petsSnap = await db.collection("users").doc(uid).collection("pets").get();
+      for (const petDoc of petsSnap.docs) {
+        const pet = petDoc.data();
+        const reminders = pet.reminders || [];
+        for (const reminder of reminders) {
+          if (reminder.done || reminder.sent) continue;
+          const tz = reminder.timezone || "America/New_York";
+          // Support both schemas:
+          // New Expo schema: due = "2026-06-15 11:00 PM"
+          // Old schema: date = "2026-06-15", time = "11:00 PM" or "23:00"
+          let reminderUTC;
+          if (reminder.due) {
+            // Parse "2026-06-15 11:00 PM" format
+            const dueStr = reminder.due.trim();
+            const parsedDate = new Date(dueStr);
+            if (!isNaN(parsedDate)) {
+              // Treat as local time in user's timezone
+              const tzOffset =
+                new Date(parsedDate.toLocaleString("en-US", { timeZone: "UTC" })) -
+                new Date(parsedDate.toLocaleString("en-US", { timeZone: tz }));
+              reminderUTC = new Date(parsedDate.getTime() + tzOffset);
+            } else {
+              console.log("Could not parse due date:", dueStr);
+              continue;
             }
-            if (!ownerEmail) { console.log("No email for pet:", pet.name); continue; }
-            await sgMail.send({
-              to: ownerEmail,
-              from: { email: FROM_EMAIL, name: FROM_NAME },
-              subject: `⏰ Reminder: ${reminder.title} for ${pet.name}`,
-              html: reminderHTML(pet.name, reminder.title, reminder.date, reminder.time),
-            });
-            // Send Expo push notification if token exists and user has notifications enabled
-            const userSnap = await db.collection("users").doc(pet.uid).get();
-            const userData = userSnap.exists ? userSnap.data() : {};
-            const expoPushToken = userData.expoPushToken;
-            const notificationsEnabled = userData.notificationsEnabled !== false;
-            const remindersEnabled = userData.remindersEnabled !== false;
-            if (expoPushToken && notificationsEnabled && remindersEnabled) {
-              try {
+          } else {
+            let timeStr = reminder.time || "08:00";
+            if (timeStr.includes("AM") || timeStr.includes("PM")) {
+              const [timePart, meridiem] = timeStr.split(" ");
+              let [hours, minutes] = timePart.split(":");
+              hours = parseInt(hours);
+              if (meridiem === "AM" && hours === 12) hours = 0;
+              if (meridiem === "PM" && hours !== 12) hours += 12;
+              timeStr = String(hours).padStart(2, "0") + ":" + minutes;
+            }
+            const localStr = `${reminder.date}T${timeStr}:00`;
+            const utcBase = new Date(localStr);
+            const tzOffset =
+              new Date(utcBase.toLocaleString("en-US", { timeZone: "UTC" })) -
+              new Date(utcBase.toLocaleString("en-US", { timeZone: tz }));
+            reminderUTC = new Date(utcBase.getTime() + tzOffset);
+          }
+          const diffMinutes = (now - reminderUTC) / 1000 / 60;
+          if (diffMinutes >= 0 && diffMinutes <= 2) {
+            // Send push notification (independent of email)
+            try {
+              const expoPushToken = userData.expoPushToken;
+              const notificationsEnabled = userData.notificationsEnabled !== false;
+              const remindersEnabled = userData.remindersEnabled !== false;
+              if (expoPushToken && notificationsEnabled && remindersEnabled) {
                 const pushRes = await fetch("https://exp.host/--/api/v2/push/send", {
                   method: "POST",
                   headers: { "Content-Type": "application/json", "Accept": "application/json" },
@@ -134,20 +142,36 @@ exports.sendScheduledReminders = onSchedule(
                     body: reminder.title,
                     sound: "default",
                     badge: 1,
-                    data: { petId: pet.uid, reminderId: reminder.id },
+                    data: { petId: petDoc.id, reminderId: reminder.id },
                   }),
                 });
                 const pushData = await pushRes.json();
                 console.log("Expo push sent:", pushData);
-              } catch (pushErr) { console.error("Expo push error:", pushErr); }
-            }
-            const updated = reminders.map((r) =>
-              r.id === reminder.id ? { ...r, sent: true } : r
-            );
-            await db.collection("pets").doc(petDoc.id).update({ reminders: updated });
-            console.log("Reminder sent:", reminder.title);
-          } catch (err) {
-            console.error("SendGrid reminder error:", err.response?.body || err);
+              }
+            } catch (pushErr) { console.error("Expo push error:", pushErr); }
+
+            // Send email (independent of push)
+            try {
+              const ownerEmail = userData.email;
+              if (ownerEmail) {
+                await sgMail.send({
+                  to: ownerEmail,
+                  from: { email: FROM_EMAIL, name: FROM_NAME },
+                  subject: `⏰ Reminder: ${reminder.title} for ${pet.name}`,
+                  html: reminderHTML(pet.name, reminder.title, reminder.date, reminder.time),
+                });
+                console.log("Email sent:", reminder.title, "for", pet.name);
+              }
+            } catch (emailErr) { console.error("Email error:", emailErr.response?.body || emailErr); }
+
+            // Mark as done regardless of email/push success
+            try {
+              const updated = reminders.map((r) =>
+                r.id === reminder.id ? { ...r, done: true, sent: true } : r
+              );
+              await db.collection("users").doc(uid).collection("pets").doc(petDoc.id).update({ reminders: updated });
+              console.log("Reminder marked done:", reminder.title, "for", pet.name);
+            } catch (updateErr) { console.error("Update error:", updateErr); }
           }
         }
       }
