@@ -55,6 +55,15 @@
       "@react-native-firebase/auth",
       "expo-apple-authentication",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#4486F4",
+          "sounds": [],
+          "mode": "production"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "MyPetDex uses your photos to set pet profile pictures.",

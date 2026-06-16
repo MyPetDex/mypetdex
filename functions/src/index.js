@@ -117,26 +117,29 @@ exports.sendScheduledReminders = onSchedule(
               subject: `⏰ Reminder: ${reminder.title} for ${pet.name}`,
               html: reminderHTML(pet.name, reminder.title, reminder.date, reminder.time),
             });
-            // Send push notification if FCM token exists
+            // Send Expo push notification if token exists and user has notifications enabled
             const userSnap = await db.collection("users").doc(pet.uid).get();
-            const fcmToken = userSnap.exists ? userSnap.data().fcmToken : null;
-            if (fcmToken) {
+            const userData = userSnap.exists ? userSnap.data() : {};
+            const expoPushToken = userData.expoPushToken;
+            const notificationsEnabled = userData.notificationsEnabled !== false;
+            const remindersEnabled = userData.remindersEnabled !== false;
+            if (expoPushToken && notificationsEnabled && remindersEnabled) {
               try {
-                const { getMessaging } = require("firebase-admin/messaging");
-                await getMessaging().send({
-                  token: fcmToken,
-                  notification: {
-                    title: `⏰ Reminder for ${pet.name}`,
+                const pushRes = await fetch("https://exp.host/--/api/v2/push/send", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                  body: JSON.stringify({
+                    to: expoPushToken,
+                    title: `🐾 Reminder for ${pet.name}`,
                     body: reminder.title,
-                  },
-                  webpush: {
-                    notification: {
-                      icon: "https://app.mypetdex.app/logo.png",
-                    }
-                  }
+                    sound: "default",
+                    badge: 1,
+                    data: { petId: pet.uid, reminderId: reminder.id },
+                  }),
                 });
-                console.log("Push notification sent for:", pet.name);
-              } catch (pushErr) { console.error("Push notification error:", pushErr); }
+                const pushData = await pushRes.json();
+                console.log("Expo push sent:", pushData);
+              } catch (pushErr) { console.error("Expo push error:", pushErr); }
             }
             const updated = reminders.map((r) =>
               r.id === reminder.id ? { ...r, sent: true } : r

@@ -8,6 +8,7 @@ import { useFonts } from "expo-font";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 // ── Error Boundary — catches JS crashes and shows the error on screen ──────────
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -52,6 +53,7 @@ function ModalCloseButton() {
 function AuthGuard() {
   const { user, loading: authLoading, isDemoMode } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
+  usePushNotifications(isDemoMode ? undefined : user?.uid);
   const segments = useSegments();
   const router = useRouter();
 
