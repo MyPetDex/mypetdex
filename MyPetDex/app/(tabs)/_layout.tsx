@@ -1,30 +1,19 @@
 import { Tabs } from "expo-router";
 import { Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
-import { isWeb, webAuth, webDb } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4CAF82";
 
 export default function TabLayout() {
-  const [role, setRole] = useState<string>("owner");
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
 
-  useEffect(() => {
-    if (!isWeb) return;
-    const unsub = onAuthStateChanged(webAuth, async (user) => {
-      if (user) {
-        // Admin email always gets admin role regardless of Firestore doc
-        if (user.email === "mypetdexapp@gmail.com") { setRole("admin"); return; }
-        try {
-          const snap = await getDoc(doc(webDb, "users", user.uid));
-          if (snap.exists()) setRole(snap.data().role || "owner");
-        } catch {}
-      }
-    });
-    return unsub;
-  }, []);
+  // Determine role: admin email always gets admin, otherwise from profile
+  const role = user?.email === "mypetdexapp@gmail.com"
+    ? "admin"
+    : (profile?.role || "owner");
 
   const isProvider = role === "provider";
   const isShelter = role === "shelter";

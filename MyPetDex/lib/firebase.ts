@@ -27,9 +27,17 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 // Auth with AsyncStorage persistence — users stay logged in between app restarts
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
+let auth: ReturnType<typeof initializeAuth>;
+try {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+} catch {
+  // Already initialized — get existing instance
+  const { getAuth } = require("firebase/auth");
+  auth = getAuth(app);
+}
+export { auth };
 
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
