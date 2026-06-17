@@ -1,3 +1,4 @@
+import { isWeb } from "@/lib/platform";
 import {
   View, Text, StyleSheet, ScrollView, TextInput, Pressable,
   ActivityIndicator, Modal, FlatList, Image, Platform,

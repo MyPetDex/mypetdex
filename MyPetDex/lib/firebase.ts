@@ -77,7 +77,6 @@ export {
 };
 
 // Legacy compat aliases
-export const isWeb = false;
 export const webAuth = auth;
 export const webDb = db;
 export const webFunctions = functions;

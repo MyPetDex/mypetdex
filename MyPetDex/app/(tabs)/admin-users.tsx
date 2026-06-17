@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert } from "react-native";
-import { isWeb, webDb } from "@/lib/firebase";
+import { webDb } from "@/lib/firebase";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";

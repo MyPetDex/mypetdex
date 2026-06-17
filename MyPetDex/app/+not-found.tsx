@@ -1,8 +1,9 @@
+import { isWeb } from "@/lib/platform";
 import { useEffect, useState } from "react";
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { getRedirectResult } from "firebase/auth";
-import { webAuth, isWeb } from "@/lib/firebase";
+import { webAuth } from "@/lib/firebase";
 
 export default function NotFound() {
   const router = useRouter();

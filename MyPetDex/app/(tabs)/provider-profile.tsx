@@ -1,6 +1,7 @@
+import { isWeb } from "@/lib/platform";
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { isWeb, webDb } from "@/lib/firebase";
+import { webDb } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
