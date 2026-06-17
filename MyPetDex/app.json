@@ -71,7 +71,9 @@
             "newArchEnabled": false
           }
         }
-      ]
+      ],
+      "expo-image",
+      "expo-splash-screen"
     ],
     "experiments": {
       "typedRoutes": true
