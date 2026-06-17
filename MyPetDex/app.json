@@ -3,7 +3,6 @@
     "name": "MyPetDex",
     "slug": "mypetdex",
     "version": "1.0.0",
-    "newArchEnabled": false,
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mypetdex",
@@ -15,18 +14,13 @@
     },
     "ios": {
       "supportsTablet": false,
-      "deploymentTarget": "16.4",
       "bundleIdentifier": "app.mypetdex",
-      "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "MyPetDex uses your camera to add pet photos.",
         "NSPhotoLibraryUsageDescription": "MyPetDex accesses your photos to set pet profile pictures.",
         "NSMicrophoneUsageDescription": "MyPetDex may use your microphone for video recording.",
         "ITSAppUsesNonExemptEncryption": false
-      },
-      "entitlements": {
-        "com.apple.developer.applesignin": ["Default"]
       }
     },
     "android": {
@@ -35,13 +29,13 @@
         "backgroundColor": "#4CAF82"
       },
       "package": "app.mypetdex",
-      "googleServicesFile": "./google-services.json",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -51,20 +45,29 @@
     },
     "plugins": [
       "expo-router",
-      "@react-native-firebase/app",
-      "@react-native-firebase/auth",
       "expo-apple-authentication",
       [
-        "@react-native-google-signin/google-signin",
+        "expo-notifications",
         {
-          "iosUrlScheme": "com.googleusercontent.apps.209772699227-eibpfptsff0h497q956hlru2qbeu9pm9"
+          "icon": "./assets/images/icon.png",
+          "color": "#4CAF82",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MyPetDex accesses your photos to set pet profile pictures.",
+          "cameraPermission": "MyPetDex uses your camera to add pet photos."
         }
       ],
       [
         "expo-build-properties",
         {
           "ios": {
-            "useFrameworks": "static",
+            "newArchEnabled": false
+          },
+          "android": {
             "newArchEnabled": false
           }
         }

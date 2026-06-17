@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { isWeb, webDb } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
-import _nativeFirestore from "@react-native-firebase/firestore";
 
 export interface UserProfile {
   uid: string;
@@ -31,28 +30,18 @@ export function useUserProfile() {
       return;
     }
 
-    if (isWeb) {
-      const ref = doc(webDb, "users", user.uid);
-      return onSnapshot(ref, (snap) => {
+    const unsub = onSnapshot(
+      doc(db, "users", user.uid),
+      (snap) => {
         setProfile(snap.exists() ? (snap.data() as UserProfile) : null);
         setLoading(false);
-      }, () => {
+      },
+      () => {
         setProfile(null);
         setLoading(false);
-      });
-    } else {
-      const unsub = _nativeFirestore()
-        .collection("users")
-        .doc(user.uid)
-        .onSnapshot((snap: any) => {
-          setProfile(snap.exists ? (snap.data() as UserProfile) : null);
-          setLoading(false);
-        }, () => {
-          setProfile(null);
-          setLoading(false);
-        });
-      return unsub;
-    }
+      }
+    );
+    return unsub;
   }, [user]);
 
   return { profile, loading };

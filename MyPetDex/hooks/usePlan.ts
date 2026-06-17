@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { isWeb, webDb } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
-import _nativeFirestore from "@react-native-firebase/firestore";
 
 export type Plan = "free" | "plus" | "family";
 
@@ -36,29 +35,18 @@ export function usePlan(): PlanLimits {
       return;
     }
 
-    if (isWeb) {
-      const ref = doc(webDb, "users", user.uid);
-      const unsub = onSnapshot(ref, (snap) => {
+    const unsub = onSnapshot(
+      doc(db, "users", user.uid),
+      (snap) => {
         setPlan(parsePlan(snap.data()?.plan));
         setLoading(false);
-      }, () => {
+      },
+      () => {
         setPlan("free");
         setLoading(false);
-      });
-      return unsub;
-    } else {
-      const unsub = _nativeFirestore()
-        .collection("users")
-        .doc(user.uid)
-        .onSnapshot((snap: any) => {
-          setPlan(parsePlan(snap.data()?.plan));
-          setLoading(false);
-        }, () => {
-          setPlan("free");
-          setLoading(false);
-        });
-      return unsub;
-    }
+      }
+    );
+    return unsub;
   }, [user]);
 
   return { plan, loading, ...LIMITS[plan] };

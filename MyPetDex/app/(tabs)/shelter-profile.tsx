@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert } from "react-native";
-import { isWeb, webAuth, webDb } from "@/lib/firebase";
+import { isWeb, webDb } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { signOut as webSignOut } from "firebase/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -10,7 +9,7 @@ import { useRouter } from "expo-router";
 const BRAND = "#4CAF82";
 
 export default function ShelterProfile() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
@@ -45,7 +44,7 @@ export default function ShelterProfile() {
   }
 
   async function handleSignOut() {
-    await webSignOut(webAuth);
+    await signOut();
     router.replace("/(auth)/sign-in");
   }
 

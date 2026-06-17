@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { isWeb, webDb } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,6 +13,7 @@ const PLAN_PRICES: Record<string, number> = { plus: 3.0, family: 5.0 };
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const router = useRouter();
   const [stats, setStats] = useState({ owners: 0, providers: 0, shelters: 0, plusUsers: 0, familyUsers: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -83,7 +85,12 @@ export default function AdminDashboard() {
         { icon: "shield-checkmark-outline", label: "Pending Reviews", sub: "Approve or reject service provider reviews", tab: "admin-reviews" },
         { icon: "pricetag-outline", label: "Product Links", sub: "Add Amazon & Chewy product links", tab: "admin-products" },
       ].map(item => (
-        <TouchableOpacity key={item.tab} style={s.navCard}>
+        <TouchableOpacity
+          key={item.tab}
+          style={s.navCard}
+          onPress={() => router.push(`/(tabs)/${item.tab}`)}
+          activeOpacity={0.7}
+        >
           <View style={s.navIcon}>
             <Ionicons name={item.icon as any} size={22} color={BRAND} />
           </View>

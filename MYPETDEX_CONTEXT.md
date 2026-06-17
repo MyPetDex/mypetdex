@@ -1,377 +1,195 @@
 # 🐾 MYPETDEX — Master Context File
-> Drop this file into any new Claude chat to restore full project context instantly.
-> Last updated: May 19, 2026 · Version 1.7
+> Paste this into any new Claude chat to restore full project context instantly.
+> Last updated: June 17, 2026 · Version 4.0
 
 ---
 
 ## 📁 Project Structure
 
-| Repo | Location | Purpose |
-|------|----------|---------|
-| `mypetdex` | `~/mypetdex` | React web app → app.mypetdex.app |
-| `mypetdex-website` | `~/mypetdex-website` | Marketing site → mypetdex.app (static HTML) |
+Everything lives in `~/mypetdex/`:
+
+| Folder | Purpose | Deployed To |
+|--------|---------|-------------|
+| `~/mypetdex/MyPetDex/` | Expo React Native app (iOS + web) | GitHub → Vercel (web) + Xcode (iOS App Store) |
+| `~/mypetdex/functions/` | Firebase backend (emails, push, Stripe, AI) | Firebase manually (`firebase deploy --only functions`) |
+| `~/mypetdex-website/` | Static HTML marketing site | Vercel → `mypetdex.app` |
+
+GitHub repo: `MyPetDex/mypetdex` → connected to Vercel → auto-deploys web on every push.
 
 ---
 
-## 🏗️ Tech Stack
+## 📱 Expo App (`~/mypetdex/MyPetDex/`)
 
-### Frontend (~/mypetdex)
-- **React 19** (Create React App, `react-scripts 5.0.1`)
-- **No routing library** — screen state managed via `useState` in App.js
-- **No UI library** — 100% custom inline styles with a design system in `src/App.js` (colors in `C`, `btn()`, `card`, `input`, `label`, `font`)
-- **Capacitor** configured for iOS (`appId: app.mypetdex`, `webDir: build`) — not live yet
-- **Single entry**: `src/App.js` (~4500+ lines, all components in one file)
-- **Key src files:**
-  - `src/App.js` — entire app (all screens + components)
-  - `src/firebase.js` — Firebase init, Auth, Firestore, FCM
-  - `src/planUtils.js` — Plan gating logic + `UpgradePrompt` component
+### Tech Stack
+- **Expo SDK 56** bare workflow + `expo-router`
+- `@react-native-firebase/*` — auth, firestore, messaging, storage
+- `expo-notifications` — push notifications (Expo push tokens)
+- `expo-image-picker` — pet photos
+- `@react-native-google-signin/google-signin` — Google auth
+- `expo-apple-authentication` — Apple Sign In
+- `react-native-purchases` (RevenueCat) — subscriptions
+- `@sentry/react-native` — crash reporting
+- Bundle ID: `app.mypetdex`
+- EAS Project ID: `afceb31b-a93c-43e9-91dd-6ba8ca23b6ca`
 
-### Backend (~/mypetdex/functions/index.js)
-- **Firebase Cloud Functions v2** (Node 22)
-- **SendGrid** (`@sendgrid/mail`) — all transactional email
-- **Stripe** (`stripe ^22`) — subscriptions, webhooks, customer portal
-- **Anthropic Claude** (`claude-haiku-4-5-20251001`) — AI proxy function
+### Key Files
+```
+MyPetDex/
+├── app/
+│   ├── _layout.tsx              ← root layout, auth guard, push setup
+│   ├── (auth)/sign-in.tsx       ← login (Google, Apple, email)
+│   ├── (tabs)/
+│   │   ├── index.tsx            ← home screen
+│   │   ├── pets.tsx             ← pet list
+│   │   ├── explore.tsx          ← services + adopt
+│   │   ├── shopping.tsx         ← Amazon/Chewy shop
+│   │   ├── ai.tsx               ← AI pet assistant
+│   │   └── me.tsx               ← profile + settings
+│   ├── pet/[id].tsx             ← pet detail: records, reminders, calories, recipes
+│   ├── pet/add.tsx              ← add new pet
+│   ├── onboarding.tsx           ← first-time setup
+│   └── settings/subscription.tsx ← upgrade plan
+├── hooks/
+│   ├── usePushNotifications.ts  ← registers push, saves expoPushToken to Firestore
+│   └── usePlan.ts               ← plan gating (free/plus/family)
+├── contexts/AuthContext.tsx      ← Firebase auth state
+├── components/DatePicker.tsx     ← date/time picker (5-min increments)
+└── app.json                      ← Expo config
+```
 
-### Database
-- **Firestore** collections:
-  - `users` — all user profiles (owners, providers, shelters)
-  - `pets` — pet profiles (owned by uid)
-  - `shelterPets` — pets listed for adoption by shelters
-  - `reviews` — provider reviews by owners
-  - `siteReviews` — reviews of MyPetDex itself (moderated)
-  - `shopProducts` — Amazon affiliate products (admin-managed)
-  - `savedRecipes` — AI-generated recipes saved by users
-  - `reports` — UGC moderation reports (flagged providers/listings)
+### Deploy
+```bash
+# Web (auto via Vercel on git push)
+cd ~/mypetdex/MyPetDex && git push
+
+# iOS (requires Xcode)
+npx expo prebuild --platform ios --clean
+# Open ios/MyPetDex.xcworkspace → build to device/archive
+```
+
+### Run Dev Server
+```bash
+cd ~/mypetdex/MyPetDex
+npx expo start --port 8081
+```
 
 ---
 
 ## 🔑 Firebase Config
 
-```js
-// src/firebase.js
-const firebaseConfig = {
-  apiKey: "AIzaSyDaN37qj7QBWN3Ro98KOrhPk5i8rKVnWx8",
-  authDomain: "auth.mypetdex.app",   // ← custom auth domain (DO NOT change)
-  projectId: "mypetdex-c4315",
-  storageBucket: "mypetdex-c4315.firebasestorage.app",
-  messagingSenderId: "209772699227",
-  appId: "1:209772699227:web:68d547574d8d068f6da97e"
-};
+- **Project ID:** `mypetdex-c4315`
+- **Auth Domain:** `auth.mypetdex.app` ← NEVER change this
+- **Region:** `us-central1`
+- **GoogleService-Info.plist** → in `MyPetDex/`
+
+### ⚠️ Apple Sign-In (CRITICAL)
+- Uses `signInWithPopup` — do NOT switch to `signInWithRedirect`
+- Auth domain MUST stay `auth.mypetdex.app`
+- Apple Service ID return URL: `https://auth.mypetdex.app/__/auth/handler`
+
+---
+
+## 🗄️ Firestore Structure
+
+```
+users/{uid}
+  - email, name, role (owner/provider/shelter)
+  - plan (free/plus/family), billing
+  - expoPushToken        ← saved by app via expo-notifications
+  - fcmToken             ← native FCM token (if using @react-native-firebase/messaging)
+  - stripeCustomerId
+
+users/{uid}/pets/{petId}    ← SUBCOLLECTION (not top-level)
+  - name, breed, type, age, weight, photoURL
+  - reminders: [{ id, title, due, repeat, note, done, sent }]
+  - vaccines: [{ name, date, nextDue }]
+
+shelterPets/{petId}
+reviews/{reviewId}
+siteReviews/{id}
+shopProducts/{id}
+savedRecipes/{id}
+stats/public → { userCount }
 ```
 
-- **Auth domain:** `auth.mypetdex.app` (custom — Firebase Hosting Connected)
-- **Region:** `us-central1` (all Cloud Functions)
-- **FCM VAPID Key:** configured in `src/firebase.js`
-
-### Apple Sign-In (CRITICAL — hard-won config)
-- Uses **`signInWithPopup`** for ALL browsers including Safari on macOS
-- macOS Safari uses native Touch ID — no cross-origin popup navigation, so popup works correctly
-- **DO NOT** switch to `signInWithRedirect` — breaks `getRedirectResult` in Safari
-- **DO NOT** change `authDomain` away from `auth.mypetdex.app`
-- Apple Service ID registered domains: `auth.mypetdex.app`, `app.mypetdex.app`, `mypetdex-c4315.firebaseapp.com`
-- Apple Service ID return URL: `https://auth.mypetdex.app/__/auth/handler`
-- Firebase Authorized Domains: `app.mypetdex.app`, `auth.mypetdex.app`, `mypetdex.app`, `staging.app.mypetdex.app`
+### Reminder Format
+```js
+{
+  id: "1718640000000",
+  title: "Vet checkup",
+  due: "2026-06-17 02:00 PM",   // "YYYY-MM-DD HH:MM AM/PM"
+  repeat: "None",                // None/Daily/Weekly/Monthly/Yearly
+  note: "",
+  done: false,
+  sent: false,
+}
+```
 
 ---
 
-## 💳 Stripe Plans & Price IDs
+## 📧 Email — Resend
 
-| Plan | Billing | Price ID | Amount |
-|------|---------|----------|--------|
+- Switched from SendGrid (expired June 9, 2026) to **Resend**
+- Domain `mypetdex.app` DKIM verified in Resend
+- From: `MyPetDex <help@mypetdex.app>`
+- Admin email: `help@mypetdex.app`
+- Firebase secret: `RESEND_API_KEY`
+
+---
+
+## 💳 Stripe
+
+| Plan | Billing | Price ID | Price |
+|------|---------|----------|-------|
 | Plus | Monthly | `price_1TVxf1KrbYhlx0Wng1THRLur` | $2.99/mo |
-| Plus | Yearly | `price_1TUETlKrbYhlx0WnA78IrSU6` | $28.80/yr ($2.40/mo) |
+| Plus | Yearly | `price_1TUETlKrbYhlx0WnA78IrSU6` | $28.80/yr |
 | Family | Monthly | `price_1TVxjIKrbYhlx0WnXcSBrbcG` | $4.99/mo |
-| Family | Yearly | `price_1TUEVAKrbYhlx0WnoSRCax3` | $48.00/yr ($4.00/mo) |
+| Family | Yearly | `price_1TUEVAKrbYhlx0WnoSRCax3` | $48.00/yr |
 
-- **Trial:** 30 days free on all paid plans
-- **Webhook events handled:** `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`
+30-day free trial. Secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
 
 ---
 
-## 📧 Cloud Functions (all in functions/index.js)
+## ☁️ Firebase Functions (`~/mypetdex/functions/index.js`)
 
 | Function | Trigger | Purpose |
 |----------|---------|---------|
-| `onNewUser` | Firestore doc created (`users/{uid}`) | Log new user |
-| `sendScheduledReminders` | Cron: every 5 min | Check pet reminders, send email + FCM push |
-| `aiProxy` | HTTP POST | Proxy to Anthropic API (pet-only restriction enforced) |
-| `sendVerifiedEmail` | HTTP POST | Welcome email after email verification |
-| `createCheckoutSession` | HTTP POST | Create Stripe checkout session |
-| `stripeWebhook` | HTTP POST | Handle Stripe events, update Firestore |
-| `createPortalSession` | HTTP POST | Create Stripe billing portal session |
-| `deleteAccount` | HTTP POST (callable) | Delete all user data (pets, reviews, reminders, profile) |
+| `onNewUser` | Firestore `users/{uid}` created | Welcome + admin notification email |
+| `sendScheduledReminders` | Cron every 5 min | Check `users/{uid}/pets`, send email + push |
+| `aiProxy` | HTTP POST | Claude Haiku proxy (pet-only) |
+| `sendVerifiedEmail` | HTTP POST | Welcome email after verification |
+| `sendBrandedVerificationEmail` | Callable | Firebase verification link email |
+| `createCheckoutSession` | HTTP POST | Stripe checkout |
+| `stripeWebhook` | HTTP POST | Stripe subscription events |
+| `createPortalSession` | HTTP POST | Stripe billing portal |
+| `getPetProfile` | HTTP GET | Public pet QR profile |
+| `getPublicStats` | HTTP GET | User count for website |
+| `getRecipe` | HTTP POST | AI recipe generator |
+| `deleteAccount` | Callable | Delete all user data |
 
-**Function secrets (Firebase Secrets):**
-- `SENDGRID_API_KEY`
-- `ANTHROPIC_API_KEY`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
+⚠️ `rescueProxy` exists in Firebase but NOT in `index.js` — type N when deploy asks to delete it.
 
----
-
-## 👤 User Roles & Plans
-
-### Roles
-- **owner** — pet owner (default). Legacy accounts may have `role: "petowner"` — code handles both: `role === "owner" || role === "petowner"`
-- **provider** — service provider (grooming, walking, vet, etc.)
-- **shelter** — animal shelter (always free, requires approval)
-
-### Plans (owners only)
-| Plan | Pets | AI | Recipes | Price |
-|------|------|----|---------|-------|
-| free | 1 | ❌ | ❌ | $0 |
-| plus | 3 | ✅ | ✅ | $2.99/mo |
-| family | Unlimited | ✅ | ✅ | $4.99/mo |
-
-### Plan gating: `src/planUtils.js`
-- `hasFeature(profile, 'ai')` — check AI access
-- `hasFeature(profile, 'recipes')` — check recipes access
-- `getPlan(profile)` — get plan config object
-- `UpgradePrompt` — React component for locked features
-
-### AI Daily Limits (tracked in localStorage)
-- free: 0 messages/day
-- plus: 20 messages/day
-- family: 50 messages/day
-
----
-
-## 🖥️ App Screens & Navigation
-
-**Screen state** managed in `App.js` `useState`:
-- `role-pick` → RolePickerScreen (Pet Owner / Service Provider / Shelter)
-- `landing` → Landing page (Apple + Google + email sign-in, plan picker)
-- `login` → LoginScreen
-- `register` → RegisterScreen
-- `verify` → VerifyEmail (polls every 2s for verification)
-- `google-role` → GoogleRoleScreen (role picker for Google/Apple users)
-- `reset` → PasswordResetScreen
-- `app` → MainApp (sidebar nav)
-- `admin` → AdminDashboard (mypetdexapp@gmail.com only)
-
-**MainApp tabs** (via `setTab()`):
-- `home` — HomeTab (pet cards + quick actions)
-- `pets` — PetsTab → PetDetail (info, vaccines, reminders, calories)
-- `services` — ServicesTab (provider listings + reviews + 26-state grid)
-- `ai` — **MyPetDex AI Assistant** (Plus+, claude-haiku) ← sidebar label
-- `recipes` — RecipesTab (AI recipe builder, Plus+ only)
-- `adoption` — AdoptionTab (shelter listings + report button)
-- `shop` — ShopTab (Amazon affiliate products)
-- `settings` — SettingsTab (profile, plan, legal, referral, delete account)
-- Provider tabs: `profile`, `bookings`
-- Shelter tab: `listings`
-
----
-
-## 🎨 Design System (in App.js)
-
-```js
-const C = {
-  bg: "#F5F8FF",
-  card: "#FFFFFF",
-  cardBorder: "#E2E8F0",
-  green: "#3B82F6",   // primary blue (called "green" in code)
-  gold: "#F59E0B",    // accent gold
-  text: "#1E293B",
-  muted: "#64748B",
-  danger: "#E05C5C",
-  inputBg: "#EEF4FF",
-};
-const font = "'Nunito', sans-serif";
-```
-
-Reusable style helpers: `btn(bg, color)`, `card`, `input`, `label`
-Reusable components: `Avatar`, `Badge`, `Field`, `Spinner`, `Toast`, `ReportButton`, `DeleteAccountButton`
-
----
-
-## 🔐 Special Accounts
-
-| Email | Role | Notes |
-|-------|------|-------|
-| `mypetdexapp@gmail.com` | Admin | Bypasses all gates, goes to AdminDashboard |
-| `demo@mypetdex.app` | Demo | Bypasses email verification, **read-only** (no add/edit/delete) |
-
----
-
-## 🛡️ UGC Moderation (Apple Guideline 1.2 compliant)
-
-- `ReportButton` component in `App.js` — on every provider card and shelter listing
-- Writes to `reports` Firestore collection: `{ contentId, contentType, reason, reporterUid, createdAt, status: "pending" }`
-- 5 report reasons: Spam, Fake/Misleading, Inappropriate Content, Wrong Category, Other
-
----
-
-## 🗑️ Delete Account Flow (3-step, App Store compliant)
-
-Implemented in `DeleteAccountButton` component:
-1. **Step 1** — "Delete My Account" button
-2. **Step 2** — Lists what gets deleted + subscription warning (yellow box)
-3. **Step 3** — Type "DELETE" to confirm → calls `deleteAccount` Cloud Function
-
-Data deleted within 30 days (per Privacy Policy).
-
----
-
-## 📍 Local Services — Covered States
-
-`COVERED_STATES` array (26 states) replaces old city chips in ServicesTab:
-NY, CA, IL, TX, FL, PA, OH, GA, NC, MI, NJ, VA, WA, AZ, MA, TN, IN, MO, MD, WI, CO, MN, SC, AL, OR, CT
-
-Displayed as a grid (`gridTemplateColumns: repeat(auto-fill, minmax(100px, 1fr))`).
-Clicking a state sets `filterCity` to the state abbreviation and runs search.
-
----
-
-## 🔗 Referral System
-
-- Each user gets a `refCode` (format: `MPD-NAME-UID4`)
-- Referral link: `https://app.mypetdex.app?ref=MPD-XXXX-XXXX`
-- `referralCount` incremented on referrer's Firestore doc
-- Tiers: 0-2 = Standard, 3-4 = Priority, 5+ = Founding Member
-- Referral modal shown 2s after signup (once per account, via localStorage)
-
----
-
-## 📱 Mobile (Capacitor)
-
-```ts
-// capacitor.config.ts
-appId: 'app.mypetdex'
-appName: 'MyPetDex'
-webDir: 'build'
-```
-- iOS package installed (`@capacitor/ios ^8.2`)
-- **NOT live yet** — iOS & Android coming soon
-- Build command: `npm run build` then `npx cap sync`
-
----
-
-## 🌿 Git Branches
-
-| Branch | Repo | Maps to |
-|--------|------|---------|
-| `main` | mypetdex | app.mypetdex.app (production) |
-| `staging` | mypetdex | staging.app.mypetdex.app |
-| `main` | mypetdex-website | mypetdex.app (production) |
-| `staging` | mypetdex-website | staging.mypetdex.app |
-
-**Workflow:** develop → push to `staging` → test → `git push origin main`
+### Deploy
 ```bash
-# Push to production + staging at once
-git add -A && git commit -m "your message"
-git push origin main
-git push origin main:staging
-
-# Fix HEAD.lock if git is stuck
-rm -f ~/mypetdex/.git/HEAD.lock
+cd ~/mypetdex
+firebase deploy --only functions
+# Type N when asked about rescueProxy
 ```
 
 ---
 
-## 🚀 Deployment
+## 🔔 Push Notifications
 
-| Service | What | Details |
-|---------|------|---------|
-| Vercel | React app | Auto-deploys on push to GitHub (mypetdex org) |
-| Vercel | Marketing site | Auto-deploys on push |
-| Firebase | Cloud Functions | `firebase deploy --only functions` |
-| Firebase | Firestore rules | `firebase deploy --only firestore` |
-
-**Vercel config** (`vercel.json`): SPA rewrites all routes to `index.html`
+- App uses `expo-notifications` → saves `expoPushToken` in Firestore
+- Cloud Function should send via **Expo Push API** (`https://exp.host/--/api/v2/push/send`) using `expoPushToken`
+- ⚠️ Current function uses `admin.messaging().send()` with `fcmToken` — mismatch, needs fixing
 
 ---
 
-## 📄 Legal Pages (mypetdex-website)
+## ⚠️ Rules — Never Break These
 
-- `privacy.html` — Privacy Policy (effective April 1, 2026)
-  - Covers: data collection, AI/Anthropic disclosure, UGC moderation, Stripe payments, GDPR rights, 30-day deletion window, in-app delete flow
-- `terms.html` — Terms of Service
-
----
-
-## 💰 Cost Structure (~$0/month at current scale)
-
-- Vercel: Free (Hobby)
-- Firebase: Free (Blaze, pay-as-you-go, ~$0 at low usage)
-- SendGrid: Free (100 emails/day)
-- Stripe: 2.9% + 30¢ per transaction only
-- GitHub: Free
-
----
-
-## 🔧 Common Dev Commands
-
-```bash
-# Start local dev
-cd ~/mypetdex && npm start
-
-# Build for production
-npm run build
-
-# Deploy functions only
-cd ~/mypetdex/functions && firebase deploy --only functions
-
-# Deploy firestore rules only
-firebase deploy --only firestore
-
-# Push to staging + production
-git add -A && git commit -m "your message"
-git push origin main
-git push origin main:staging
-```
-
----
-
-## ✅ What's Live (v1.7 — May 2026)
-
-- ✅ Full auth: email + Google + **Apple Sign-In** (signInWithPopup, auth.mypetdex.app)
-- ✅ Role picker on first load (Pet Owner / Service Provider / Shelter)
-- ✅ Pet profiles with photos, vaccines, reminders
-- ✅ Calorie calculator (NRC/AAFCO formula)
-- ✅ Provider listings + reviews + **Report button** (UGC compliance)
-- ✅ Shelter listings + adoption + **Report button** (UGC compliance)
-- ✅ AI Pet Assistant "MyPetDex AI Assistant" (Plus+, claude-haiku)
-- ✅ AI Recipe Builder (Plus+)
-- ✅ Amazon shop (admin-managed products)
-- ✅ Stripe billing (Plus $2.99/mo, Family $4.99/mo, 30-day trial)
-- ✅ Monthly/yearly toggle
-- ✅ Stripe customer portal (manage/cancel)
-- ✅ Email reminders (SendGrid, cron every 5 min)
-- ✅ Push notifications (FCM, Safari excluded)
-- ✅ Admin dashboard (subscribers, MRR, ARR, shelter/provider approval)
-- ✅ Referral system
-- ✅ Site reviews (moderated)
-- ✅ Demo mode (demo@mypetdex.app) — read-only, no edits
-- ✅ **Delete Account** — 3-step flow + Cloud Function cleanup (App Store compliant)
-- ✅ **Available States grid** in Local Services (26 states)
-- ✅ **Privacy Policy** updated (AI, UGC, GDPR, Stripe, 30-day deletion)
-- ✅ App Store Pre-Submission Audit document created
-
-## 🔜 Coming Soon
-
-- 🔜 iOS app (Capacitor — build ready, not submitted)
-- 🔜 Android app
-- 🔜 Booking system (provider calendar + payments)
-- 🔜 App Store / Google Play submission
-
----
-
-## ⚠️ Known Gotchas
-
-- **`role` field**: legacy accounts use `"petowner"` — always check `role === "owner" || role === "petowner"`
-- **HEAD.lock**: sandbox can't remove git lock files — run `rm -f ~/mypetdex/.git/HEAD.lock` locally
-- **Apple Sign-In**: uses `signInWithPopup` — do NOT switch to `signInWithRedirect`
-- **authDomain**: must stay `auth.mypetdex.app` — do NOT change to default Firebase domain
-- **Demo account**: `demo@mypetdex.app` — read-only; edit/delete buttons hidden
-- **Build directory**: sandbox can't delete `/build` — run `npm run build` locally
-
----
-
-## 📞 Contact / Support
-
-- Help email: help@mypetdex.app
-- Admin email: mypetdexapp@gmail.com
-- Website: mypetdex.app
-- App: app.mypetdex.app
-- Staging: staging.app.mypetdex.app
+1. Never change `authDomain` from `auth.mypetdex.app`
+2. Pet reminders are in `users/{uid}/pets/{petId}` subcollection — NOT top-level `pets`
+3. Type **N** when Firebase deploy asks about deleting `rescueProxy`
+4. Resend is the email provider — not SendGrid
+5. Always run Metro from `~/mypetdex/MyPetDex/` on port 8081

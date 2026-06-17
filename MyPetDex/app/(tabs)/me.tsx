@@ -8,9 +8,8 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
-import { isWeb, webDb } from "@/lib/firebase";
-import { collection as webCollection, onSnapshot as webOnSnapshot } from "firebase/firestore";
-import _nativeFirestore from "@react-native-firebase/firestore";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot } from "firebase/firestore";
 
 const BRAND = "#4CAF82";
 const BLUE = "#4486F4";
@@ -25,6 +24,11 @@ export default function MeScreen() {
   const { user, signOut } = useAuth();
   const { plan, maxPets } = usePlan();
   const router = useRouter();
+
+  async function handleSignOut() {
+    await signOut();
+    router.replace("/(auth)/sign-in");
+  }
   const [pets, setPets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -40,29 +44,15 @@ export default function MeScreen() {
   useEffect(() => {
     if (!user) return;
 
-    const handleErr = () => setLoading(false);
-
-    if (isWeb) {
-      const ref = webCollection(webDb, "users", user.uid, "pets");
-      const unsub = webOnSnapshot(ref, (snap) => {
+    const unsub = onSnapshot(
+      collection(db, "users", user.uid, "pets"),
+      (snap) => {
         setPets(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
         setLoading(false);
-      }, handleErr);
-      return unsub;
-    } else {
-      const unsub = _nativeFirestore()
-        .collection("users")
-        .doc(user.uid)
-        .collection("pets")
-        .onSnapshot(
-          (snap: any) => {
-            setPets(snap.docs.map((d: any) => ({ id: d.id, ...d.data() })));
-            setLoading(false);
-          },
-          handleErr
-        );
-      return unsub;
-    }
+      },
+      () => setLoading(false)
+    );
+    return unsub;
   }, [user]);
 
   const filtered = pets.filter((p) =>
@@ -337,7 +327,7 @@ export default function MeScreen() {
             <Text style={styles.settingsChevron}>›</Text>
           </Pressable>
 
-          <Pressable style={styles.signOutBtn} onPress={signOut}>
+          <Pressable style={styles.signOutBtn} onPress={handleSignOut}>
             <Text style={styles.signOutText}>Sign Out</Text>
           </Pressable>
 

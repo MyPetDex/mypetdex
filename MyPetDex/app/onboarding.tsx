@@ -5,9 +5,8 @@ import {
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { isWeb, webDb } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { doc, setDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
-import _nativeFirestore from "@react-native-firebase/firestore";
 
 const BRAND = "#4CAF82";
 const BLUE  = "#4486F4";
@@ -161,29 +160,14 @@ export default function OnboardingScreen() {
         });
       }
 
-      if (isWeb) {
-        await setDoc(doc(webDb, "users", u.uid), { ...userDoc, updatedAt: serverTimestamp() }, { merge: true });
-        if (role === "owner" && petName.trim()) {
-          await addDoc(collection(webDb, "users", u.uid, "pets"), {
-            name: petName.trim(),
-            species: petType.toLowerCase(),
-            breed: "Mixed/Other",
-            createdAt: serverTimestamp(),
-          });
-        }
-      } else {
-        await _nativeFirestore().collection("users").doc(u.uid).set(
-          { ...userDoc, updatedAt: _nativeFirestore.FieldValue.serverTimestamp() },
-          { merge: true }
-        );
-        if (role === "owner" && petName.trim()) {
-          await _nativeFirestore().collection("users").doc(u.uid).collection("pets").add({
-            name: petName.trim(),
-            species: petType.toLowerCase(),
-            breed: "Mixed/Other",
-            createdAt: _nativeFirestore.FieldValue.serverTimestamp(),
-          });
-        }
+      await setDoc(doc(db, "users", u.uid), { ...userDoc, updatedAt: serverTimestamp() }, { merge: true });
+      if (role === "owner" && petName.trim()) {
+        await addDoc(collection(db, "users", u.uid, "pets"), {
+          name: petName.trim(),
+          species: petType.toLowerCase(),
+          breed: "Mixed/Other",
+          createdAt: serverTimestamp(),
+        });
       }
 
       router.replace("/(tabs)");

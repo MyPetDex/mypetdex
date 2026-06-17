@@ -1,8 +1,12 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator } from "react-native";
+import {
+  View, Text, StyleSheet, ScrollView, Pressable,
+  TextInput, ActivityIndicator, Alert,
+} from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import firestore from "@react-native-firebase/firestore";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
 
@@ -19,18 +23,18 @@ export default function PetsScreen() {
 
   useEffect(() => {
     if (!user) return;
-    const unsub = firestore()
-      .collection("users")
-      .doc(user.uid)
-      .collection("pets")
-      .onSnapshot(snap => {
-        setPets(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    const unsub = onSnapshot(
+      collection(db, "users", user.uid, "pets"),
+      (snap) => {
+        setPets(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
         setLoading(false);
-      }, () => setLoading(false));
+      },
+      () => setLoading(false)
+    );
     return unsub;
   }, [user]);
 
-  const filtered = pets.filter(p =>
+  const filtered = pets.filter((p) =>
     p.name?.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -40,6 +44,27 @@ export default function PetsScreen() {
     } else {
       router.push("/pet/add");
     }
+  }
+
+  function handleDeletePet(pet: any) {
+    Alert.alert(
+      `Delete ${pet.name}?`,
+      "This will permanently delete this pet and all their records and reminders. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, "users", user!.uid, "pets", pet.id));
+            } catch {
+              Alert.alert("Error", "Could not delete pet. Please try again.");
+            }
+          },
+        },
+      ]
+    );
   }
 
   return (
@@ -73,11 +98,12 @@ export default function PetsScreen() {
               <Text style={styles.emptySub}>Add your first pet to get started</Text>
             </View>
           ) : (
-            filtered.map(pet => (
+            filtered.map((pet) => (
               <Pressable
                 key={pet.id}
                 style={styles.card}
                 onPress={() => router.push(`/pet/${pet.id}`)}
+                onLongPress={() => handleDeletePet(pet)}
               >
                 <View style={styles.avatar}>
                   <Text style={styles.avatarEmoji}>
@@ -88,11 +114,30 @@ export default function PetsScreen() {
                   <Text style={styles.name}>{pet.name}</Text>
                   <Text style={styles.breed}>{pet.breed || pet.species}</Text>
                   <View style={styles.tags}>
-                    {pet.age && <View style={styles.tag}><Text style={styles.tagText}>Age: {pet.age}</Text></View>}
-                    {pet.weight && <View style={styles.tag}><Text style={styles.tagText}>{pet.weight} {pet.weightUnit || "lbs"}</Text></View>}
+                    {pet.age ? (
+                      <View style={styles.tag}>
+                        <Text style={styles.tagText}>Age: {pet.age}</Text>
+                      </View>
+                    ) : null}
+                    {pet.weight ? (
+                      <View style={styles.tag}>
+                        <Text style={styles.tagText}>
+                          {pet.weight} {pet.weightUnit || "lbs"}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
-                <Text style={styles.chevron}>›</Text>
+                <View style={styles.cardRight}>
+                  <Text style={styles.chevron}>›</Text>
+                  <Pressable
+                    style={styles.deleteBtn}
+                    onPress={() => handleDeletePet(pet)}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.deleteBtnText}>🗑️</Text>
+                  </Pressable>
+                </View>
               </Pressable>
             ))
           )}
@@ -100,6 +145,8 @@ export default function PetsScreen() {
           <Pressable style={styles.addBtn} onPress={handleAddPet}>
             <Text style={styles.addBtnText}>+ Add New Pet</Text>
           </Pressable>
+
+          <Text style={styles.hint}>Long-press a pet card to delete</Text>
         </ScrollView>
       )}
     </View>
@@ -125,7 +172,11 @@ const styles = StyleSheet.create({
   tags: { flexDirection: "row", gap: 6, marginTop: 8 },
   tag: { backgroundColor: "#f0f8f4", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   tagText: { fontSize: 12, color: BRAND, fontWeight: "500" },
+  cardRight: { alignItems: "center", gap: 6 },
   chevron: { fontSize: 22, color: "#ccc" },
+  deleteBtn: { padding: 4 },
+  deleteBtnText: { fontSize: 18 },
   addBtn: { backgroundColor: BRAND, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 8 },
   addBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  hint: { textAlign: "center", fontSize: 12, color: "#bbb", marginTop: 8 },
 });

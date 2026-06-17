@@ -1,33 +1,29 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onRequest, onCall } = require("firebase-functions/v2/https");
+const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
-const { Resend } = require("resend");
+const sgMail = require("@sendgrid/mail");
 
 admin.initializeApp();
 const db = admin.firestore();
 
-const resendKey = defineSecret("RESEND_API_KEY");
+const sendgridKey = defineSecret("SENDGRID_API_KEY");
 const anthropicKey = defineSecret("ANTHROPIC_API_KEY");
 
 const FROM_EMAIL = "help@mypetdex.app";
 const FROM_NAME = "MyPetDex";
 const ADMIN_EMAIL = "help@mypetdex.app";
 
-async function sendEmail(keyValue, { to, subject, html }) {
-  const resend = new Resend(keyValue);
-  return resend.emails.send({ from: `${FROM_NAME} <${FROM_EMAIL}>`, to, subject, html });
-}
-
 // ─── Welcome Email Triggered on New User Document ────────────────────────────
 exports.onNewUser = onDocumentCreated(
-  { document: "users/{uid}", secrets: [resendKey] },
+  { document: "users/{uid}", secrets: [sendgridKey] },
   async (event) => {
     const profile = event.data.data();
     const { role, email, name, businessName, shelterName } = profile;
     if (!email || !role) return;
 
+    sgMail.setApiKey(sendgridKey.value());
 
     let welcomeMsg = null;
     if (role === "owner") {
@@ -55,134 +51,87 @@ exports.onNewUser = onDocumentCreated(
 
 
 
-    const adminMsg = {
-      to: ADMIN_EMAIL,
-      subject: `✅ New ${role} signup: ${email}`,
-      html: adminNotificationHTML(role, email, profile),
-    };
-
     try {
-      if (welcomeMsg) await sendEmail(resendKey.value(), { to: welcomeMsg.to, subject: welcomeMsg.subject, html: welcomeMsg.html });
-      await sendEmail(resendKey.value(), { to: adminMsg.to, subject: adminMsg.subject, html: adminMsg.html });
-      console.log(`Welcome + admin emails sent for ${email} (${role})`);
-      await db.collection("stats").doc("public").update({
-        userCount: admin.firestore.FieldValue.increment(1)
-      });
+      console.log(`New user created: ${email} (${role}) — welcome email will send after verification`);
     } catch (err) {
-      console.error("Email error:", err.response?.body || err);
+      console.error("SendGrid error:", err.response?.body || err);
     }
   }
 );
 
 // ─── Scheduled Pet Reminders ──────────────────────────────────────────────────
 exports.sendScheduledReminders = onSchedule(
-  { schedule: "every 5 minutes", secrets: [resendKey] },
+  { schedule: "every 5 minutes", secrets: [sendgridKey] },
   async () => {
+    sgMail.setApiKey(sendgridKey.value());
     const now = new Date();
-    const usersSnap = await db.collection("users").get();
-    console.log(`Checking reminders for ${usersSnap.docs.length} users`);
-
-    for (const userDoc of usersSnap.docs) {
-      const uid = userDoc.id;
-      const petsSnap = await db.collection("users").doc(uid).collection("pets").get();
-      if (petsSnap.empty) continue;
-
-      for (const petDoc of petsSnap.docs) {
-        const pet = petDoc.data();
-        const reminders = pet.reminders || [];
-
-        for (const reminder of reminders) {
-          if (reminder.sent || reminder.done) continue;
-          const tz = reminder.timezone || "America/New_York";
-          let reminderUTC;
-
-          if (reminder.due) {
-            // Format: "2026-06-17 02:00 PM"
-            const parts = reminder.due.split(" ");
-            const datePart = parts[0];
-            const timePart = parts[1] || "08:00";
-            const meridiem = parts[2];
-            let [hours, minutes] = timePart.split(":").map(Number);
-            if (meridiem === "AM" && hours === 12) hours = 0;
-            if (meridiem === "PM" && hours !== 12) hours += 12;
-            const timeStr = String(hours).padStart(2, "0") + ":" + String(minutes).padStart(2, "0");
-            const utcBase = new Date(`${datePart}T${timeStr}:00`);
-            const tzOffset =
-              new Date(utcBase.toLocaleString("en-US", { timeZone: "UTC" })) -
-              new Date(utcBase.toLocaleString("en-US", { timeZone: tz }));
-            reminderUTC = new Date(utcBase.getTime() + tzOffset);
-          } else if (reminder.date && reminder.time) {
-            let timeStr = reminder.time;
-            if (timeStr.includes("AM") || timeStr.includes("PM")) {
-              const [timePart, meridiem] = timeStr.split(" ");
-              let [hours, minutes] = timePart.split(":");
-              hours = parseInt(hours);
-              if (meridiem === "AM" && hours === 12) hours = 0;
-              if (meridiem === "PM" && hours !== 12) hours += 12;
-              timeStr = String(hours).padStart(2, "0") + ":" + minutes;
+    const petsSnap = await db.collection("pets").get();
+    for (const petDoc of petsSnap.docs) {
+      const pet = petDoc.data();
+      const reminders = pet.reminders || [];
+      for (const reminder of reminders) {
+        if (reminder.sent) continue;
+        const tz = reminder.timezone || "America/New_York";
+        // Convert 12-hour format (08:00 AM) to 24-hour format (08:00)
+        let timeStr = reminder.time || "08:00";
+        if (timeStr.includes("AM") || timeStr.includes("PM")) {
+          const [timePart, meridiem] = timeStr.split(" ");
+          let [hours, minutes] = timePart.split(":");
+          hours = parseInt(hours);
+          if (meridiem === "AM" && hours === 12) hours = 0;
+          if (meridiem === "PM" && hours !== 12) hours += 12;
+          timeStr = String(hours).padStart(2, "0") + ":" + minutes;
+        }
+        const localStr = `${reminder.date}T${timeStr}:00`;
+        const utcBase = new Date(localStr);
+        const tzOffset =
+          new Date(utcBase.toLocaleString("en-US", { timeZone: "UTC" })) -
+          new Date(utcBase.toLocaleString("en-US", { timeZone: tz }));
+        const reminderUTC = new Date(utcBase.getTime() + tzOffset);
+        const diffMinutes = (now - reminderUTC) / 1000 / 60;
+        if (diffMinutes >= 0 && diffMinutes <= 5) {
+          try {
+            // Get ownerEmail from pet or fall back to users collection
+            let ownerEmail = pet.ownerEmail;
+            if (!ownerEmail && pet.uid) {
+              const userDoc = await db.collection("users").doc(pet.uid).get();
+              if (userDoc.exists) ownerEmail = userDoc.data().email;
             }
-            const utcBase = new Date(`${reminder.date}T${timeStr}:00`);
-            const tzOffset =
-              new Date(utcBase.toLocaleString("en-US", { timeZone: "UTC" })) -
-              new Date(utcBase.toLocaleString("en-US", { timeZone: tz }));
-            reminderUTC = new Date(utcBase.getTime() + tzOffset);
-          } else {
-            continue;
-          }
-
-          const diffMinutes = (now - reminderUTC) / 1000 / 60;
-          if (diffMinutes >= 0 && diffMinutes <= 5) {
-            try {
-              const ownerData = userDoc.data();
-              const ownerEmail = pet.ownerEmail || ownerData.email;
-              const expoPushToken = ownerData.expoPushToken || null;
-
-              if (ownerEmail) {
-                try {
-                  await sendEmail(resendKey.value(), {
-                    to: ownerEmail,
-                    subject: `⏰ Reminder: ${reminder.title} for ${pet.name}`,
-                    html: reminderHTML(pet.name, reminder.title,
-                      reminder.due ? reminder.due.split(" ")[0] : reminder.date,
-                      reminder.due ? reminder.due.split(" ").slice(1).join(" ") : reminder.time),
-                  });
-                } catch (emailErr) { console.error("Email error:", emailErr); }
-              }
-
-              // Send via Expo Push API using expoPushToken saved by expo-notifications
-              if (expoPushToken && expoPushToken.startsWith("ExponentPushToken")) {
-                try {
-                  const pushRes = await fetch("https://exp.host/--/api/v2/push/send", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      "Accept": "application/json",
-                    },
-                    body: JSON.stringify({
-                      to: expoPushToken,
-                      title: `⏰ Reminder for ${pet.name}`,
-                      body: reminder.title,
-                      sound: "default",
-                      data: { petId: petDoc.id, reminderId: reminder.id },
-                    }),
-                  });
-                  const pushResult = await pushRes.json();
-                  if (pushResult.data?.status === "error") {
-                    console.error("Expo push error:", pushResult.data.message);
-                  } else {
-                    console.log("Expo push sent for:", pet.name);
+            if (!ownerEmail) { console.log("No email for pet:", pet.name); continue; }
+            await sgMail.send({
+              to: ownerEmail,
+              from: { email: FROM_EMAIL, name: FROM_NAME },
+              subject: `⏰ Reminder: ${reminder.title} for ${pet.name}`,
+              html: reminderHTML(pet.name, reminder.title, reminder.date, reminder.time),
+            });
+            // Send push notification if FCM token exists
+            const userSnap = await db.collection("users").doc(pet.uid).get();
+            const fcmToken = userSnap.exists ? userSnap.data().fcmToken : null;
+            if (fcmToken) {
+              try {
+                const { getMessaging } = require("firebase-admin/messaging");
+                await getMessaging().send({
+                  token: fcmToken,
+                  notification: {
+                    title: `⏰ Reminder for ${pet.name}`,
+                    body: reminder.title,
+                  },
+                  webpush: {
+                    notification: {
+                      icon: "https://app.mypetdex.app/logo.png",
+                    }
                   }
-                } catch (pushErr) { console.error("Push notification error:", pushErr); }
-              }
-
-              const updated = reminders.map((r) =>
-                r.id === reminder.id ? { ...r, sent: true, done: true } : r
-              );
-              await petDoc.ref.update({ reminders: updated });
-              console.log("Reminder sent:", reminder.title, "for", pet.name);
-            } catch (err) {
-              console.error("Reminder error:", err);
+                });
+                console.log("Push notification sent for:", pet.name);
+              } catch (pushErr) { console.error("Push notification error:", pushErr); }
             }
+            const updated = reminders.map((r) =>
+              r.id === reminder.id ? { ...r, sent: true } : r
+            );
+            await db.collection("pets").doc(petDoc.id).update({ reminders: updated });
+            console.log("Reminder sent:", reminder.title);
+          } catch (err) {
+            console.error("SendGrid reminder error:", err.response?.body || err);
           }
         }
       }
@@ -192,7 +141,7 @@ exports.sendScheduledReminders = onSchedule(
 
 // ─── AI Proxy ─────────────────────────────────────────────────────────────────
 exports.aiProxy = onRequest(
-  { cors: true, secrets: [resendKey, anthropicKey] },
+  { cors: true, secrets: [sendgridKey, anthropicKey] },
   async (req, res) => {
     try {
       const PET_RESTRICTION = `\n\nIMPORTANT: You ONLY answer questions related to pets and pet care. If asked about anything unrelated to pets (politics, coding, shopping, travel, finance, etc.), politely decline and redirect: "I'm PetDex AI and I can only help with pet-related questions! 🐾"`;
@@ -229,13 +178,14 @@ exports.aiProxy = onRequest(
 
 // ─── Send Welcome Email After Verification ────────────────────────────────────
 exports.sendVerifiedEmail = onRequest(
-  { cors: true, secrets: [resendKey] },
+  { cors: true, secrets: [sendgridKey] },
   async (req, res) => {
     if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
     const { role, email, name, profile } = req.body;
     console.log("sendVerifiedEmail called with:", { email, role, plan: profile?.plan });
     if (!email || !role) { res.status(400).send("Missing email or role"); return; }
 
+    sgMail.setApiKey(sendgridKey.value());
 
     let welcomeMsg = null;
     if (role === "owner") {
@@ -268,8 +218,8 @@ exports.sendVerifiedEmail = onRequest(
         subject: `✅ Verified ${role} signup: ${email}`,
         html: adminNotificationHTML(role, email, profile || {}),
       };
-      if (welcomeMsg) await sendEmail(resendKey.value(), { to: welcomeMsg.to, subject: welcomeMsg.subject, html: welcomeMsg.html });
-      await sendEmail(resendKey.value(), { to: adminMsg.to, subject: adminMsg.subject, html: adminMsg.html });
+      if (welcomeMsg) await sgMail.send(welcomeMsg);
+      await sgMail.send(adminMsg);
       console.log(`Welcome + admin emails sent for ${email} (${role})`);
       res.status(200).send("Emails sent");
     } catch (err) {
@@ -485,7 +435,7 @@ function reminderHTML(petName, title, date, time) {
 // ─── Stripe Checkout ──────────────────────────────────────────────────────────
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 
-exports.createCheckoutSession = onRequest({ secrets: [stripeSecretKey, resendKey], cors: true }, async (req, res) => {
+exports.createCheckoutSession = onRequest({ secrets: [stripeSecretKey, sendgridKey], cors: true }, async (req, res) => {
   if (req.method !== "POST") { res.status(405).send("Method not allowed"); return; }
   const { priceId, userId, email, plan, billing } = req.body;
   if (!priceId || !userId || !email) { res.status(400).send("Missing required fields"); return; }
@@ -514,7 +464,7 @@ exports.createCheckoutSession = onRequest({ secrets: [stripeSecretKey, resendKey
 // ─── Stripe Webhook ───────────────────────────────────────────────────────────
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 
-exports.stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecret, resendKey], cors: false }, async (req, res) => {
+exports.stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecret, sendgridKey], cors: false }, async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
   try {
@@ -549,10 +499,21 @@ exports.stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecr
       } catch (e) { console.error("Firestore update error:", e); }
     }
 
+    sgMail.setApiKey(sendgridKey.value());
     try {
       const trialEnd = new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString();
-      await sendEmail(resendKey.value(), { to: email, subject: "🎉 Welcome to MyPetDex " + planName + "!", html: "<div style='font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#F5F8FF;'><div style='text-align:center;margin-bottom:24px;'><img src='https://app.mypetdex.app/logo.png' alt='MyPetDex' style='width:72px;height:72px;object-fit:contain;' /><h1 style='color:#3B82F6;'>MyPetDex " + planName + "</h1></div><div style='background:#fff;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #E2E8F0;'><h2 style='color:#1E293B;margin:0 0 8px;'>Your 30-day free trial has started!</h2><p style='color:#64748B;margin:0;'>After your trial, you will be charged " + price + ". Cancel anytime before the trial ends.</p></div><p style='color:#1E293B;'>Your <strong>" + planName + " plan</strong> is now active. Enjoy all your premium features!</p><a href='https://app.mypetdex.app' style='display:inline-block;background:#3B82F6;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:16px;'>Open MyPetDex</a><p style='color:#94a3b8;font-size:12px;margin-top:24px;'>Questions? Contact us at help@mypetdex.app</p></div>" });
-      await sendEmail(resendKey.value(), { to: ADMIN_EMAIL, subject: "💰 New " + planName + " subscription: " + email, html: "<div style='font-family:sans-serif;padding:24px;'><h2>💰 New Subscription!</h2><p><strong>Email:</strong> " + email + "</p><p><strong>Plan:</strong> " + planName + " (" + price + ")</p><p><strong>Billing:</strong> " + (billing || "monthly") + "</p><p><strong>Trial ends:</strong> " + trialEnd + "</p></div>" });
+      await sgMail.send({
+        to: email,
+        from: { email: FROM_EMAIL, name: FROM_NAME },
+        subject: "🎉 Welcome to MyPetDex " + planName + "!",
+        html: "<div style='font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#F5F8FF;'><div style='text-align:center;margin-bottom:24px;'><img src='https://app.mypetdex.app/logo.png' alt='MyPetDex' style='width:72px;height:72px;object-fit:contain;' /><h1 style='color:#3B82F6;'>MyPetDex " + planName + "</h1></div><div style='background:#fff;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #E2E8F0;'><h2 style='color:#1E293B;margin:0 0 8px;'>Your 30-day free trial has started!</h2><p style='color:#64748B;margin:0;'>After your trial, you will be charged " + price + ". Cancel anytime before the trial ends.</p></div><p style='color:#1E293B;'>Your <strong>" + planName + " plan</strong> is now active. Enjoy all your premium features!</p><a href='https://app.mypetdex.app' style='display:inline-block;background:#3B82F6;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:16px;'>Open MyPetDex</a><p style='color:#94a3b8;font-size:12px;margin-top:24px;'>Questions? Contact us at help@mypetdex.app</p></div>"
+      });
+      await sgMail.send({
+        to: ADMIN_EMAIL,
+        from: { email: FROM_EMAIL, name: FROM_NAME },
+        subject: "💰 New " + planName + " subscription: " + email,
+        html: "<div style='font-family:sans-serif;padding:24px;'><h2>💰 New Subscription!</h2><p><strong>Email:</strong> " + email + "</p><p><strong>Plan:</strong> " + planName + " (" + price + ")</p><p><strong>Billing:</strong> " + (billing || "monthly") + "</p><p><strong>Trial ends:</strong> " + trialEnd + "</p></div>"
+      });
       console.log("Payment emails sent for", email, planName);
     } catch(emailErr) { console.error("Payment email error:", emailErr.response?.body || emailErr); }
   }
@@ -571,9 +532,20 @@ exports.stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecr
         console.log("Downgraded to free:", email);
 
         // Send cancellation email to user
+        sgMail.setApiKey(sendgridKey.value());
         try {
-          await sendEmail(resendKey.value(), { to: email, subject: "Your MyPetDex subscription has been cancelled", html: "<div style='font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#F5F8FF;'><div style='text-align:center;margin-bottom:24px;'><img src='https://app.mypetdex.app/logo.png' alt='MyPetDex' style='width:72px;height:72px;object-fit:contain;' /><h1 style='color:#3B82F6;'>MyPetDex</h1></div><div style='background:#fff;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #E2E8F0;'><h2 style='color:#1E293B;margin:0 0 8px;'>Subscription Cancelled</h2><p style='color:#64748B;margin:0;'>Hi " + name + ", your MyPetDex subscription has been cancelled. You have been moved to the free plan.</p></div><p style='color:#1E293B;'>You can resubscribe anytime from the app. We hope to see you back!</p><a href='https://app.mypetdex.app' style='display:inline-block;background:#3B82F6;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:16px;'>Open MyPetDex</a><p style='color:#94a3b8;font-size:12px;margin-top:24px;'>Questions? Contact us at help@mypetdex.app</p></div>" });
-          await sendEmail(resendKey.value(), { to: ADMIN_EMAIL, subject: "❌ Subscription cancelled: " + email, html: "<div style='font-family:sans-serif;padding:24px;'><h2>❌ Subscription Cancelled</h2><p><strong>Email:</strong> " + email + "</p><p><strong>Plan:</strong> Downgraded to Free</p></div>" });
+          await sgMail.send({
+            to: email,
+            from: { email: FROM_EMAIL, name: FROM_NAME },
+            subject: "Your MyPetDex subscription has been cancelled",
+            html: "<div style='font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#F5F8FF;'><div style='text-align:center;margin-bottom:24px;'><img src='https://app.mypetdex.app/logo.png' alt='MyPetDex' style='width:72px;height:72px;object-fit:contain;' /><h1 style='color:#3B82F6;'>MyPetDex</h1></div><div style='background:#fff;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #E2E8F0;'><h2 style='color:#1E293B;margin:0 0 8px;'>Subscription Cancelled</h2><p style='color:#64748B;margin:0;'>Hi " + name + ", your MyPetDex subscription has been cancelled. You have been moved to the free plan.</p></div><p style='color:#1E293B;'>You can resubscribe anytime from the app. We hope to see you back!</p><a href='https://app.mypetdex.app' style='display:inline-block;background:#3B82F6;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:16px;'>Open MyPetDex</a><p style='color:#94a3b8;font-size:12px;margin-top:24px;'>Questions? Contact us at help@mypetdex.app</p></div>"
+          });
+          await sgMail.send({
+            to: ADMIN_EMAIL,
+            from: { email: FROM_EMAIL, name: FROM_NAME },
+            subject: "❌ Subscription cancelled: " + email,
+            html: "<div style='font-family:sans-serif;padding:24px;'><h2>❌ Subscription Cancelled</h2><p><strong>Email:</strong> " + email + "</p><p><strong>Plan:</strong> Downgraded to Free</p></div>"
+          });
         } catch(emailErr) { console.error("Cancellation email error:", emailErr.response?.body || emailErr); }
       }
     } catch(e) { console.error("Cancellation handler error:", e); }
@@ -619,82 +591,6 @@ exports.createPortalSession = onRequest({ secrets: [stripeSecretKey], cors: true
     res.status(500).json({ error: err.message });
   }
 });
-// ─── Send Branded Verification Email ─────────────────────────────────────────
-exports.sendBrandedVerificationEmail = onCall({ cors: true, secrets: [resendKey] }, async (request) => {
-  const uid = request.auth?.uid;
-  if (!uid) throw new Error("Unauthorized");
-
-  const { role, name, businessName, shelterName, plan, continueUrl } = request.data;
-
-  try {
-    const userRecord = await admin.auth().getUser(uid);
-    const email = userRecord.email;
-    if (!email) throw new Error("No email address on account");
-
-    let finalRole = role, finalName = name, finalBusinessName = businessName;
-    let finalShelterName = shelterName, finalPlan = plan;
-    if (!finalRole) {
-      const userDoc = await db.collection("users").doc(uid).get();
-      if (userDoc.exists) {
-        const d = userDoc.data();
-        finalRole = d.role || "owner";
-        finalName = finalName || d.name || "";
-        finalBusinessName = finalBusinessName || d.businessName || "";
-        finalShelterName = finalShelterName || d.shelterName || "";
-        finalPlan = finalPlan || d.pendingPlan || d.plan || "free";
-      }
-    }
-
-    const verificationLink = await admin.auth().generateEmailVerificationLink(email, {
-      url: continueUrl || "https://app.mypetdex.app",
-    });
-
-    let displayName = finalName || email.split("@")[0];
-    if (finalRole === "provider") displayName = finalBusinessName || displayName;
-    if (finalRole === "shelter") displayName = finalShelterName || displayName;
-
-    await sendEmail(resendKey.value(), {
-      to: email,
-      subject: "Verify your MyPetDex email 🐾",
-      html: verificationEmailHTML(displayName, finalRole, finalPlan || "free", verificationLink),
-    });
-
-    console.log(`Branded verification email sent to ${email} (${finalRole}, ${finalPlan || "free"})`);
-    return { success: true };
-  } catch (err) {
-    console.error("sendBrandedVerificationEmail error:", err);
-    throw new Error("Failed to send verification email. Please try again.");
-  }
-});
-
-function verificationEmailHTML(name, role, plan, verifyLink) {
-  const roleEmoji = { owner: "🐾", provider: "🛎️", shelter: "🏠" }[role] || "🐾";
-  const roleLabel = { owner: "Pet Owner", provider: "Service Provider", shelter: "Animal Shelter" }[role] || "Member";
-  const planNote = (role === "owner" && (plan === "plus" || plan === "family"))
-    ? `<div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:12px;padding:14px;text-align:center;margin-bottom:16px;">
-        <p style="color:#3B82F6;font-weight:800;font-size:13px;margin:0 0 4px;">🎁 Your 30-day free ${plan === "plus" ? "Plus" : "Family"} trial is waiting!</p>
-        <p style="color:#64748B;font-size:12px;margin:0;">Verify your email to activate it — no credit card needed during the trial.</p>
-      </div>` : "";
-  const roleNote = role === "provider"
-    ? `<p style="color:#64748B;font-size:13px;">Once verified, you can complete your provider profile and start getting discovered by pet owners in your area.</p>`
-    : role === "shelter"
-    ? `<p style="color:#64748B;font-size:13px;">Once verified, you can submit your shelter documents and start listing adoptable pets for loving families to find.</p>`
-    : `<p style="color:#64748B;font-size:13px;">Once verified, you'll have full access to pet profiles, health records, reminders, AI tips, and more.</p>`;
-  return emailBase(`
-    <div class="card">
-      <h1>${roleEmoji} One quick step, ${name}!</h1>
-      <p>Thanks for joining MyPetDex as a <strong>${roleLabel}</strong>. Just verify your email address to activate your account.</p>
-      ${planNote}
-      ${roleNote}
-      <hr class="divider">
-      <center><a href="${verifyLink}" class="btn">✅ Verify My Email →</a></center>
-      <p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:16px;">This link expires in 24 hours. If you didn't sign up for MyPetDex, you can safely ignore this email.</p>
-      <hr class="divider">
-      <p style="text-align:center;font-size:13px;">Questions? <a href="mailto:help@mypetdex.app" style="color:#3B82F6;">help@mypetdex.app</a></p>
-    </div>
-  `);
-}
-
 // ─── Public Pet Profile ───────────────────────────────────────────────────────
 exports.getPetProfile = onRequest({ cors: true }, async (req, res) => {
   const petId = req.query.petId;

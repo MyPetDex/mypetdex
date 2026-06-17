@@ -11,7 +11,7 @@ const MONTHS = [
 ];
 const DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
 const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
-const MINUTES = ["00", "15", "30", "45"];
+const MINUTES = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
 const AMPM = ["AM", "PM"];
 
 const currentYear = new Date().getFullYear();

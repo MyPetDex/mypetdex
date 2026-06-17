@@ -1,4 +1,4 @@
-import { useEffect, Component, ReactNode } from "react";
+import { useEffect, useRef, Component, ReactNode } from "react";
 import { Pressable, Text, View, ScrollView } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -6,6 +6,7 @@ import { useFonts } from "expo-font";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { registerForPushNotifications } from "@/lib/notifications";
 
 // ── Error Boundary — catches JS crashes and shows the error on screen ──────────
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -52,6 +53,18 @@ function AuthGuard() {
   const { profile, loading: profileLoading } = useUserProfile();
   const segments = useSegments();
   const router = useRouter();
+  const notifRegistered = useRef(false);
+
+  // Register for push notifications once after user authenticates
+  useEffect(() => {
+    if (user && !notifRegistered.current) {
+      notifRegistered.current = true;
+      registerForPushNotifications(user.uid);
+    }
+    if (!user) {
+      notifRegistered.current = false;
+    }
+  }, [user]);
 
   useEffect(() => {
     if (authLoading || (user && profileLoading)) return;
