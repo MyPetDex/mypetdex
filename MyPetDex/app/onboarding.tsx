@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const BLUE  = "#4486F4";
 
 const US_STATES = [

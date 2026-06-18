@@ -5,7 +5,7 @@ import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from "fi
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const ADMIN_EMAIL = "mypetdexapp@gmail.com";
 const STORES = ["Amazon", "Chewy", "Other"];
 const CATEGORIES = ["Food", "Treats", "Toys", "Health", "Grooming", "Accessories", "Other"];

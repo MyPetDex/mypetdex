@@ -6,7 +6,7 @@ import { doc, getDoc, collection, query, where, getDocs } from "firebase/firesto
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 
 export default function ProviderHome() {
   const { user } = useAuth();

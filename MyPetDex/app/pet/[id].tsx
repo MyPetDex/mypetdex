@@ -16,7 +16,7 @@ import * as ImagePicker from "expo-image-picker";
 import DatePicker from "@/components/DatePicker";
 import QRCode from "react-native-qrcode-svg";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const BLUE = "#4486F4";
 const TABS = ["Records", "Reminders", "Calories", "Recipes"];
 

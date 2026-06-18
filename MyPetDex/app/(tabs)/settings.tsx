@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import * as WebBrowser from "expo-web-browser";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();

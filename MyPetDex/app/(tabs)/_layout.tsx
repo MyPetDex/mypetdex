@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 
 export default function TabLayout() {
   const { user } = useAuth();
@@ -76,7 +76,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="ai"
         options={{
-          title: "Pet Assistant",
+          title: "MyPetDex AI",
           href: isProvider || isShelter || isAdmin ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sparkles-outline" size={size} color={color} />

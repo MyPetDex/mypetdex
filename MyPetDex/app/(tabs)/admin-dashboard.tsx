@@ -7,7 +7,7 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const ADMIN_EMAIL = "mypetdexapp@gmail.com";
 
 const PLAN_PRICES: Record<string, number> = { plus: 3.0, family: 5.0 };
@@ -71,7 +71,7 @@ export default function AdminDashboard() {
       {/* User counts */}
       <Text style={s.sectionTitle}>Users ({totalUsers} total)</Text>
       <View style={s.statsGrid}>
-        <StatCard label="Pet Owners" value={stats.owners} icon="paw-outline" color="#4CAF82" />
+        <StatCard label="Pet Owners" value={stats.owners} icon="paw-outline" color="#4486F4" />
         <StatCard label="Providers" value={stats.providers} icon="briefcase-outline" color="#3B82F6" />
         <StatCard label="Shelters" value={stats.shelters} icon="home-outline" color="#F5A623" />
         <StatCard label="Plus Plans" value={stats.plusUsers} icon="star-outline" color="#8B5CF6" />

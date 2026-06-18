@@ -28,7 +28,7 @@ export default function NotFound() {
   if (checking) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#4CAF82" />
+        <ActivityIndicator size="large" color="#4486F4" />
       </View>
     );
   }

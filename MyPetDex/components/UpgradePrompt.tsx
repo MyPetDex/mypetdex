@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   emoji: { fontSize: 48 },
   title: { fontSize: 20, fontWeight: "700", color: "#1a1a1a" },
   desc: { fontSize: 15, color: "#555", textAlign: "center", lineHeight: 22 },
-  upgradeBtn: { backgroundColor: "#4CAF82", borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32, width: "100%", alignItems: "center" },
+  upgradeBtn: { backgroundColor: "#4486F4", borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32, width: "100%", alignItems: "center" },
   upgradeBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   cancelBtn: { paddingVertical: 8 },
   cancelBtnText: { fontSize: 14, color: "#888" },

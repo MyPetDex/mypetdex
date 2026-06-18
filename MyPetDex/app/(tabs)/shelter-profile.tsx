@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 
 export default function ShelterProfile() {
   const { user, signOut } = useAuth();

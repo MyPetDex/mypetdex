@@ -5,7 +5,7 @@ import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from "fi
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const ADMIN_EMAIL = "mypetdexapp@gmail.com";
 
 export default function AdminReviews() {

@@ -8,7 +8,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const BLUE = "#4486F4";
 
 type ExploreTab = "services" | "adopt";

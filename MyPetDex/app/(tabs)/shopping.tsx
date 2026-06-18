@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const BLUE = "#4486F4";
 
 type ShopTab = "amazon" | "chewy";

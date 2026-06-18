@@ -6,9 +6,9 @@ import { collection, query, where, getDocs, orderBy, updateDoc, doc } from "fire
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const STATUS_COLORS: Record<string, string> = {
-  pending: "#F5A623", confirmed: "#4CAF82", completed: "#3B82F6", cancelled: "#EF4444",
+  pending: "#F5A623", confirmed: "#4486F4", completed: "#3B82F6", cancelled: "#EF4444",
 };
 
 export default function ProviderBookings() {

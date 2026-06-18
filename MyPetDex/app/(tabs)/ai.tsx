@@ -4,7 +4,7 @@ import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { useRouter } from "expo-router";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 
 type Message = { role: "user" | "assistant"; text: string };
 
@@ -30,9 +30,9 @@ export default function AIVetScreen() {
     return (
       <View style={styles.upgradeWall}>
         <Text style={styles.upgradeEmoji}>🤖</Text>
-        <Text style={styles.upgradeTitle}>AI Pet Assistant</Text>
+        <Text style={styles.upgradeTitle}>MyPetDex Assistant</Text>
         <Text style={styles.upgradeDesc}>
-          Get instant answers about your pet's health, nutrition, and behavior from our AI vet assistant.
+          Get instant answers about your pet's health, nutrition, and behavior from MyPetDex Assistant.
         </Text>
         <Pressable style={styles.upgradeBtn} onPress={() => router.push("/settings/subscription")}>
           <Text style={styles.upgradeBtnText}>Upgrade to Plus — $2.99/mo</Text>

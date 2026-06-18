@@ -11,7 +11,7 @@ import UpgradePrompt from "@/components/UpgradePrompt";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
 
-const BRAND = "#4CAF82";
+const BRAND = "#4486F4";
 const BLUE = "#4486F4";
 
 type MeTab = "pets" | "settings";
