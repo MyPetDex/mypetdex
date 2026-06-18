@@ -2,11 +2,11 @@ import {
   View, Text, StyleSheet, ScrollView, Pressable,
   TextInput, ActivityIndicator, Image, Linking, Modal, FlatList,
 } from "react-native";
-import { useState, useEffect, useCallback } from "react";
-import { useFocusEffect } from "expo-router";
+import { useState, useEffect } from "react";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { isWeb, webDb } from "@/lib/firebase";
+import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import _nativeFirestore from "@react-native-firebase/firestore";
 
 const BRAND = "#4486F4";
 const BLUE = "#4486F4";
@@ -81,29 +81,76 @@ export default function ExploreScreen() {
   const { profile } = useUserProfile();
   const [activeTab, setActiveTab] = useState<ExploreTab>("services");
 
-  // Services state — pre-fill from user profile
+  // Services state — always starts fresh
   const [serviceFilter, setServiceFilter] = useState("");
   const [stateFilter, setStateFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
   const [searched, setSearched] = useState(false);
 
-  // Clear city, results and service filter when leaving the tab
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        setCityFilter("");
-        setServiceFilter("");
-        setSearched(false);
-        setProviders([]);
-      };
-    }, [])
-  );
+  // No cleanup needed — state resets naturally on each fresh mount
+  // (Expo Router unmounts tabs when navigating away, so state is always fresh)
 
-  // Location always starts blank — no auto-fill
-
-  // Provider state
+  // Providers state
   const [providers, setProviders] = useState<any[]>([]);
-  const [providersLoading, setProvidersLoading] = useState(false);
+  const [providerLoading, setProviderLoading] = useState(false);
+
+  const [providerError, setProviderError] = useState("");
+
+  async function searchProviders(overrideService?: string) {
+    if (!stateFilter) return;
+    setProviderLoading(true);
+    setProviders([]);
+    setProviderError("");
+    const activeSvc = overrideService !== undefined ? overrideService : serviceFilter;
+    const cityTrim  = cityFilter.trim().toLowerCase();
+
+    // stateCity field enables fast single-field queries when city is provided
+    const stateCityKey = cityTrim ? `${stateFilter}_${cityTrim}` : null;
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Search timed out — please try again.")), 15000)
+    );
+
+    try {
+      const doSearch = async () => {
+        if (isWeb) {
+          let q;
+          if (stateCityKey) {
+            // Fast exact-match: returns ~12 docs instantly
+            q = query(collection(webDb, "seedProviders"), where("stateCity", "==", stateCityKey), limit(100));
+          } else {
+            q = query(collection(webDb, "seedProviders"), where("state", "==", stateFilter), limit(500));
+          }
+          const snap = await getDocs(q);
+          let results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          if (activeSvc) results = results.filter((p: any) =>
+            p.serviceType?.toLowerCase() === activeSvc.toLowerCase()
+          );
+          return results;
+        } else {
+          let q: any = _nativeFirestore().collection("seedProviders");
+          if (stateCityKey) {
+            q = q.where("stateCity", "==", stateCityKey);
+          } else {
+            q = q.where("state", "==", stateFilter).limit(500);
+          }
+          const snap = await q.get();
+          let results = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+          if (activeSvc) results = results.filter((p: any) =>
+            p.serviceType?.toLowerCase() === activeSvc.toLowerCase()
+          );
+          return results;
+        }
+      };
+
+      const results = await Promise.race([doSearch(), timeout]);
+      setProviders(results as any[]);
+    } catch (e: any) {
+      console.error("Provider search error:", e);
+      setProviderError(e?.message || "Search failed. Please try again.");
+    }
+    setProviderLoading(false);
+  }
 
   // Adopt state
   const [petType, setPetType] = useState<"Dog" | "Cat">("Dog");
@@ -147,12 +194,10 @@ export default function ExploreScreen() {
     setAdoptPets([]);
     const state = getStateFromZip(zipCode);
     try {
-      const res = await fetch("https://api.rescuegroups.org/v5/public/animals/search", {
+      // Call our secure Firebase Function proxy — key never exposed to client
+      const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/rescueProxy", {
         method: "POST",
-        headers: {
-          Authorization: process.env.EXPO_PUBLIC_RESCUEGROUPS_API_KEY || "",
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
             filters: [
@@ -167,74 +212,39 @@ export default function ExploreScreen() {
       });
       const data = await res.json();
       const animals: AdoptPet[] = (data.data || [])
-        .filter((a: any) => {
-          const attr = a.attributes;
-          const orgId = a.relationships?.orgs?.data?.[0]?.id;
-          const org = data.included?.find((i: any) => i.type === "orgs" && i.id === orgId);
-          return (attr.url && attr.url.startsWith("http")) ||
-            (org?.attributes?.url && org.attributes.url.startsWith("http"));
-        })
         .map((a: any) => {
           const attr = a.attributes;
           const locId = a.relationships?.locations?.data?.[0]?.id;
           const orgId = a.relationships?.orgs?.data?.[0]?.id;
           const loc = data.included?.find((i: any) => i.type === "locations" && i.id === locId);
           const org = data.included?.find((i: any) => i.type === "orgs" && i.id === orgId);
+
+          // Build the best possible direct-to-pet URL:
+          // 1. attr.url — direct pet page (most reliable, works for dogs)
+          // 2. RescueGroups hosted page — always links to exact pet
+          // 3. org website — fallback
+          const petDirectUrl = attr.url && attr.url.startsWith("http") && !attr.url.includes("rescuegroups.org/org/")
+            ? attr.url
+            : `https://www.rescuegroups.org/animals/detail/${a.id}/`;
+
           return {
             id: a.id,
-            name: attr.name,
+            name: attr.name || "Unknown",
             breed: attr.breedString || attr.breedPrimary || "",
             age: attr.ageGroup || "",
             sex: attr.sex || "",
-            photo: attr.pictureThumbnailUrl || "",
-            url: attr.url || org?.attributes?.url || "",
+            photo: attr.pictureThumbnailUrl || attr.pictureThumbUrl || "",
+            url: petDirectUrl,
             city: loc?.attributes?.city || org?.attributes?.city || state,
           };
-        });
+        })
+        .filter((a: AdoptPet) => a.name && a.name !== "Unknown");
       setAdoptPets(animals);
       if (animals.length === 0) setAdoptError("No pets found near that zip code. Try another!");
     } catch {
       setAdoptError("Could not load pets. Please try again.");
     }
     setAdoptLoading(false);
-  };
-
-  const searchProviders = async (overrideServiceFilter?: string) => {
-    setSearched(true);
-    setProvidersLoading(true);
-    setProviders([]);
-    const activeService = overrideServiceFilter !== undefined ? overrideServiceFilter : serviceFilter;
-    try {
-      // Query seed providers + any real signed-up providers
-      const seedSnap = await getDocs(collection(db, "seedProviders"));
-      let results = seedSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
-      try {
-        const usersSnap = await getDocs(query(collection(db, "users"), where("role", "==", "provider")));
-        results = [...results, ...usersSnap.docs.map(d => ({ id: d.id, ...d.data() }))];
-      } catch { /* users query may fail on permissions — seedProviders still loads */ }
-
-      // Filter by state
-      if (stateFilter) {
-        results = results.filter(p => p.state === stateFilter);
-      }
-      // Filter by city
-      if (cityFilter) {
-        const city = cityFilter.toLowerCase();
-        results = results.filter(p => p.city?.toLowerCase().includes(city));
-      }
-      // Filter by service type
-      if (activeService) {
-        results = results.filter(p =>
-          p.service === activeService ||
-          p.serviceType === activeService ||
-          p.services?.includes(activeService)
-        );
-      }
-      setProviders(results);
-    } catch (e) {
-      console.error("Provider search error:", e);
-    }
-    setProvidersLoading(false);
   };
 
   return (
@@ -270,13 +280,13 @@ export default function ExploreScreen() {
             <StateDropdown value={stateFilter} onSelect={setStateFilter} />
             <TextInput
               style={styles.cityInput}
-              placeholder="City"
+              placeholder="Enter city name"
               placeholderTextColor="#aaa"
               value={cityFilter}
               onChangeText={setCityFilter}
-              onSubmitEditing={() => searchProviders()}
+              onSubmitEditing={() => setSearched(true)}
             />
-            <Pressable style={styles.searchBtn} onPress={searchProviders}>
+            <Pressable style={[styles.searchBtn, !stateFilter && { opacity: 0.5 }]} onPress={() => { if (!stateFilter) return; setSearched(true); searchProviders(); }}>
               <Text style={styles.searchBtnText}>Search</Text>
             </Pressable>
           </View>
@@ -292,9 +302,10 @@ export default function ExploreScreen() {
                   serviceFilter === s.label && { borderColor: s.color, backgroundColor: s.color + "11" },
                 ]}
                 onPress={() => {
-                  const newFilter = s.label === serviceFilter ? "" : s.label;
-                  setServiceFilter(newFilter);
-                  searchProviders(newFilter);
+                  const next = s.label === serviceFilter ? "" : s.label;
+                  setServiceFilter(next);
+                  setSearched(true);
+                  if (stateFilter) searchProviders(next);
                 }}
               >
                 <Text style={styles.serviceEmoji}>{s.emoji}</Text>
@@ -305,55 +316,51 @@ export default function ExploreScreen() {
           </View>
 
           {searched && (
-            <>
-              {providersLoading ? (
-                <ActivityIndicator color={BRAND} style={{ marginTop: 20 }} />
-              ) : providers.length === 0 ? (
-                <View style={styles.comingSoonBox}>
-                  <Text style={styles.comingSoonEmoji}>🛎️</Text>
-                  <Text style={styles.comingSoonTitle}>
-                    No {serviceFilter ? serviceFilter.toLowerCase() + " providers" : "providers"} found near{" "}
-                    {[cityFilter, stateFilter].filter(Boolean).join(", ") || "you"}
-                  </Text>
-                  <Text style={styles.comingSoonSub}>
-                    Try a different city, state, or service type.
-                  </Text>
-                </View>
-              ) : (
-                <>
-                  <Text style={styles.label}>
-                    {providers.length} provider{providers.length === 1 ? "" : "s"} near {[cityFilter, stateFilter].filter(Boolean).join(", ") || "you"}
-                  </Text>
-                  {providers.map(p => (
-                    <Pressable
-                      key={p.id}
-                      style={styles.providerCard}
-                      onPress={() => (p.googleMapsUrl || p.website) && Linking.openURL(p.googleMapsUrl || p.website)}
-                    >
-                      <View style={styles.providerTop}>
-                        <View style={styles.providerAvatar}>
-                          <Text style={styles.providerAvatarText}>
-                            {(p.businessName || "?").charAt(0).toUpperCase()}
-                          </Text>
-                        </View>
-                        <View style={styles.providerInfo}>
-                          <Text style={styles.providerName}>{p.businessName}</Text>
-                          <Text style={styles.providerService}>{p.service}</Text>
-                          <Text style={styles.providerLocation}>📍 {[p.city, p.state].filter(Boolean).join(", ")}</Text>
-                        </View>
-                        {p.googleRating && (
-                          <View style={styles.verifiedBadge}>
-                            <Text style={styles.verifiedText}>⭐ {p.googleRating}</Text>
-                          </View>
-                        )}
+            providerLoading ? (
+              <ActivityIndicator color={BRAND} size="large" style={{ marginTop: 32 }} />
+            ) : providerError ? (
+              <View style={styles.comingSoonBox}>
+                <Text style={styles.comingSoonEmoji}>⚠️</Text>
+                <Text style={styles.comingSoonTitle}>Search failed</Text>
+                <Text style={styles.comingSoonSub}>{providerError}</Text>
+              </View>
+            ) : providers.length > 0 ? (
+              <View>
+                <Text style={styles.resultsCount}>{providers.length} providers found</Text>
+                {providers.map((p: any) => (
+                  <Pressable
+                    key={p.id}
+                    style={styles.providerCard}
+                    onPress={() => p.website && Linking.openURL(p.website.startsWith("http") ? p.website : `https://${p.website}`)}
+                  >
+                    <View style={styles.providerHeader}>
+                      <View style={styles.providerIcon}>
+                        <Text style={{ fontSize: 22 }}>
+                          {SERVICE_TYPES.find(s => s.label === p.serviceType || s.label === p.service)?.emoji || "🐾"}
+                        </Text>
                       </View>
-                      {p.address ? <Text style={styles.providerBio} numberOfLines={1}>{p.address}</Text> : null}
-                      {p.phone ? <Text style={styles.providerPhone}>📞 {p.phone}</Text> : null}
-                    </Pressable>
-                  ))}
-                </>
-              )}
-            </>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.providerName}>{p.businessName || p.name}</Text>
+                        <Text style={styles.providerType}>{p.serviceType || p.service}</Text>
+                        <Text style={styles.providerLocation}>📍 {[p.city, p.state].filter(Boolean).join(", ")}</Text>
+                      </View>
+                      {p.rating && (
+                        <View style={styles.ratingBadge}>
+                          <Text style={styles.ratingText}>⭐ {p.rating}</Text>
+                        </View>
+                      )}
+                    </View>
+                    {p.phone && <Text style={styles.providerPhone}>📞 {p.phone}</Text>}
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.comingSoonBox}>
+                <Text style={styles.comingSoonEmoji}>🔍</Text>
+                <Text style={styles.comingSoonTitle}>No providers found</Text>
+                <Text style={styles.comingSoonSub}>Try a different city or state</Text>
+              </View>
+            )
           )}
         </ScrollView>
       )}
@@ -544,6 +551,16 @@ const styles = StyleSheet.create({
   serviceDesc: { fontSize: 10, color: "#888", textAlign: "center", marginTop: 2 },
 
   // Coming soon
+  resultsCount: { fontSize: 13, color: "#888", marginBottom: 12, marginTop: 4 },
+  providerCard: { backgroundColor: "#fff", borderRadius: 14, padding: 14, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  providerHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  providerIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#f0faf5", alignItems: "center", justifyContent: "center" },
+  providerName: { fontSize: 15, fontWeight: "700", color: "#1a1a1a", flex: 1 },
+  providerType: { fontSize: 12, color: BRAND, fontWeight: "600", marginTop: 2 },
+  providerLocation: { fontSize: 12, color: "#888", marginTop: 2 },
+  providerPhone: { fontSize: 13, color: "#555", marginTop: 8 },
+  ratingBadge: { backgroundColor: "#FEF3C7", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  ratingText: { fontSize: 12, fontWeight: "700", color: "#92400E" },
   comingSoonBox: {
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -557,8 +574,6 @@ const styles = StyleSheet.create({
   comingSoonSub: { fontSize: 13, color: "#888", textAlign: "center", lineHeight: 20 },
 
   // Adopt
-  searchRow: { flexDirection: "row", gap: 10, marginBottom: 14, alignItems: "center" },
-  searchInput: { flex: 1, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 13, fontSize: 14, color: "#1a1a1a", borderWidth: 1, borderColor: "#eee" },
   typeRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
   typeBtn: {
     flex: 1,
@@ -623,22 +638,10 @@ const styles = StyleSheet.create({
   },
   meetBtnText: { color: "#fff", fontSize: 11, fontWeight: "700" },
 
-  // Provider cards
-  providerCard: { backgroundColor: "#fff", borderRadius: 14, padding: 14, marginBottom: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
-  providerTop: { flexDirection: "row", alignItems: "center", gap: 12 },
-  providerAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: BRAND + "20", alignItems: "center", justifyContent: "center" },
-  providerAvatarText: { fontSize: 20, fontWeight: "700", color: BRAND },
-  providerInfo: { flex: 1 },
-  providerName: { fontSize: 15, fontWeight: "700", color: "#1a1a1a" },
-  providerService: { fontSize: 12, color: "#888", marginTop: 2 },
-  providerLocation: { fontSize: 12, color: "#888", marginTop: 2 },
-  verifiedBadge: { backgroundColor: BRAND + "15", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  verifiedText: { fontSize: 11, fontWeight: "700", color: BRAND },
-  providerBio: { fontSize: 13, color: "#555", marginTop: 8, lineHeight: 18 },
-  providerPhone: { fontSize: 13, color: BRAND, marginTop: 6, fontWeight: "600" },
-
   emptyBox: { alignItems: "center", paddingTop: 48, gap: 10 },
   emptyEmoji: { fontSize: 48 },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: "#333", textAlign: "center" },
   emptySub: { fontSize: 13, color: "#888", textAlign: "center", lineHeight: 20, paddingHorizontal: 16 },
+  searchRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, marginHorizontal: 16, marginBottom: 12 },
+  searchInput: { flex: 1, backgroundColor: "#fff", borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, padding: 12, fontSize: 14, color: "#1E293B" },
 });
