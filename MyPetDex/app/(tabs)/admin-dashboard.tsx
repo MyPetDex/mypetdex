@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
+// v2
 import { useRouter } from "expo-router";
 import { webDb } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
