@@ -68,6 +68,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Featured products (Amazon/Chewy) — readable by any signed-in user
+    match /featured_products/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // Deny everything else by default (covers any other paths)
     // Public stats (user count for website)
     match /stats/{docId} {

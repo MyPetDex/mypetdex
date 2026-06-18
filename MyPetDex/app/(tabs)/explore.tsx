@@ -205,15 +205,13 @@ export default function ExploreScreen() {
     setProviders([]);
     const activeService = overrideServiceFilter !== undefined ? overrideServiceFilter : serviceFilter;
     try {
-      // Query both seed providers and real signed-up providers
-      const [seedSnap, usersSnap] = await Promise.all([
-        getDocs(collection(db, "seedProviders")),
-        getDocs(query(collection(db, "users"), where("role", "==", "provider"))),
-      ]);
-      let results = [
-        ...seedSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-        ...usersSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-      ] as any[];
+      // Query seed providers + any real signed-up providers
+      const seedSnap = await getDocs(collection(db, "seedProviders"));
+      let results = seedSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+      try {
+        const usersSnap = await getDocs(query(collection(db, "users"), where("role", "==", "provider")));
+        results = [...results, ...usersSnap.docs.map(d => ({ id: d.id, ...d.data() }))];
+      } catch { /* users query may fail on permissions — seedProviders still loads */ }
 
       // Filter by state
       if (stateFilter) {
