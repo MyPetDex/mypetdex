@@ -2,7 +2,7 @@ import {
   View, Text, StyleSheet, ScrollView, Pressable,
   TextInput, ActivityIndicator, Image, Linking, Modal, FlatList,
 } from "react-native";
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { isWeb, webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
@@ -93,40 +93,39 @@ export default function ExploreScreen() {
   // Providers state
   const [providers, setProviders] = useState<any[]>([]);
   const [providerLoading, setProviderLoading] = useState(false);
-
   const [providerError, setProviderError] = useState("");
+  const searchIdRef = useRef(0); // prevents stale results from old searches
+
+  function cancelSearch() {
+    searchIdRef.current += 1; // invalidate any in-flight search
+    setProviderLoading(false);
+    setProviderError("");
+  }
 
   async function searchProviders(overrideService?: string) {
     if (!stateFilter) return;
+    const myId = ++searchIdRef.current; // unique id for this search
     setProviderLoading(true);
     setProviders([]);
     setProviderError("");
+
     const activeSvc = overrideService !== undefined ? overrideService : serviceFilter;
     const cityTrim  = cityFilter.trim().toLowerCase();
-
-    // stateCity field enables fast single-field queries when city is provided
     const stateCityKey = cityTrim ? `${stateFilter}_${cityTrim}` : null;
 
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Search timed out — please try again.")), 15000)
-    );
+    const TIMEOUT_MS = 6000;
 
     try {
-      const doSearch = async () => {
+      const runQuery = async (): Promise<any[]> => {
         if (isWeb) {
           let q;
           if (stateCityKey) {
-            // Fast exact-match: returns ~12 docs instantly
             q = query(collection(webDb, "seedProviders"), where("stateCity", "==", stateCityKey), limit(100));
           } else {
             q = query(collection(webDb, "seedProviders"), where("state", "==", stateFilter), limit(500));
           }
           const snap = await getDocs(q);
-          let results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          if (activeSvc) results = results.filter((p: any) =>
-            p.serviceType?.toLowerCase() === activeSvc.toLowerCase()
-          );
-          return results;
+          return snap.docs.map(d => ({ id: d.id, ...d.data() }));
         } else {
           let q: any = _nativeFirestore().collection("seedProviders");
           if (stateCityKey) {
@@ -135,21 +134,29 @@ export default function ExploreScreen() {
             q = q.where("state", "==", stateFilter).limit(500);
           }
           const snap = await q.get();
-          let results = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-          if (activeSvc) results = results.filter((p: any) =>
-            p.serviceType?.toLowerCase() === activeSvc.toLowerCase()
-          );
-          return results;
+          return snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
         }
       };
 
-      const results = await Promise.race([doSearch(), timeout]);
-      setProviders(results as any[]);
+      const timeoutP = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Taking too long — try again in a moment.")), TIMEOUT_MS)
+      );
+
+      let results: any[] = await Promise.race([runQuery(), timeoutP]);
+
+      // Filter by service type
+      if (activeSvc) results = results.filter((p: any) =>
+        p.serviceType?.toLowerCase() === activeSvc.toLowerCase()
+      );
+
+      if (myId !== searchIdRef.current) return; // cancelled — ignore stale result
+      setProviders(results);
     } catch (e: any) {
+      if (myId !== searchIdRef.current) return;
       console.error("Provider search error:", e);
       setProviderError(e?.message || "Search failed. Please try again.");
     }
-    setProviderLoading(false);
+    if (myId === searchIdRef.current) setProviderLoading(false);
   }
 
   // Adopt state
@@ -301,6 +308,7 @@ export default function ExploreScreen() {
                   styles.serviceCard,
                   serviceFilter === s.label && { borderColor: s.color, backgroundColor: s.color + "11" },
                 ]}
+                disabled={providerLoading}
                 onPress={() => {
                   const next = s.label === serviceFilter ? "" : s.label;
                   setServiceFilter(next);
@@ -317,7 +325,12 @@ export default function ExploreScreen() {
 
           {searched && (
             providerLoading ? (
-              <ActivityIndicator color={BRAND} size="large" style={{ marginTop: 32 }} />
+              <View style={{ alignItems: "center", marginTop: 32, gap: 16 }}>
+                <ActivityIndicator color={BRAND} size="large" />
+                <Pressable onPress={cancelSearch} style={styles.cancelBtn}>
+                  <Text style={styles.cancelBtnText}>✕ Cancel Search</Text>
+                </Pressable>
+              </View>
             ) : providerError ? (
               <View style={styles.comingSoonBox}>
                 <Text style={styles.comingSoonEmoji}>⚠️</Text>
@@ -638,6 +651,8 @@ const styles = StyleSheet.create({
   },
   meetBtnText: { color: "#fff", fontSize: 11, fontWeight: "700" },
 
+  cancelBtn: { backgroundColor: "#fee2e2", borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
+  cancelBtnText: { color: "#dc2626", fontWeight: "700", fontSize: 14 },
   emptyBox: { alignItems: "center", paddingTop: 48, gap: 10 },
   emptyEmoji: { fontSize: 48 },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: "#333", textAlign: "center" },
