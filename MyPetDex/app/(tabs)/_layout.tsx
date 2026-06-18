@@ -1,82 +1,53 @@
-import { Tabs, useRouter } from "expo-router";
-import { Platform, TouchableOpacity, View, Text, Pressable, StyleSheet, Image } from "react-native";
+import { Tabs } from "expo-router";
+import { Platform, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
-import { isWeb, webAuth, webDb } from "@/lib/firebase";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4486F4";
 
 export default function TabLayout() {
-  const { isDemoMode } = useAuth();
-  const router = useRouter();
-  const [role, setRole] = useState<string>("owner");
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
 
-  useEffect(() => {
-    if (!isWeb) return;
-    const unsub = onAuthStateChanged(webAuth, async (user) => {
-      if (user) {
-        // Admin email always gets admin role regardless of Firestore doc
-        if (user.email === "mypetdexapp@gmail.com") { setRole("admin"); return; }
-        try {
-          const snap = await getDoc(doc(webDb, "users", user.uid));
-          if (snap.exists()) setRole(snap.data().role || "owner");
-        } catch {}
-      }
-    });
-    return unsub;
-  }, []);
+  // Determine role: admin email always gets admin, otherwise from profile
+  const role = user?.email === "mypetdexapp@gmail.com"
+    ? "admin"
+    : (profile?.role || "owner");
 
   const isProvider = role === "provider";
   const isShelter = role === "shelter";
   const isAdmin = role === "admin";
 
   return (
-    <View style={{ flex: 1 }}>
-      {isDemoMode && (
-        <View style={styles.demoBanner}>
-          <Text style={styles.demoBannerText}>👀 Demo Mode — view only, no changes saved</Text>
-          <Pressable
-            style={styles.demoBannerBtn}
-            onPress={() => router.replace("/(auth)/sign-in" as any)}
-          >
-            <Text style={styles.demoBannerBtnText}>Sign Up Free →</Text>
-          </Pressable>
-        </View>
-      )}
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: BRAND },
-        headerShadowVisible: false,
-        headerTitleStyle: { fontWeight: "700", fontSize: 18, color: "#fff" },
-        headerTintColor: "#fff",
+        tabBarActiveTintColor: BRAND,
+        tabBarInactiveTintColor: "#999",
         tabBarStyle: {
-          backgroundColor: BRAND,
-          borderTopColor: "transparent",
+          backgroundColor: "#fff",
+          borderTopColor: "#f0f0f0",
           paddingBottom: Platform.OS === "ios" ? 20 : 8,
           height: Platform.OS === "ios" ? 82 : 62,
         },
-        tabBarActiveTintColor: "#fff",
-        tabBarInactiveTintColor: "rgba(255,255,255,0.5)",
-        animation: "fade",
+        headerStyle: { backgroundColor: "#fff" },
+        headerShadowVisible: false,
+        headerTitleStyle: { fontWeight: "700", fontSize: 18 },
       }}
     >
       {/* ── Pet Owner tabs ─────────────────────────────────────────── */}
       <Tabs.Screen
         name="index"
         options={{
-          headerTitle: () => (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Image
-                source={require("../../assets/images/logo-transparent.png")}
-                style={{ width: 28, height: 28, borderRadius: 6 }}
-              />
-              <Text style={{ fontSize: 18, fontWeight: "800", color: "#1a1a1a" }}>MyPetDex</Text>
-            </View>
-          ),
+          title: "Home",
           href: isProvider || isShelter || isAdmin ? null : undefined,
+          headerTitle: () => (
+            <Image
+              source={require("../../assets/images/logo-transparent.png")}
+              style={{ height: 32, width: 130 }}
+              resizeMode="contain"
+            />
+          ),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),
@@ -105,7 +76,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="ai"
         options={{
-          title: "MyPetDex Assistant",
+          title: "MyMyPetDex Assistant",
           href: isProvider || isShelter || isAdmin ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sparkles-outline" size={size} color={color} />
@@ -217,41 +188,51 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Admin tabs removed — no admin routes in native app */}
+      {/* ── Admin tabs ─────────────────────────────────────────────── */}
+      <Tabs.Screen
+        name="admin-dashboard"
+        options={{
+          title: "Dashboard",
+          href: isAdmin ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="bar-chart-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin-users"
+        options={{
+          title: "Users",
+          href: isAdmin ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin-reviews"
+        options={{
+          title: "Reviews",
+          href: isAdmin ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="shield-checkmark-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin-products"
+        options={{
+          title: "Products",
+          href: isAdmin ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="pricetag-outline" size={size} color={color} />
+          ),
+        }}
+      />
 
       {/* ── Always hidden ──────────────────────────────────────────── */}
       <Tabs.Screen name="pets" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
-    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  demoBanner: {
-    backgroundColor: "#1a1a2e",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  demoBannerText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "600",
-    flex: 1,
-  },
-  demoBannerBtn: {
-    backgroundColor: "#4486F4",
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  demoBannerBtnText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-});
