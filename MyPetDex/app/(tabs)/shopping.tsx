@@ -1,55 +1,57 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  Linking, TextInput,
+  Linking, TextInput, ActivityIndicator,
 } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { db } from "@/lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
 
 const BRAND = "#4CAF82";
 const BLUE = "#4486F4";
 
 type ShopTab = "amazon" | "chewy";
 
-const CATEGORIES = ["All", "Food", "Toys", "Health", "Grooming", "Beds"];
-
-const PRODUCTS = [
-  { id: "1", category: "Food", name: "Royal Canin Adult Dog Food", price: "$54.99", store: "Amazon", emoji: "📦", url: "https://www.amazon.com/s?k=royal+canin+adult+dog+food&tag=mypetdex20-20" },
-  { id: "2", category: "Food", name: "Hill's Science Diet Cat Food", price: "$45.99", store: "Amazon", emoji: "📦", url: "https://www.amazon.com/s?k=hills+science+diet+cat+food&tag=mypetdex20-20" },
-  { id: "3", category: "Food", name: "Blue Buffalo Life Protection", price: "$38.99", store: "Amazon", emoji: "📦", url: "https://www.amazon.com/s?k=blue+buffalo+life+protection+dog+food&tag=mypetdex20-20" },
-  { id: "4", category: "Toys", name: "KONG Classic Dog Toy", price: "$12.99", store: "Amazon", emoji: "📦", url: "https://www.amazon.com/s?k=kong+classic+dog+toy&tag=mypetdex20-20" },
-  { id: "5", category: "Toys", name: "Feather Wand Cat Toy", price: "$8.99", store: "Amazon", emoji: "📦", url: "https://www.amazon.com/s?k=feather+wand+cat+toy&tag=mypetdex20-20" },
-  { id: "6", category: "Health", name: "Frontline Plus Flea Treatment", price: "$44.99", store: "Amazon", emoji: "📦", url: "https://www.amazon.com/s?k=frontline+plus+flea+treatment&tag=mypetdex20-20" },
-  { id: "7", category: "Health", name: "Zesty Paws Multivitamin", price: "$25.97", store: "Amazon", emoji: "📦", url: "https://www.amazon.com/s?k=zesty+paws+multivitamin+dogs&tag=mypetdex20-20" },
-  { id: "8", category: "Grooming", name: "Hertzko Self Cleaning Brush", price: "$19.99", store: "Amazon", emoji: "📦", url: "https://www.amazon.com/s?k=hertzko+self+cleaning+slicker+brush&tag=mypetdex20-20" },
-  { id: "9", category: "Grooming", name: "Burt's Bees Dog Shampoo", price: "$9.99", store: "Amazon", emoji: "📦", url: "https://www.amazon.com/s?k=burts+bees+dog+shampoo&tag=mypetdex20-20" },
-  { id: "10", category: "Beds", name: "Furhaven Orthopedic Dog Bed", price: "$39.99", store: "Amazon", emoji: "📦", url: "https://www.amazon.com/s?k=furhaven+orthopedic+dog+bed&tag=mypetdex20-20" },
-  { id: "11", category: "Beds", name: "K&H Heated Cat Bed", price: "$49.99", store: "Amazon", emoji: "📦", url: "https://www.amazon.com/s?k=kh+heated+cat+bed&tag=mypetdex20-20" },
-];
-
-const CHEWY_COMING_SOON = [
-  { id: "c1", category: "Food", name: "Royal Canin Adult Dog Food", price: "$54.99", emoji: "🛒" },
-  { id: "c2", category: "Food", name: "Hill's Science Diet Cat Food", price: "$45.99", emoji: "🛒" },
-  { id: "c3", category: "Health", name: "Frontline Plus Flea Treatment", price: "$44.99", emoji: "🛒" },
-  { id: "c4", category: "Grooming", name: "Burt's Bees Dog Shampoo", price: "$9.99", emoji: "🛒" },
-  { id: "c5", category: "Toys", name: "Feather Wand Cat Toy", price: "$8.99", emoji: "🛒" },
-  { id: "c6", category: "Beds", name: "K&H Heated Cat Bed", price: "$49.99", emoji: "🛒" },
-];
+const CATEGORIES = ["All", "Food", "Treats", "Toys", "Health", "Grooming", "Accessories", "Beds"];
 
 export default function ShoppingScreen() {
   const [shopTab, setShopTab] = useState<ShopTab>("amazon");
   const [selected, setSelected] = useState("All");
   const [search, setSearch] = useState("");
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = PRODUCTS.filter(
-    (p) =>
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  async function loadProducts() {
+    setLoading(true);
+    try {
+      const snap = await getDocs(collection(db, "featured_products"));
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+      list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      setProducts(list);
+    } catch (e) {
+      console.error("Failed to load products:", e);
+    }
+    setLoading(false);
+  }
+
+  const amazonProducts = products.filter(
+    p =>
+      p.store === "Amazon" &&
       (selected === "All" || p.category === selected) &&
-      p.name.toLowerCase().includes(search.toLowerCase())
+      (p.title || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  const chewyFiltered = CHEWY_COMING_SOON.filter(
-    (p) =>
+  const chewyProducts = products.filter(
+    p =>
+      p.store === "Chewy" &&
       (selected === "All" || p.category === selected) &&
-      p.name.toLowerCase().includes(search.toLowerCase())
+      (p.title || "").toLowerCase().includes(search.toLowerCase())
   );
+
+  const visibleProducts = shopTab === "amazon" ? amazonProducts : chewyProducts;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -73,9 +75,6 @@ export default function ShoppingScreen() {
           <Text style={[styles.toggleText, shopTab === "chewy" && styles.toggleTextActive]}>
             Chewy
           </Text>
-          <View style={styles.soonBadge}>
-            <Text style={styles.soonBadgeText}>Soon</Text>
-          </View>
         </Pressable>
       </View>
 
@@ -111,10 +110,13 @@ export default function ShoppingScreen() {
         ))}
       </ScrollView>
 
-      {/* ── Amazon Tab ── */}
-      {shopTab === "amazon" && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🛍️ Amazon Products</Text>
+      {/* Products */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>
+          {shopTab === "amazon" ? "🛍️ Amazon Products" : "🛒 Chewy Products"}
+        </Text>
+
+        {shopTab === "amazon" && (
           <View style={styles.disclaimer}>
             <Text style={styles.disclaimerEmoji}>💚</Text>
             <View style={styles.disclaimerTextWrap}>
@@ -124,74 +126,53 @@ export default function ShoppingScreen() {
               </Text>
             </View>
           </View>
-          {filtered.map((product) => (
+        )}
+
+        {loading ? (
+          <ActivityIndicator color={BRAND} style={{ marginTop: 32 }} />
+        ) : visibleProducts.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyEmoji}>{shopTab === "amazon" ? "📦" : "🛒"}</Text>
+            <Text style={styles.emptyTitle}>No products found</Text>
+            <Text style={styles.emptySub}>
+              {search || selected !== "All"
+                ? "Try a different search or category."
+                : shopTab === "chewy"
+                ? "Chewy products will appear here once added from the admin dashboard."
+                : "Products will appear here once added from the admin dashboard."}
+            </Text>
+          </View>
+        ) : (
+          visibleProducts.map((product) => (
             <Pressable
               key={product.id}
               style={styles.productCard}
-              onPress={() => Linking.openURL(product.url)}
+              onPress={() => product.url && Linking.openURL(product.url)}
             >
               <View style={styles.storeTag}>
-                <Text style={styles.storeEmoji}>{product.emoji}</Text>
-                <Text style={styles.storeName}>{product.store}</Text>
-              </View>
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{product.name}</Text>
-                <Text style={styles.productPrice}>{product.price}</Text>
-              </View>
-              <Text style={styles.shopBtn}>Shop →</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
-
-      {/* ── Chewy Tab ── */}
-      {shopTab === "chewy" && (
-        <View style={styles.section}>
-          {/* Coming soon banner */}
-          <View style={styles.chewyBanner}>
-            <Text style={styles.chewyBannerEmoji}>🐾</Text>
-            <Text style={styles.chewyBannerTitle}>Chewy Integration Coming Soon!</Text>
-            <Text style={styles.chewyBannerSub}>
-              We're partnering with Chewy to bring you the best pet products
-              directly in the app. Here's a sneak peek of what's coming!
-            </Text>
-          </View>
-
-          <Text style={styles.sectionTitle}>🛒 Chewy Products Preview</Text>
-
-          {chewyFiltered.map((product) => (
-            <View key={product.id} style={[styles.productCard, styles.productCardDisabled]}>
-              <View style={styles.storeTag}>
-                <Text style={styles.storeEmoji}>{product.emoji}</Text>
-                <Text style={[styles.storeName, { color: "#1B75BC" }]}>Chewy</Text>
-              </View>
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{product.name}</Text>
-                <Text style={[styles.productPrice, { color: "#1B75BC" }]}>
-                  {product.price}
+                <Text style={styles.storeEmoji}>{product.store === "Chewy" ? "🛒" : "📦"}</Text>
+                <Text style={[styles.storeName, product.store === "Chewy" && { color: "#1B75BC" }]}>
+                  {product.store}
                 </Text>
               </View>
-              <View style={styles.comingSoonTag}>
-                <Text style={styles.comingSoonTagText}>Soon</Text>
+              <View style={styles.productInfo}>
+                <Text style={styles.productName}>{product.title}</Text>
+                {product.price ? (
+                  <Text style={[styles.productPrice, product.store === "Chewy" && { color: "#1B75BC" }]}>
+                    {product.price}
+                  </Text>
+                ) : null}
+                {product.description ? (
+                  <Text style={styles.productDesc} numberOfLines={1}>{product.description}</Text>
+                ) : null}
               </View>
-            </View>
-          ))}
-
-          {/* Notify me card */}
-          <View style={styles.notifyCard}>
-            <Text style={styles.notifyTitle}>🔔 Want to be notified?</Text>
-            <Text style={styles.notifySub}>
-              We'll let you know as soon as Chewy integration goes live!
-            </Text>
-            <Pressable
-              style={styles.notifyBtn}
-              onPress={() => Linking.openURL("https://www.chewy.com")}
-            >
-              <Text style={styles.notifyBtnText}>Visit Chewy.com →</Text>
+              <Text style={[styles.shopBtn, product.store === "Chewy" && { color: "#1B75BC" }]}>
+                Shop →
+              </Text>
             </Pressable>
-          </View>
-        </View>
-      )}
+          ))
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -224,13 +205,6 @@ const styles = StyleSheet.create({
   toggleEmoji: { fontSize: 16 },
   toggleText: { fontSize: 14, fontWeight: "600", color: "#666" },
   toggleTextActive: { color: "#fff", fontWeight: "700" },
-  soonBadge: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  soonBadgeText: { fontSize: 10, fontWeight: "800", color: "#1B75BC" },
 
   // Search
   searchBar: {
@@ -302,70 +276,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  productCardDisabled: { opacity: 0.7 },
   storeTag: { alignItems: "center", width: 44 },
   storeEmoji: { fontSize: 24 },
   storeName: { fontSize: 10, color: "#888", fontWeight: "500" },
   productInfo: { flex: 1 },
   productName: { fontSize: 14, fontWeight: "600", color: "#1a1a1a" },
   productPrice: { fontSize: 15, color: BRAND, fontWeight: "700", marginTop: 2 },
+  productDesc: { fontSize: 12, color: "#888", marginTop: 2 },
   shopBtn: { fontSize: 13, color: BRAND, fontWeight: "600" },
-  comingSoonTag: {
-    backgroundColor: "#1B75BC22",
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  comingSoonTagText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#1B75BC",
-  },
 
-  // Chewy banner
-  chewyBanner: {
-    backgroundColor: "#EBF4FF",
-    borderRadius: 16,
-    padding: 20,
-    alignItems: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "#1B75BC33",
-    marginBottom: 4,
-  },
-  chewyBannerEmoji: { fontSize: 36 },
-  chewyBannerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1B75BC",
-    textAlign: "center",
-  },
-  chewyBannerSub: {
-    fontSize: 13,
-    color: "#555",
-    textAlign: "center",
-    lineHeight: 20,
-  },
-
-  // Notify card
-  notifyCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
-    alignItems: "center",
-    gap: 8,
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: "#eee",
-  },
-  notifyTitle: { fontSize: 16, fontWeight: "700", color: "#1a1a1a" },
-  notifySub: { fontSize: 13, color: "#888", textAlign: "center" },
-  notifyBtn: {
-    backgroundColor: "#1B75BC",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    marginTop: 4,
-  },
-  notifyBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  // Empty state
+  emptyBox: { alignItems: "center", paddingTop: 40, gap: 10 },
+  emptyEmoji: { fontSize: 48 },
+  emptyTitle: { fontSize: 16, fontWeight: "700", color: "#333" },
+  emptySub: { fontSize: 13, color: "#888", textAlign: "center", lineHeight: 20, paddingHorizontal: 16 },
 });

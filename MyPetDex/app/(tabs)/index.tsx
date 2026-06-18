@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  ActivityIndicator, Modal,
+  ActivityIndicator, Modal, Image,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
@@ -50,7 +50,11 @@ export default function HomeScreen() {
       (snap) => {
         const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setPets(docs);
-        if (docs.length > 0 && !selectedPet) setSelectedPet(docs[0]);
+        if (docs.length > 0) {
+          setSelectedPet(prev =>
+            prev ? (docs.find(d => d.id === prev.id) ?? docs[0]) : docs[0]
+          );
+        }
         setLoading(false);
       },
       () => setLoading(false)
@@ -124,9 +128,13 @@ export default function HomeScreen() {
             >
               <View style={styles.petDashTop}>
                 <View style={styles.petDashAvatar}>
-                  <Text style={styles.petDashEmoji}>
-                    {selectedPet.species === "cat" ? "🐱" : "🐶"}
-                  </Text>
+                  {selectedPet.photoURL ? (
+                    <Image source={{ uri: selectedPet.photoURL }} style={styles.petDashAvatarImage} />
+                  ) : (
+                    <Text style={styles.petDashEmoji}>
+                      {selectedPet.species === "cat" ? "🐱" : "🐶"}
+                    </Text>
+                  )}
                 </View>
                 <View style={styles.petDashInfo}>
                   <Text style={styles.petDashName}>{selectedPet.name}</Text>
@@ -282,7 +290,8 @@ const styles = StyleSheet.create({
   pickerChevron: { fontSize: 13, color: BRAND, fontWeight: "700" },
   petDashCard: { backgroundColor: "#fff", borderRadius: 18, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3 },
   petDashTop: { flexDirection: "row", alignItems: "center", padding: 18, gap: 14 },
-  petDashAvatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: BRAND + "20", alignItems: "center", justifyContent: "center" },
+  petDashAvatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: BRAND + "20", alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  petDashAvatarImage: { width: 64, height: 64, borderRadius: 32 },
   petDashEmoji: { fontSize: 34 },
   petDashInfo: { flex: 1 },
   petDashName: { fontSize: 20, fontWeight: "700", color: "#1a1a1a" },

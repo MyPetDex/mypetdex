@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Platform } from "react-native";
+import { Platform, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,6 +41,13 @@ export default function TabLayout() {
         options={{
           title: "Home",
           href: isProvider || isShelter || isAdmin ? null : undefined,
+          headerTitle: () => (
+            <Image
+              source={require("../../assets/images/logo-transparent.png")}
+              style={{ height: 32, width: 130 }}
+              resizeMode="contain"
+            />
+          ),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),

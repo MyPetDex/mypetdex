@@ -4,6 +4,8 @@ import {
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 const BRAND = "#4CAF82";
 const BLUE = "#4486F4";
@@ -89,6 +91,10 @@ export default function ExploreScreen() {
     if (profile?.state && !stateFilter) setStateFilter(profile.state);
     if (profile?.city && !cityFilter) setCityFilter(profile.city);
   }, [profile]);
+
+  // Provider state
+  const [providers, setProviders] = useState<any[]>([]);
+  const [providersLoading, setProvidersLoading] = useState(false);
 
   // Adopt state
   const [petType, setPetType] = useState<"Dog" | "Cat">("Dog");
@@ -184,6 +190,32 @@ export default function ExploreScreen() {
     setAdoptLoading(false);
   };
 
+  const searchProviders = async (overrideServiceFilter?: string) => {
+    setSearched(true);
+    setProvidersLoading(true);
+    setProviders([]);
+    const activeService = overrideServiceFilter !== undefined ? overrideServiceFilter : serviceFilter;
+    try {
+      let q = query(collection(db, "users"), where("role", "==", "provider"));
+      if (stateFilter) q = query(q, where("state", "==", stateFilter));
+      const snap = await getDocs(q);
+      let results = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+      if (cityFilter) {
+        const city = cityFilter.toLowerCase();
+        results = results.filter(p => p.city?.toLowerCase().includes(city));
+      }
+      if (activeService) {
+        results = results.filter(p =>
+          p.serviceType === activeService || p.services?.includes(activeService)
+        );
+      }
+      setProviders(results);
+    } catch (e) {
+      console.error("Provider search error:", e);
+    }
+    setProvidersLoading(false);
+  };
+
   return (
     <View style={styles.container}>
       {/* Toggle */}
@@ -223,7 +255,7 @@ export default function ExploreScreen() {
               onChangeText={setCityFilter}
               onSubmitEditing={() => setSearched(true)}
             />
-            <Pressable style={styles.searchBtn} onPress={() => setSearched(true)}>
+            <Pressable style={styles.searchBtn} onPress={searchProviders}>
               <Text style={styles.searchBtnText}>Search</Text>
             </Pressable>
           </View>
@@ -239,8 +271,9 @@ export default function ExploreScreen() {
                   serviceFilter === s.label && { borderColor: s.color, backgroundColor: s.color + "11" },
                 ]}
                 onPress={() => {
-                  setServiceFilter(s.label === serviceFilter ? "" : s.label);
-                  setSearched(true);
+                  const newFilter = s.label === serviceFilter ? "" : s.label;
+                  setServiceFilter(newFilter);
+                  searchProviders(newFilter);
                 }}
               >
                 <Text style={styles.serviceEmoji}>{s.emoji}</Text>
@@ -251,16 +284,55 @@ export default function ExploreScreen() {
           </View>
 
           {searched && (
-            <View style={styles.comingSoonBox}>
-              <Text style={styles.comingSoonEmoji}>🛎️</Text>
-              <Text style={styles.comingSoonTitle}>
-                {serviceFilter ? `${serviceFilter} providers` : "Service providers"} near{" "}
-                {[cityFilter, stateFilter].filter(Boolean).join(", ") || "you"}
-              </Text>
-              <Text style={styles.comingSoonSub}>
-                Live provider listings coming soon! In the meantime, use the service cards above to browse.
-              </Text>
-            </View>
+            <>
+              {providersLoading ? (
+                <ActivityIndicator color={BRAND} style={{ marginTop: 20 }} />
+              ) : providers.length === 0 ? (
+                <View style={styles.comingSoonBox}>
+                  <Text style={styles.comingSoonEmoji}>🛎️</Text>
+                  <Text style={styles.comingSoonTitle}>
+                    No {serviceFilter ? serviceFilter.toLowerCase() + " providers" : "providers"} found near{" "}
+                    {[cityFilter, stateFilter].filter(Boolean).join(", ") || "you"}
+                  </Text>
+                  <Text style={styles.comingSoonSub}>
+                    Try a different city, state, or service type.
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.label}>
+                    {providers.length} provider{providers.length === 1 ? "" : "s"} near {[cityFilter, stateFilter].filter(Boolean).join(", ") || "you"}
+                  </Text>
+                  {providers.map(p => (
+                    <Pressable
+                      key={p.id}
+                      style={styles.providerCard}
+                      onPress={() => p.website && Linking.openURL(p.website)}
+                    >
+                      <View style={styles.providerTop}>
+                        <View style={styles.providerAvatar}>
+                          <Text style={styles.providerAvatarText}>
+                            {(p.businessName || p.displayName || "?").charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                        <View style={styles.providerInfo}>
+                          <Text style={styles.providerName}>{p.businessName || p.displayName}</Text>
+                          <Text style={styles.providerService}>{p.serviceType || p.services?.join(", ")}</Text>
+                          <Text style={styles.providerLocation}>📍 {[p.city, p.state].filter(Boolean).join(", ")}</Text>
+                        </View>
+                        {p.verified && (
+                          <View style={styles.verifiedBadge}>
+                            <Text style={styles.verifiedText}>✓ Verified</Text>
+                          </View>
+                        )}
+                      </View>
+                      {p.bio ? <Text style={styles.providerBio} numberOfLines={2}>{p.bio}</Text> : null}
+                      {p.phone ? <Text style={styles.providerPhone}>📞 {p.phone}</Text> : null}
+                    </Pressable>
+                  ))}
+                </>
+              )}
+            </>
           )}
         </ScrollView>
       )}
@@ -464,6 +536,8 @@ const styles = StyleSheet.create({
   comingSoonSub: { fontSize: 13, color: "#888", textAlign: "center", lineHeight: 20 },
 
   // Adopt
+  searchRow: { flexDirection: "row", gap: 10, marginBottom: 14, alignItems: "center" },
+  searchInput: { flex: 1, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 13, fontSize: 14, color: "#1a1a1a", borderWidth: 1, borderColor: "#eee" },
   typeRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
   typeBtn: {
     flex: 1,
@@ -527,6 +601,20 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   meetBtnText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+
+  // Provider cards
+  providerCard: { backgroundColor: "#fff", borderRadius: 14, padding: 14, marginBottom: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  providerTop: { flexDirection: "row", alignItems: "center", gap: 12 },
+  providerAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: BRAND + "20", alignItems: "center", justifyContent: "center" },
+  providerAvatarText: { fontSize: 20, fontWeight: "700", color: BRAND },
+  providerInfo: { flex: 1 },
+  providerName: { fontSize: 15, fontWeight: "700", color: "#1a1a1a" },
+  providerService: { fontSize: 12, color: "#888", marginTop: 2 },
+  providerLocation: { fontSize: 12, color: "#888", marginTop: 2 },
+  verifiedBadge: { backgroundColor: BRAND + "15", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  verifiedText: { fontSize: 11, fontWeight: "700", color: BRAND },
+  providerBio: { fontSize: 13, color: "#555", marginTop: 8, lineHeight: 18 },
+  providerPhone: { fontSize: 13, color: BRAND, marginTop: 6, fontWeight: "600" },
 
   emptyBox: { alignItems: "center", paddingTop: 48, gap: 10 },
   emptyEmoji: { fontSize: 48 },

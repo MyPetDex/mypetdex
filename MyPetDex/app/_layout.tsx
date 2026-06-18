@@ -110,7 +110,7 @@ export default function RootLayout() {
     <ErrorBoundary>
     <AuthProvider>
       <AuthGuard />
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)/sign-in" />
         <Stack.Screen name="(tabs)" />

@@ -1,7 +1,7 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   TextInput, ActivityIndicator, Switch, Modal,
-  Share, Linking, Platform, Alert,
+  Share, Linking, Platform, Alert, Image,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
@@ -181,9 +181,13 @@ export default function MeScreen() {
                     onPress={() => router.push(`/pet/${pet.id}`)}
                   >
                     <View style={styles.avatar}>
-                      <Text style={styles.avatarEmoji}>
-                        {pet.species === "cat" ? "🐱" : "🐶"}
-                      </Text>
+                      {pet.photoURL ? (
+                        <Image source={{ uri: pet.photoURL }} style={styles.avatarImage} />
+                      ) : (
+                        <Text style={styles.avatarEmoji}>
+                          {pet.species === "cat" ? "🐱" : "🐶"}
+                        </Text>
+                      )}
                     </View>
                     <View style={styles.info}>
                       <Text style={styles.name}>{pet.name}</Text>
@@ -419,7 +423,8 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 18, fontWeight: "600", color: "#1a1a1a" },
   emptySub: { fontSize: 14, color: "#888", textAlign: "center" },
   card: { backgroundColor: "#fff", borderRadius: 14, padding: 16, flexDirection: "row", alignItems: "center" },
-  avatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: "#f0f8f4", alignItems: "center", justifyContent: "center", marginRight: 14 },
+  avatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: "#f0f8f4", alignItems: "center", justifyContent: "center", marginRight: 14, overflow: "hidden" },
+  avatarImage: { width: 60, height: 60, borderRadius: 30 },
   avatarEmoji: { fontSize: 32 },
   info: { flex: 1 },
   name: { fontSize: 17, fontWeight: "700", color: "#1a1a1a" },
