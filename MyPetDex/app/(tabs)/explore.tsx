@@ -5,7 +5,7 @@ import {
 import { useState, useEffect } from "react";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 const BRAND = "#4CAF82";
 const BLUE = "#4486F4";
@@ -86,11 +86,7 @@ export default function ExploreScreen() {
   const [cityFilter, setCityFilter] = useState("");
   const [searched, setSearched] = useState(false);
 
-  // Pre-fill location from profile on load
-  useEffect(() => {
-    if (profile?.state && !stateFilter) setStateFilter(profile.state);
-    if (profile?.city && !cityFilter) setCityFilter(profile.city);
-  }, [profile]);
+  // Location always starts blank — no auto-fill
 
   // Provider state
   const [providers, setProviders] = useState<any[]>([]);
@@ -196,18 +192,31 @@ export default function ExploreScreen() {
     setProviders([]);
     const activeService = overrideServiceFilter !== undefined ? overrideServiceFilter : serviceFilter;
     try {
-      const snap = await getDocs(collection(db, "seedProviders"));
-      let results = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+      // Query both seed providers and real signed-up providers
+      const [seedSnap, usersSnap] = await Promise.all([
+        getDocs(collection(db, "seedProviders")),
+        getDocs(query(collection(db, "users"), where("role", "==", "provider"))),
+      ]);
+      let results = [
+        ...seedSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+        ...usersSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      ] as any[];
+
+      // Filter by state
       if (stateFilter) {
         results = results.filter(p => p.state === stateFilter);
       }
+      // Filter by city
       if (cityFilter) {
         const city = cityFilter.toLowerCase();
         results = results.filter(p => p.city?.toLowerCase().includes(city));
       }
+      // Filter by service type
       if (activeService) {
         results = results.filter(p =>
-          p.service === activeService || p.services?.includes(activeService)
+          p.service === activeService ||
+          p.serviceType === activeService ||
+          p.services?.includes(activeService)
         );
       }
       setProviders(results);
