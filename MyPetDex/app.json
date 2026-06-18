@@ -73,7 +73,15 @@
         }
       ],
       "expo-image",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "mypetdex",
+          "organization": "mypetdex"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
