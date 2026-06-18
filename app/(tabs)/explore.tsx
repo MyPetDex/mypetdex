@@ -4,6 +4,8 @@ import {
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { db } from "@/lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
 
 const BRAND = "#4CAF82";
 const BLUE = "#4486F4";
@@ -83,6 +85,8 @@ export default function ExploreScreen() {
   const [stateFilter, setStateFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
   const [searched, setSearched] = useState(false);
+  const [providers, setProviders] = useState<any[]>([]);
+  const [providersLoading, setProvidersLoading] = useState(false);
 
   // Pre-fill location from profile on load
   useEffect(() => {
@@ -96,6 +100,23 @@ export default function ExploreScreen() {
   const [adoptPets, setAdoptPets] = useState<AdoptPet[]>([]);
   const [adoptLoading, setAdoptLoading] = useState(false);
   const [adoptError, setAdoptError] = useState("");
+
+  // ── Provider search ─────────────────────────────────────────────────────────
+  const searchProviders = async (overrideServiceFilter?: string) => {
+    setSearched(true);
+    setProvidersLoading(true);
+    setProviders([]);
+    const activeService = overrideServiceFilter !== undefined ? overrideServiceFilter : serviceFilter;
+    try {
+      const snap = await getDocs(collection(db, "seedProviders"));
+      let results = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+      if (stateFilter) results = results.filter(p => p.state === stateFilter);
+      if (cityFilter) results = results.filter(p => p.city?.toLowerCase().includes(cityFilter.toLowerCase()));
+      if (activeService) results = results.filter(p => p.service === activeService || p.services?.includes(activeService));
+      setProviders(results);
+    } catch (e) { console.error("Provider search error:", e); }
+    setProvidersLoading(false);
+  };
 
   // ── Adopt search ────────────────────────────────────────────────────────────
   const getStateFromZip = (zip: string): string => {
@@ -223,7 +244,7 @@ export default function ExploreScreen() {
               onChangeText={setCityFilter}
               onSubmitEditing={() => setSearched(true)}
             />
-            <Pressable style={styles.searchBtn} onPress={() => setSearched(true)}>
+            <Pressable style={styles.searchBtn} onPress={() => searchProviders()}>
               <Text style={styles.searchBtnText}>Search</Text>
             </Pressable>
           </View>
@@ -239,8 +260,9 @@ export default function ExploreScreen() {
                   serviceFilter === s.label && { borderColor: s.color, backgroundColor: s.color + "11" },
                 ]}
                 onPress={() => {
-                  setServiceFilter(s.label === serviceFilter ? "" : s.label);
-                  setSearched(true);
+                  const newFilter = s.label === serviceFilter ? "" : s.label;
+                  setServiceFilter(newFilter);
+                  searchProviders(newFilter);
                 }}
               >
                 <Text style={styles.serviceEmoji}>{s.emoji}</Text>
@@ -251,16 +273,46 @@ export default function ExploreScreen() {
           </View>
 
           {searched && (
-            <View style={styles.comingSoonBox}>
-              <Text style={styles.comingSoonEmoji}>🛎️</Text>
-              <Text style={styles.comingSoonTitle}>
-                {serviceFilter ? `${serviceFilter} providers` : "Service providers"} near{" "}
-                {[cityFilter, stateFilter].filter(Boolean).join(", ") || "you"}
-              </Text>
-              <Text style={styles.comingSoonSub}>
-                Live provider listings coming soon! In the meantime, use the service cards above to browse.
-              </Text>
-            </View>
+            <>
+              {providersLoading ? (
+                <ActivityIndicator color={BRAND} style={{ marginTop: 20 }} />
+              ) : providers.length === 0 ? (
+                <View style={styles.comingSoonBox}>
+                  <Text style={styles.comingSoonEmoji}>🛎️</Text>
+                  <Text style={styles.comingSoonTitle}>No providers found near {[cityFilter, stateFilter].filter(Boolean).join(", ") || "you"}</Text>
+                  <Text style={styles.comingSoonSub}>Try a different city, state, or service type.</Text>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.label}>{providers.length} provider{providers.length === 1 ? "" : "s"} found</Text>
+                  {providers.map(p => (
+                    <Pressable
+                      key={p.id}
+                      style={styles.providerCard}
+                      onPress={() => (p.googleMapsUrl || p.website) && Linking.openURL(p.googleMapsUrl || p.website)}
+                    >
+                      <View style={styles.providerTop}>
+                        <View style={styles.providerAvatar}>
+                          <Text style={styles.providerAvatarText}>{(p.businessName || "?").charAt(0).toUpperCase()}</Text>
+                        </View>
+                        <View style={styles.providerInfo}>
+                          <Text style={styles.providerName}>{p.businessName}</Text>
+                          <Text style={styles.providerService}>{p.service}</Text>
+                          <Text style={styles.providerLocation}>📍 {[p.city, p.state].filter(Boolean).join(", ")}</Text>
+                        </View>
+                        {p.googleRating && (
+                          <View style={styles.ratingBadge}>
+                            <Text style={styles.ratingText}>⭐ {p.googleRating}</Text>
+                          </View>
+                        )}
+                      </View>
+                      {p.address ? <Text style={styles.providerAddress} numberOfLines={1}>{p.address}</Text> : null}
+                      {p.phone ? <Text style={styles.providerPhone}>📞 {p.phone}</Text> : null}
+                    </Pressable>
+                  ))}
+                </>
+              )}
+            </>
           )}
         </ScrollView>
       )}
@@ -451,6 +503,18 @@ const styles = StyleSheet.create({
   serviceDesc: { fontSize: 10, color: "#888", textAlign: "center", marginTop: 2 },
 
   // Coming soon
+  providerCard: { backgroundColor: "#fff", borderRadius: 14, padding: 14, marginTop: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  providerTop: { flexDirection: "row", alignItems: "center", gap: 12 },
+  providerAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#4CAF8220", alignItems: "center", justifyContent: "center" },
+  providerAvatarText: { fontSize: 20, fontWeight: "700", color: "#4CAF82" },
+  providerInfo: { flex: 1 },
+  providerName: { fontSize: 15, fontWeight: "700", color: "#1a1a1a" },
+  providerService: { fontSize: 12, color: "#888", marginTop: 2 },
+  providerLocation: { fontSize: 12, color: "#888", marginTop: 2 },
+  ratingBadge: { backgroundColor: "#FFF8E1", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  ratingText: { fontSize: 12, fontWeight: "700", color: "#F59E0B" },
+  providerAddress: { fontSize: 12, color: "#555", marginTop: 8 },
+  providerPhone: { fontSize: 13, color: "#4CAF82", marginTop: 4, fontWeight: "600" },
   comingSoonBox: {
     backgroundColor: "#fff",
     borderRadius: 16,

@@ -5,7 +5,7 @@ import {
 import { useState, useEffect } from "react";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 
 const BRAND = "#4CAF82";
 const BLUE = "#4486F4";
@@ -196,17 +196,18 @@ export default function ExploreScreen() {
     setProviders([]);
     const activeService = overrideServiceFilter !== undefined ? overrideServiceFilter : serviceFilter;
     try {
-      let q = query(collection(db, "users"), where("role", "==", "provider"));
-      if (stateFilter) q = query(q, where("state", "==", stateFilter));
-      const snap = await getDocs(q);
+      const snap = await getDocs(collection(db, "seedProviders"));
       let results = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+      if (stateFilter) {
+        results = results.filter(p => p.state === stateFilter);
+      }
       if (cityFilter) {
         const city = cityFilter.toLowerCase();
         results = results.filter(p => p.city?.toLowerCase().includes(city));
       }
       if (activeService) {
         results = results.filter(p =>
-          p.serviceType === activeService || p.services?.includes(activeService)
+          p.service === activeService || p.services?.includes(activeService)
         );
       }
       setProviders(results);
@@ -307,26 +308,26 @@ export default function ExploreScreen() {
                     <Pressable
                       key={p.id}
                       style={styles.providerCard}
-                      onPress={() => p.website && Linking.openURL(p.website)}
+                      onPress={() => (p.googleMapsUrl || p.website) && Linking.openURL(p.googleMapsUrl || p.website)}
                     >
                       <View style={styles.providerTop}>
                         <View style={styles.providerAvatar}>
                           <Text style={styles.providerAvatarText}>
-                            {(p.businessName || p.displayName || "?").charAt(0).toUpperCase()}
+                            {(p.businessName || "?").charAt(0).toUpperCase()}
                           </Text>
                         </View>
                         <View style={styles.providerInfo}>
-                          <Text style={styles.providerName}>{p.businessName || p.displayName}</Text>
-                          <Text style={styles.providerService}>{p.serviceType || p.services?.join(", ")}</Text>
+                          <Text style={styles.providerName}>{p.businessName}</Text>
+                          <Text style={styles.providerService}>{p.service}</Text>
                           <Text style={styles.providerLocation}>📍 {[p.city, p.state].filter(Boolean).join(", ")}</Text>
                         </View>
-                        {p.verified && (
+                        {p.googleRating && (
                           <View style={styles.verifiedBadge}>
-                            <Text style={styles.verifiedText}>✓ Verified</Text>
+                            <Text style={styles.verifiedText}>⭐ {p.googleRating}</Text>
                           </View>
                         )}
                       </View>
-                      {p.bio ? <Text style={styles.providerBio} numberOfLines={2}>{p.bio}</Text> : null}
+                      {p.address ? <Text style={styles.providerBio} numberOfLines={1}>{p.address}</Text> : null}
                       {p.phone ? <Text style={styles.providerPhone}>📞 {p.phone}</Text> : null}
                     </Pressable>
                   ))}
