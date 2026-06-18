@@ -788,7 +788,8 @@ function RecipesTab({ pet, canUseAI }: { pet: any; canUseAI: boolean }) {
     setStep("result");
     const prompt = `You are a veterinary nutritionist for MyPetDex. Generate a personalized homemade meal recipe for:\n\nPet: ${pet.name}\nSpecies: ${pet.species || pet.type}\nBreed: ${pet.breed}\nAge: ${pet.age} years\nWeight: ${pet.weight} ${pet.weightUnit || "lbs"} (${weightKg.toFixed(1)} kg)\nNeutered: ${pet.neutered ? "Yes" : "No"}\nActivity: ${pet.activityLevel || "moderate"}\nDaily calorie need (AAFCO/WSAVA): ${der} kcal/day\nAvailable ingredients: ${allSelected.join(", ")}\n\nProvide:\n1. RECIPE NAME\n2. INGREDIENTS with exact gram amounts for ${der} kcal daily need split into 2 meals\n3. PREPARATION STEPS\n4. NUTRITIONAL BREAKDOWN\n5. REQUIRED SUPPLEMENTS\n6. BREED-SPECIFIC NOTES for ${pet.breed}\n7. TOXIC FOODS WARNING for ${pet.species || pet.type}s\n\nKeep it practical and science-based.`;
     try {
-      const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1200, messages: [{ role: "user", content: prompt }] }) });
+      const apiUrl = Platform.OS === "web" ? "/api/chat" : "https://app.mypetdex.app/api/chat";
+      const response = await fetch(apiUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1200, messages: [{ role: "user", content: prompt }] }) });
       if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(err?.error?.message || `API error ${response.status}`); }
       const data = await response.json();
       setRecipe(data.content?.[0]?.text || "Could not generate recipe. Please try again.");

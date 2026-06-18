@@ -50,7 +50,8 @@ export default function AIVetScreen() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/chat", {
+      const apiUrl = Platform.OS === "web" ? "/api/chat" : "https://app.mypetdex.app/api/chat";
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
