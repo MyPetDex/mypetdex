@@ -92,19 +92,26 @@ export default function ExploreScreen() {
   // Providers state
   const [providers, setProviders] = useState<any[]>([]);
   const [providerLoading, setProviderLoading] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
   const [providerError, setProviderError] = useState("");
-  const searchIdRef = useRef(0); // prevents stale results from old searches
+  const searchIdRef = useRef(0);
+  const cancelTimerRef = useRef<any>(null);
 
   function cancelSearch() {
-    searchIdRef.current += 1; // invalidate any in-flight search
+    searchIdRef.current += 1;
     setProviderLoading(false);
+    setShowCancel(false);
     setProviderError("");
+    if (cancelTimerRef.current) clearTimeout(cancelTimerRef.current);
   }
 
   async function searchProviders(overrideService?: string) {
     if (!stateFilter) return;
-    const myId = ++searchIdRef.current; // unique id for this search
+    const myId = ++searchIdRef.current;
     setProviderLoading(true);
+    setShowCancel(false);
+    if (cancelTimerRef.current) clearTimeout(cancelTimerRef.current);
+    cancelTimerRef.current = setTimeout(() => setShowCancel(true), 2000);
     setProviders([]);
     setProviderError("");
 
@@ -155,7 +162,8 @@ export default function ExploreScreen() {
       console.error("Provider search error:", e);
       setProviderError(e?.message || "Search failed. Please try again.");
     }
-    if (myId === searchIdRef.current) setProviderLoading(false);
+    if (cancelTimerRef.current) clearTimeout(cancelTimerRef.current);
+    if (myId === searchIdRef.current) { setProviderLoading(false); setShowCancel(false); }
   }
 
   // Adopt state
@@ -326,9 +334,11 @@ export default function ExploreScreen() {
             providerLoading ? (
               <View style={{ alignItems: "center", marginTop: 32, gap: 16 }}>
                 <ActivityIndicator color={BRAND} size="large" />
-                <Pressable onPress={cancelSearch} style={styles.cancelBtn}>
-                  <Text style={styles.cancelBtnText}>✕ Cancel Search</Text>
-                </Pressable>
+                {showCancel && (
+                  <Pressable onPress={cancelSearch} style={styles.cancelBtn}>
+                    <Text style={styles.cancelBtnText}>✕ Cancel Search</Text>
+                  </Pressable>
+                )}
               </View>
             ) : providerError ? (
               <View style={styles.comingSoonBox}>
