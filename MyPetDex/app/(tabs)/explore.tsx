@@ -4,9 +4,8 @@ import {
 } from "react-native";
 import { useState, useRef } from "react";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { isWeb, webDb } from "@/lib/firebase";
+import { webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
-import _nativeFirestore from "@react-native-firebase/firestore";
 
 const BRAND = "#4486F4";
 const BLUE = "#4486F4";
@@ -127,14 +126,14 @@ export default function ExploreScreen() {
           const snap = await getDocs(q);
           return snap.docs.map(d => ({ id: d.id, ...d.data() }));
         } else {
-          let q: any = _nativeFirestore().collection("seedProviders");
+          let q;
           if (stateCityKey) {
-            q = q.where("stateCity", "==", stateCityKey);
+            q = query(collection(webDb, "seedProviders"), where("stateCity", "==", stateCityKey), limit(100));
           } else {
-            q = q.where("state", "==", stateFilter).limit(500);
+            q = query(collection(webDb, "seedProviders"), where("state", "==", stateFilter), limit(500));
           }
-          const snap = await q.get();
-          return snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+          const snap = await getDocs(q);
+          return snap.docs.map(d => ({ id: d.id, ...d.data() }));
         }
       };
 
