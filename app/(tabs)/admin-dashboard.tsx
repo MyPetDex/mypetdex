@@ -120,6 +120,7 @@ export default function AdminDashboard() {
         <Text style={s.signOutCardText}>Sign Out</Text>
       </TouchableOpacity>
     </ScrollView>
+  </View>
   );
 }
 
