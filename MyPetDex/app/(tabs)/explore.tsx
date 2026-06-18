@@ -2,7 +2,8 @@ import {
   View, Text, StyleSheet, ScrollView, Pressable,
   TextInput, ActivityIndicator, Image, Linking, Modal, FlatList,
 } from "react-native";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
@@ -85,6 +86,18 @@ export default function ExploreScreen() {
   const [stateFilter, setStateFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
   const [searched, setSearched] = useState(false);
+
+  // Clear city, results and service filter when leaving the tab
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setCityFilter("");
+        setServiceFilter("");
+        setSearched(false);
+        setProviders([]);
+      };
+    }, [])
+  );
 
   // Location always starts blank — no auto-fill
 
@@ -263,7 +276,7 @@ export default function ExploreScreen() {
               placeholderTextColor="#aaa"
               value={cityFilter}
               onChangeText={setCityFilter}
-              onSubmitEditing={() => setSearched(true)}
+              onSubmitEditing={() => searchProviders()}
             />
             <Pressable style={styles.searchBtn} onPress={searchProviders}>
               <Text style={styles.searchBtnText}>Search</Text>
