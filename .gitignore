@@ -11,3 +11,12 @@ dist/
 *.mobileprovision
 *.orig.*
 web-build/
+serviceAccount.json
+build/
+ios/
+.vercel/
+mypetdex-key.json
+serviceAccount.json
+*.json.key
+*-key.json
+*serviceAccount*
