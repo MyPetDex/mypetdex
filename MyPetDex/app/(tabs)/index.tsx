@@ -197,7 +197,7 @@ export default function HomeScreen() {
       <View style={styles.quickGrid}>
         <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/ai")}>
           <Text style={styles.quickEmoji}>🤖</Text>
-          <Text style={styles.quickLabel}>Pet Assistant</Text>
+          <Text style={styles.quickLabel}>MyPetDex AI</Text>
         </Pressable>
         <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/shopping")}>
           <Text style={styles.quickEmoji}>🛒</Text>
