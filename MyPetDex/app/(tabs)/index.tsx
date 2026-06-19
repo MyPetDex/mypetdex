@@ -15,7 +15,9 @@ const BLUE = "#4486F4";
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const { maxPets } = usePlan();
+  const { maxPets, plan } = usePlan();
+
+  const planLabel = plan === "plus" ? "⭐ Plus Plan" : plan === "family" ? "👑 Family Plan" : null;
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const router = useRouter();
@@ -93,6 +95,11 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Hello, {firstName} 👋</Text>
           <Text style={styles.sub}>Welcome to MyPetDex</Text>
         </View>
+        {planLabel && (
+          <View style={styles.planBadge}>
+            <Text style={styles.planBadgeText}>{planLabel}</Text>
+          </View>
+        )}
       </View>
 
       {/* Pet Section */}
@@ -272,11 +279,13 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f8f8" },
+  container: { flex: 1, backgroundColor: "#F0F4FF" },
   content: { padding: 20, paddingBottom: 40 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24 },
-  greeting: { fontSize: 22, fontWeight: "700", color: "#1a1a1a" },
-  sub: { fontSize: 14, color: "#888", marginTop: 2 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24, backgroundColor: BRAND, margin: -20, marginBottom: 20, padding: 20, paddingTop: 16, paddingBottom: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  greeting: { fontSize: 22, fontWeight: "700", color: "#fff" },
+  sub: { fontSize: 14, color: "rgba(255,255,255,0.8)", marginTop: 2 },
+  planBadge: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
+  planBadgeText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   sectionTitle: { fontSize: 17, fontWeight: "600", color: "#1a1a1a", marginBottom: 12, marginTop: 20 },
   emptyCard: { backgroundColor: "#fff", borderRadius: 16, padding: 32, alignItems: "center", gap: 8 },
   emptyEmoji: { fontSize: 48 },
