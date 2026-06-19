@@ -11,7 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   auth, db, sendEmailVerification,
   doc, setDoc, addDoc, collection, serverTimestamp,
-  GoogleAuthProvider, signInWithCredential,
+  GoogleAuthProvider, signInWithCredential, callFunction,
 } from "@/lib/firebase";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -174,6 +174,22 @@ export default function SignInScreen() {
     setLoading(false);
   }
 
+  async function handleForgotPassword() {
+    if (!form.email) {
+      Alert.alert("Enter your email", "Type your email address above, then tap Forgot Password.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const fn = callFunction("sendPasswordResetEmail");
+      await fn({ email: form.email });
+      Alert.alert("Check your inbox", `We sent a password reset link to ${form.email}.`);
+    } catch {
+      Alert.alert("Check your inbox", `If ${form.email} has an account, a reset link was sent.`);
+    }
+    setLoading(false);
+  }
+
   async function resendVerification() {
     try {
       const u = pendingUser || auth.currentUser;
@@ -269,6 +285,9 @@ export default function SignInScreen() {
             <TextInput style={styles.input} value={form.password} onChangeText={set("password")} placeholder="password" placeholderTextColor="#aaa" secureTextEntry />
             <Pressable style={[styles.primaryBtn, loading && { opacity: 0.6 }]} onPress={handleLogin} disabled={loading}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Sign In</Text>}
+            </Pressable>
+            <Pressable onPress={handleForgotPassword} style={{ alignItems: "center", marginTop: 12, marginBottom: 4 }}>
+              <Text style={{ color: BLUE, fontSize: 14, fontWeight: "600" }}>Forgot Password?</Text>
             </Pressable>
             <View style={styles.divider}><View style={styles.dividerLine} /><Text style={styles.dividerText}>or</Text><View style={styles.dividerLine} /></View>
             {appleAvailable && (
