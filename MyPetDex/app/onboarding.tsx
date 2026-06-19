@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TextInput, Pressable,
   ActivityIndicator, Modal, FlatList, Image, Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -180,15 +181,19 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <View style={styles.inner}>
-
-        {/* Sign out link — top right */}
-        <View style={{ alignItems: "flex-end", marginBottom: 4 }}>
-          <Pressable onPress={handleSignOut} hitSlop={12}>
-            <Text style={{ fontSize: 13, color: "#aaa" }}>Sign Out</Text>
+    <View style={styles.root}>
+      {/* Pinned header — always visible, never scrolls away, not blocked by loading */}
+      <SafeAreaView edges={["top"]} style={styles.header}>
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }} />
+          <Pressable onPress={handleSignOut} hitSlop={16} style={styles.signOutBtn}>
+            <Text style={styles.signOutText}>Sign Out</Text>
           </Pressable>
         </View>
+      </SafeAreaView>
+
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <View style={styles.inner}>
 
         {/* Logo */}
         <View style={styles.logoRow}>
@@ -452,12 +457,20 @@ export default function OnboardingScreen() {
         </Pressable>
 
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f8f8" },
+  root: { flex: 1, backgroundColor: "#f8f8f8" },
+  // Pinned sign-out header
+  header: { backgroundColor: "#f8f8f8" },
+  headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 10 },
+  signOutBtn: { paddingVertical: 6, paddingHorizontal: 4 },
+  signOutText: { fontSize: 14, color: "#aaa", fontWeight: "500" },
+  // Scrollable body
+  scroll: { flex: 1 },
   content: { padding: 24, paddingBottom: 60, alignItems: "center" },
   // Max-width wrapper — makes it look good on desktop web
   inner: {
