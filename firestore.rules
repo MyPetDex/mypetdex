@@ -38,8 +38,12 @@ service cloud.firestore {
       // Update/delete requires verification
       allow update, delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
       match /{subPath=**} {
-        allow read, write: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
-      }
+      allow read: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
+      allow create: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+allow delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
+    }
     }
 
     // Shelter pets are public adoption listings — any verified user can read them

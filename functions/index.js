@@ -279,6 +279,12 @@ exports.sendVerifiedEmail = onRequest(
   }
 );
 
+// ─── Brand Constants ──────────────────────────────────────────────────────────
+const BRAND_BLUE = "#4486F4";
+const APP_STORE_URL = "https://apps.apple.com/app/mypetdex/id6772248051";
+const LOGO_URL = "https://home.mypetdex.app/images/logo.png";
+const WEBSITE_URL = "https://home.mypetdex.app";
+
 // ─── Email Base Template ──────────────────────────────────────────────────────
 function emailBase(content) {
   return `<!DOCTYPE html>
@@ -287,38 +293,53 @@ function emailBase(content) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { margin:0; padding:0; background-color:#F5F8FF; font-family:'Helvetica Neue',Arial,sans-serif; }
+    body { margin:0; padding:0; background-color:#F0F4FF; font-family:'Helvetica Neue',Arial,sans-serif; }
     .wrapper { max-width:600px; margin:0 auto; padding:40px 20px; }
-    .header { text-align:center; margin-bottom:32px; }
-    .logo { text-align:center; margin-bottom:8px; }
-    .app-name { color:#3B82F6; font-size:30px; font-weight:900; margin:8px 0 0; letter-spacing:-1px; }
-    .card { background-color:#FFFFFF; border:1.5px solid #E2E8F0; border-radius:18px; padding:32px; margin-bottom:20px; }
+    .header { text-align:center; margin-bottom:28px; }
+    .header-inner { background:linear-gradient(135deg,#4486F4 0%,#2563EB 100%); border-radius:18px 18px 0 0; padding:28px 20px 20px; margin-bottom:0; }
+    .logo-wrap { display:inline-flex; align-items:center; gap:12px; }
+    .app-name { color:#FFFFFF; font-size:28px; font-weight:900; margin:0; letter-spacing:-0.5px; }
+    .tagline { color:rgba(255,255,255,0.8); font-size:13px; margin:4px 0 0; }
+    .card { background-color:#FFFFFF; border:1.5px solid #E2E8F0; border-radius:0 0 18px 18px; padding:32px; margin-bottom:20px; }
+    .card-standalone { background-color:#FFFFFF; border:1.5px solid #E2E8F0; border-radius:18px; padding:32px; margin-bottom:20px; }
     h1 { color:#1E293B; font-size:22px; font-weight:900; margin:0 0 16px; }
     p { color:#64748B; font-size:15px; line-height:1.7; margin:0 0 12px; }
     .highlight { color:#1E293B; font-weight:700; }
-    .green { color:#3B82F6; font-weight:700; }
+    .blue { color:#4486F4; font-weight:700; }
+    .green { color:#22C55E; font-weight:700; }
     .gold { color:#F5C842; font-weight:700; }
     .feature { display:flex; gap:12px; margin-bottom:12px; align-items:flex-start; }
     .feature-icon { font-size:20px; min-width:28px; }
     .feature-text { color:#64748B; font-size:14px; line-height:1.6; padding-top:2px; }
-    .btn { display:inline-block; background-color:#3B82F6; color:#FFFFFF !important; font-weight:900; font-size:15px; padding:14px 36px; border-radius:12px; text-decoration:none; margin:16px 0; }
-    .footer { text-align:center; color:#64748B; font-size:12px; margin-top:32px; line-height:2; }
-    .footer a { color:#3B82F6; text-decoration:none; }
+    .btn { display:inline-block; background:linear-gradient(135deg,#4486F4 0%,#2563EB 100%); color:#FFFFFF !important; font-weight:900; font-size:15px; padding:14px 36px; border-radius:12px; text-decoration:none; margin:16px 0; box-shadow:0 4px 14px rgba(68,134,244,0.4); }
+    .btn-outline { display:inline-block; border:2px solid #4486F4; color:#4486F4 !important; font-weight:700; font-size:14px; padding:10px 24px; border-radius:10px; text-decoration:none; margin:8px 0; }
+    .footer { text-align:center; color:#94A3B8; font-size:12px; margin-top:24px; line-height:2; }
+    .footer a { color:#4486F4; text-decoration:none; }
     .divider { border:none; border-top:1px solid #E2E8F0; margin:22px 0; }
-    .badge { display:inline-block; background-color:rgba(61,214,140,0.15); color:#3B82F6; border-radius:8px; padding:4px 12px; font-size:12px; font-weight:700; }
+    .badge { display:inline-block; background-color:rgba(68,134,244,0.1); color:#4486F4; border-radius:8px; padding:4px 12px; font-size:12px; font-weight:700; border:1px solid rgba(68,134,244,0.2); }
     .notice { background-color:rgba(245,200,66,0.1); border:1px solid rgba(245,200,66,0.3); border-radius:10px; padding:12px 16px; margin-top:16px; }
+    .notice-blue { background-color:rgba(68,134,244,0.06); border:1px solid rgba(68,134,244,0.2); border-radius:12px; padding:16px; margin:16px 0; text-align:center; }
   </style>
 </head>
 <body>
   <div class="wrapper">
     <div class="header">
-      <div class="logo"><img src="https://app.mypetdex.app/logo.png" alt="MyPetDex" style="width:72px;height:72px;object-fit:contain;" /></div>
-      <div class="app-name">MyPetDex</div>
+      <div class="header-inner">
+        <div class="logo-wrap">
+          <img src="${LOGO_URL}" alt="MyPetDex" style="width:52px;height:52px;object-fit:contain;border-radius:12px;" />
+          <div>
+            <div class="app-name">MyPetDex</div>
+            <div class="tagline">Your pet's complete digital home</div>
+          </div>
+        </div>
+      </div>
     </div>
+    <div class="card">
     ${content}
+    </div>
     <div class="footer">
-      <p>© 2026 MyPetDex &nbsp;·&nbsp; <a href="mailto:help@mypetdex.app">help@mypetdex.app</a></p>
-      <p>You received this because you signed up at <a href="https://app.mypetdex.app">app.mypetdex.app</a></p>
+      <p>© 2026 MyPetDex &nbsp;·&nbsp; <a href="mailto:help@mypetdex.app">help@mypetdex.app</a> &nbsp;·&nbsp; <a href="${WEBSITE_URL}">mypetdex.app</a></p>
+      <p>You received this email because you have a MyPetDex account.</p>
     </div>
   </div>
 </body>
@@ -361,7 +382,6 @@ function ownerWelcomeHTML(name, plan = "free") {
     : "";
 
   return emailBase(`
-    <div class="card">
       <h1>Welcome to MyPetDex, ${name}! 🐾</h1>
       ${planBadge}
       <p>We're thrilled to have you and your furry family on board. Here's everything waiting for you:</p>
@@ -375,16 +395,14 @@ function ownerWelcomeHTML(name, plan = "free") {
       ${recipesFeature}
       ${upgradeSection}
       <hr class="divider">
-      <center><a href="https://app.mypetdex.app" class="btn">Open MyPetDex →</a></center>
+      <center><a href="${APP_STORE_URL}" class="btn">📱 Download MyPetDex →</a></center>
       <p style="text-align:center;font-size:13px;margin-top:12px;">Questions? Just reply to this email — we're always happy to help.</p>
-    </div>
   `);
 }
 
 // ─── Service Provider Welcome ─────────────────────────────────────────────────
 function providerWelcomeHTML(name) {
   return emailBase(`
-    <div class="card">
       <h1>Welcome to MyPetDex, ${name}! 🛎️</h1>
       <p>Your service provider account is set up. Here's what to do next to go live:</p>
       <hr class="divider">
@@ -399,16 +417,14 @@ function providerWelcomeHTML(name) {
       <div class="feature"><span class="feature-icon">🐾</span><div class="feature-text"><span class="highlight">Step 2 — Get Listed</span><br>Once verified, pet owners in your area can discover and book your services</div></div>
       <div class="feature"><span class="feature-icon">💰</span><div class="feature-text"><span class="highlight">Pricing</span> — <span class="green">First 6 months completely FREE.</span> After that, just 5% per completed booking. No monthly fees, ever.</div></div>
       <hr class="divider">
-      <center><a href="https://app.mypetdex.app" class="btn">View My Account →</a></center>
+      <center><a href="${APP_STORE_URL}" class="btn">📱 Download MyPetDex →</a></center>
       <div class="notice"><p style="color:#F5C842;font-size:13px;margin:0;">⏳ Verification usually completes within 24 hours after we receive your documents.</p></div>
-    </div>
   `);
 }
 
 // ─── Shelter Welcome ──────────────────────────────────────────────────────────
 function shelterWelcomeHTML(name) {
   return emailBase(`
-    <div class="card">
       <h1>Welcome to MyPetDex, ${name}! 🏠</h1>
       <p>Your shelter account has been created. Follow these steps to get verified and start connecting pets with families:</p>
       <hr class="divider">
@@ -424,9 +440,8 @@ function shelterWelcomeHTML(name) {
       <div class="feature"><span class="feature-icon">🐶</span><div class="feature-text"><span class="highlight">Step 2 — Add Adoptable Pets</span><br>Once approved, list pets for adoption — they'll be visible to all MyPetDex users immediately</div></div>
       <div class="feature"><span class="feature-icon">✅</span><div class="feature-text"><span class="highlight">Always FREE</span> — <span class="green">Shelter access on MyPetDex is 100% free, forever. No hidden fees.</span></div></div>
       <hr class="divider">
-      <center><a href="https://app.mypetdex.app" class="btn">View My Account →</a></center>
+      <center><a href="${APP_STORE_URL}" class="btn">📱 Download MyPetDex →</a></center>
       <div class="notice"><p style="color:#F5C842;font-size:13px;margin:0;">⏳ Shelter accounts are reviewed and approved within 24 hours after documents are received.</p></div>
-    </div>
   `);
 }
 
@@ -449,7 +464,6 @@ function adminNotificationHTML(role, email, profile) {
     : "";
 
   return emailBase(`
-    <div class="card">
       <h1>${roleEmoji} New ${roleLabel} Signup</h1>
       <p><span class="highlight">${email}</span> just created a ${role} account on MyPetDex.</p>
       <hr class="divider">
@@ -458,27 +472,24 @@ function adminNotificationHTML(role, email, profile) {
       </table>
       <hr class="divider">
       ${actionNote}
-      <center><a href="https://app.mypetdex.app" class="btn" style="margin-top:20px;">Open Admin Dashboard →</a></center>
-    </div>
+      <center><a href="https://app.mypetdex.app/mypetdex-admin" class="btn" style="margin-top:20px;">Open Admin Dashboard →</a></center>
   `);
 }
 
 // ─── Reminder Email ───────────────────────────────────────────────────────────
 function reminderHTML(petName, title, date, time) {
   return emailBase(`
-    <div class="card">
       <h1>⏰ Reminder for ${petName}</h1>
       <p>This is your scheduled reminder from MyPetDex:</p>
       <hr class="divider">
-      <div style="text-align:center;padding:24px 0;">
+      <div style="text-align:center;padding:24px 0;background:#F8FAFF;border-radius:12px;margin-bottom:16px;">
         <div style="font-size:48px;margin-bottom:14px;">🐾</div>
         <div style="color:#1E293B;font-size:22px;font-weight:900;margin-bottom:8px;">${title}</div>
-        <div style="color:#64748B;font-size:15px;">📅 ${date} &nbsp;·&nbsp; 🕐 ${time}</div>
+        <div style="color:#4486F4;font-size:15px;font-weight:600;">📅 ${date} &nbsp;·&nbsp; 🕐 ${time}</div>
       </div>
       <hr class="divider">
-      <center><a href="https://app.mypetdex.app" class="btn">Open MyPetDex →</a></center>
+      <center><a href="${APP_STORE_URL}" class="btn">📱 Open MyPetDex →</a></center>
       <p style="text-align:center;font-size:13px;margin-top:12px;">Need to reschedule? Update your reminders anytime in the app.</p>
-    </div>
   `);
 }
 
@@ -551,8 +562,8 @@ exports.stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecr
 
     try {
       const trialEnd = new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString();
-      await sendEmail(resendKey.value(), { to: email, subject: "🎉 Welcome to MyPetDex " + planName + "!", html: "<div style='font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#F5F8FF;'><div style='text-align:center;margin-bottom:24px;'><img src='https://app.mypetdex.app/logo.png' alt='MyPetDex' style='width:72px;height:72px;object-fit:contain;' /><h1 style='color:#3B82F6;'>MyPetDex " + planName + "</h1></div><div style='background:#fff;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #E2E8F0;'><h2 style='color:#1E293B;margin:0 0 8px;'>Your 30-day free trial has started!</h2><p style='color:#64748B;margin:0;'>After your trial, you will be charged " + price + ". Cancel anytime before the trial ends.</p></div><p style='color:#1E293B;'>Your <strong>" + planName + " plan</strong> is now active. Enjoy all your premium features!</p><a href='https://app.mypetdex.app' style='display:inline-block;background:#3B82F6;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:16px;'>Open MyPetDex</a><p style='color:#94a3b8;font-size:12px;margin-top:24px;'>Questions? Contact us at help@mypetdex.app</p></div>" });
-      await sendEmail(resendKey.value(), { to: ADMIN_EMAIL, subject: "💰 New " + planName + " subscription: " + email, html: "<div style='font-family:sans-serif;padding:24px;'><h2>💰 New Subscription!</h2><p><strong>Email:</strong> " + email + "</p><p><strong>Plan:</strong> " + planName + " (" + price + ")</p><p><strong>Billing:</strong> " + (billing || "monthly") + "</p><p><strong>Trial ends:</strong> " + trialEnd + "</p></div>" });
+      await sendEmail(resendKey.value(), { to: email, subject: `🎉 Welcome to MyPetDex ${planName}!`, html: subscriptionWelcomeHTML(email, planName, price, trialEnd) });
+      await sendEmail(resendKey.value(), { to: ADMIN_EMAIL, subject: `💰 New ${planName} subscription: ${email}`, html: subscriptionAdminHTML(email, planName, price, billing, trialEnd) });
       console.log("Payment emails sent for", email, planName);
     } catch(emailErr) { console.error("Payment email error:", emailErr.response?.body || emailErr); }
   }
@@ -572,8 +583,8 @@ exports.stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecr
 
         // Send cancellation email to user
         try {
-          await sendEmail(resendKey.value(), { to: email, subject: "Your MyPetDex subscription has been cancelled", html: "<div style='font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#F5F8FF;'><div style='text-align:center;margin-bottom:24px;'><img src='https://app.mypetdex.app/logo.png' alt='MyPetDex' style='width:72px;height:72px;object-fit:contain;' /><h1 style='color:#3B82F6;'>MyPetDex</h1></div><div style='background:#fff;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #E2E8F0;'><h2 style='color:#1E293B;margin:0 0 8px;'>Subscription Cancelled</h2><p style='color:#64748B;margin:0;'>Hi " + name + ", your MyPetDex subscription has been cancelled. You have been moved to the free plan.</p></div><p style='color:#1E293B;'>You can resubscribe anytime from the app. We hope to see you back!</p><a href='https://app.mypetdex.app' style='display:inline-block;background:#3B82F6;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:16px;'>Open MyPetDex</a><p style='color:#94a3b8;font-size:12px;margin-top:24px;'>Questions? Contact us at help@mypetdex.app</p></div>" });
-          await sendEmail(resendKey.value(), { to: ADMIN_EMAIL, subject: "❌ Subscription cancelled: " + email, html: "<div style='font-family:sans-serif;padding:24px;'><h2>❌ Subscription Cancelled</h2><p><strong>Email:</strong> " + email + "</p><p><strong>Plan:</strong> Downgraded to Free</p></div>" });
+          await sendEmail(resendKey.value(), { to: email, subject: "Your MyPetDex subscription has been cancelled", html: cancellationHTML(name) });
+          await sendEmail(resendKey.value(), { to: ADMIN_EMAIL, subject: `❌ Subscription cancelled: ${email}`, html: emailBase(`<h1>❌ Subscription Cancelled</h1><table style="width:100%;border-collapse:collapse;"><tr><td style="color:#64748B;padding:7px 10px;font-size:13px;border-bottom:1px solid #E2E8F0;">Email</td><td style="color:#1E293B;padding:7px 10px;font-size:13px;border-bottom:1px solid #E2E8F0;font-weight:600;">${email}</td></tr><tr><td style="color:#64748B;padding:7px 10px;font-size:13px;">Status</td><td style="color:#1E293B;padding:7px 10px;font-size:13px;font-weight:600;">Downgraded to Free</td></tr></table>`) });
         } catch(emailErr) { console.error("Cancellation email error:", emailErr.response?.body || emailErr); }
       }
     } catch(e) { console.error("Cancellation handler error:", e); }
@@ -671,8 +682,8 @@ function verificationEmailHTML(name, role, plan, verifyLink) {
   const roleEmoji = { owner: "🐾", provider: "🛎️", shelter: "🏠" }[role] || "🐾";
   const roleLabel = { owner: "Pet Owner", provider: "Service Provider", shelter: "Animal Shelter" }[role] || "Member";
   const planNote = (role === "owner" && (plan === "plus" || plan === "family"))
-    ? `<div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:12px;padding:14px;text-align:center;margin-bottom:16px;">
-        <p style="color:#3B82F6;font-weight:800;font-size:13px;margin:0 0 4px;">🎁 Your 30-day free ${plan === "plus" ? "Plus" : "Family"} trial is waiting!</p>
+    ? `<div class="notice-blue">
+        <p style="color:#4486F4;font-weight:800;font-size:13px;margin:0 0 4px;">🎁 Your 30-day free ${plan === "plus" ? "Plus" : "Family"} trial is waiting!</p>
         <p style="color:#64748B;font-size:12px;margin:0;">Verify your email to activate it — no credit card needed during the trial.</p>
       </div>` : "";
   const roleNote = role === "provider"
@@ -681,7 +692,6 @@ function verificationEmailHTML(name, role, plan, verifyLink) {
     ? `<p style="color:#64748B;font-size:13px;">Once verified, you can submit your shelter documents and start listing adoptable pets for loving families to find.</p>`
     : `<p style="color:#64748B;font-size:13px;">Once verified, you'll have full access to pet profiles, health records, reminders, AI tips, and more.</p>`;
   return emailBase(`
-    <div class="card">
       <h1>${roleEmoji} One quick step, ${name}!</h1>
       <p>Thanks for joining MyPetDex as a <strong>${roleLabel}</strong>. Just verify your email address to activate your account.</p>
       ${planNote}
@@ -690,8 +700,7 @@ function verificationEmailHTML(name, role, plan, verifyLink) {
       <center><a href="${verifyLink}" class="btn">✅ Verify My Email →</a></center>
       <p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:16px;">This link expires in 24 hours. If you didn't sign up for MyPetDex, you can safely ignore this email.</p>
       <hr class="divider">
-      <p style="text-align:center;font-size:13px;">Questions? <a href="mailto:help@mypetdex.app" style="color:#3B82F6;">help@mypetdex.app</a></p>
-    </div>
+      <p style="text-align:center;font-size:13px;">Questions? <a href="mailto:help@mypetdex.app" style="color:#4486F4;">help@mypetdex.app</a></p>
   `);
 }
 
@@ -720,3 +729,95 @@ exports.getPetProfile = onRequest({ cors: true }, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ─── Subscription Welcome Email Template ─────────────────────────────────────
+function subscriptionWelcomeHTML(email, planName, price, trialEnd) {
+  const icon = planName === "Plus" ? "⭐" : "👑";
+  return emailBase(`
+      <h1>${icon} Welcome to MyPetDex ${planName}!</h1>
+      <div class="notice-blue">
+        <p style="color:#4486F4;font-weight:800;font-size:15px;margin:0 0 6px;">Your 30-day free trial has started!</p>
+        <p style="color:#64748B;font-size:13px;margin:0;">After your trial ends on <strong>${trialEnd}</strong>, you'll be charged <strong>${price}</strong>. Cancel anytime before then.</p>
+      </div>
+      <hr class="divider">
+      <div class="feature"><span class="feature-icon">🤖</span><div class="feature-text"><span class="highlight">AI Pet Assistant</span> — Get personalized pet care advice instantly</div></div>
+      <div class="feature"><span class="feature-icon">🍽️</span><div class="feature-text"><span class="highlight">Pet Recipes</span> — AI-powered balanced meal generator</div></div>
+      <div class="feature"><span class="feature-icon">🐾</span><div class="feature-text"><span class="highlight">${planName === "Plus" ? "Up to 3 Pet Profiles" : "Unlimited Pet Profiles"}</span> — All your pets in one place</div></div>
+      <div class="feature"><span class="feature-icon">⏰</span><div class="feature-text"><span class="highlight">Smart Reminders</span> — Never miss a vet visit or appointment</div></div>
+      <hr class="divider">
+      <center><a href="${APP_STORE_URL}" class="btn">📱 Open MyPetDex →</a></center>
+      <p style="text-align:center;font-size:13px;margin-top:12px;">Questions? Reply to this email — we're happy to help.</p>
+  `);
+}
+
+// ─── Subscription Admin Notification Template ─────────────────────────────────
+function subscriptionAdminHTML(email, planName, price, billing, trialEnd) {
+  return emailBase(`
+      <h1>💰 New ${planName} Subscription</h1>
+      <p><span class="highlight">${email}</span> just subscribed to MyPetDex ${planName}.</p>
+      <hr class="divider">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="color:#64748B;padding:7px 10px;font-size:13px;border-bottom:1px solid #E2E8F0;">Email</td><td style="color:#1E293B;padding:7px 10px;font-size:13px;border-bottom:1px solid #E2E8F0;font-weight:600;">${email}</td></tr>
+        <tr><td style="color:#64748B;padding:7px 10px;font-size:13px;border-bottom:1px solid #E2E8F0;">Plan</td><td style="color:#1E293B;padding:7px 10px;font-size:13px;border-bottom:1px solid #E2E8F0;font-weight:600;">${planName} (${price})</td></tr>
+        <tr><td style="color:#64748B;padding:7px 10px;font-size:13px;border-bottom:1px solid #E2E8F0;">Billing</td><td style="color:#1E293B;padding:7px 10px;font-size:13px;border-bottom:1px solid #E2E8F0;font-weight:600;">${billing || "monthly"}</td></tr>
+        <tr><td style="color:#64748B;padding:7px 10px;font-size:13px;">Trial ends</td><td style="color:#1E293B;padding:7px 10px;font-size:13px;font-weight:600;">${trialEnd}</td></tr>
+      </table>
+      <hr class="divider">
+      <center><a href="https://app.mypetdex.app/mypetdex-admin" class="btn">Open Admin Dashboard →</a></center>
+  `);
+}
+
+// ─── Cancellation Email Template ──────────────────────────────────────────────
+function cancellationHTML(name) {
+  return emailBase(`
+      <h1>😢 Subscription Cancelled</h1>
+      <p>Hi <span class="highlight">${name}</span>, your MyPetDex subscription has been cancelled and your account has been moved to the free plan.</p>
+      <hr class="divider">
+      <div class="feature"><span class="feature-icon">✅</span><div class="feature-text"><span class="highlight">Your data is safe</span> — Pet profiles, records, and reminders are all still there</div></div>
+      <div class="feature"><span class="feature-icon">🐾</span><div class="feature-text"><span class="highlight">Free plan features</span> — You still have access to 1 pet profile, vaccine tracker, and reminders</div></div>
+      <hr class="divider">
+      <p style="text-align:center;color:#64748B;font-size:14px;">We'd love to have you back anytime. Resubscribe in the app whenever you're ready.</p>
+      <center><a href="${APP_STORE_URL}" class="btn">📱 Open MyPetDex →</a></center>
+      <p style="text-align:center;font-size:13px;margin-top:12px;">Questions? <a href="mailto:help@mypetdex.app" style="color:#4486F4;">help@mypetdex.app</a></p>
+  `);
+}
+
+// ─── Password Reset Email ─────────────────────────────────────────────────────
+exports.sendPasswordResetEmail = onCall({ cors: true, secrets: [resendKey] }, async (request) => {
+  const { email } = request.data;
+  if (!email) throw new Error("Missing email address");
+
+  try {
+    const resetLink = await admin.auth().generatePasswordResetLink(email, {
+      url: "https://home.mypetdex.app",
+    });
+
+    await sendEmail(resendKey.value(), {
+      to: email,
+      subject: "Reset your MyPetDex password 🔐",
+      html: passwordResetEmailHTML(email, resetLink),
+    });
+
+    console.log(`Password reset email sent to ${email}`);
+    return { success: true };
+  } catch (err) {
+    console.error("sendPasswordResetEmail error:", err);
+    // Don't reveal if email exists or not for security
+    return { success: true };
+  }
+});
+
+function passwordResetEmailHTML(email, resetLink) {
+  return emailBase(`
+      <h1>🔐 Reset Your Password</h1>
+      <p>We received a request to reset the password for your MyPetDex account associated with <span class="highlight">${email}</span>.</p>
+      <p>Click the button below to set a new password. This link expires in <strong>1 hour</strong>.</p>
+      <hr class="divider">
+      <center><a href="${resetLink}" class="btn">🔐 Reset My Password →</a></center>
+      <hr class="divider">
+      <div class="notice">
+        <p style="color:#92400E;font-size:13px;margin:0;">⚠️ If you didn't request a password reset, you can safely ignore this email. Your password will not be changed.</p>
+      </div>
+      <p style="text-align:center;font-size:13px;margin-top:16px;">Need help? <a href="mailto:help@mypetdex.app" style="color:#4486F4;">help@mypetdex.app</a></p>
+  `);
+}
