@@ -4,7 +4,8 @@ import {
 } from "react-native";
 import { useState, useRef } from "react";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { isWeb, webDb } from "@/lib/firebase";
+import { isWeb } from "@/lib/platform";
+import { webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 
 const BRAND = "#4486F4";

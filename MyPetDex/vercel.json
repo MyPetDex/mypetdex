@@ -1,9 +1,0 @@
-{
-  "redirects": [
-    {
-      "source": "/(.*)",
-      "destination": "https://apps.apple.com/app/mypetdex/id6772248051",
-      "permanent": false
-    }
-  ]
-}

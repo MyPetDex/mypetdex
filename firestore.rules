@@ -35,22 +35,24 @@ service cloud.firestore {
              (resource.data.role == 'shelter' && resource.data.status == 'approved') ||
              (resource.data.role == 'provider')
            ));
-      // Update/delete requires verification
-      allow update, delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
-      match /{subPath=**} {
-      allow read: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
-      allow create: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      // Update own profile allowed without email verification (needed for onboarding step 2 before verify)
       allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
-allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
-allow delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
-    }
+      // Delete requires verification
+      allow delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
+      match /{subPath=**} {
+        allow read: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
+        allow create: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+        allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+        allow delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
+      }
     }
 
     // Shelter pets are public adoption listings — any verified user can read them
-    match /shelterPets/{docId} {
+    // Collection name is shelter_pets (underscore) to match app code
+    match /shelter_pets/{docId} {
       allow read: if isEmailVerified() || isDemoAccount() || isAdmin();
-      allow create: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.resource.data.uid == request.auth.uid);
-      allow update, delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && resource.data.uid == request.auth.uid);
+      allow create: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.resource.data.shelterId == request.auth.uid);
+      allow update, delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && resource.data.shelterId == request.auth.uid);
     }
 
     // Generic rule for top-level collections that store an owning `uid` field
@@ -58,6 +60,24 @@ allow delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request
     match /{collection}/{docId} {
       allow create: if isAdmin() || (isSignedIn() && request.resource.data.uid == request.auth.uid);
       allow read, update, delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && resource.data.uid == request.auth.uid);
+    }
+
+    // Bookings: created by pet owner (uid), readable/updatable by both owner and provider
+    match /bookings/{docId} {
+      allow create: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.resource.data.uid == request.auth.uid);
+      allow read, update: if isAdmin()
+        || ((isEmailVerified() || isDemoAccount()) && resource.data.uid == request.auth.uid)
+        || ((isEmailVerified() || isDemoAccount()) && resource.data.providerId == request.auth.uid);
+      allow delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && resource.data.uid == request.auth.uid);
+    }
+
+    // Reviews: any verified user can create, provider can read their own, admin manages all
+    match /reviews/{docId} {
+      allow create: if isAdmin() || (isEmailVerified() || isDemoAccount());
+      allow read: if isAdmin()
+        || ((isEmailVerified() || isDemoAccount()) && resource.data.uid == request.auth.uid)
+        || ((isEmailVerified() || isDemoAccount()) && resource.data.providerId == request.auth.uid);
+      allow update, delete: if isAdmin();
     }
 
     // Seeded providers from Google Places — any signed-in user can read

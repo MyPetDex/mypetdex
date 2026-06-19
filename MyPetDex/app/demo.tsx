@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { isWeb } from "@/lib/firebase";
+import { isWeb } from "@/lib/platform";
 import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4486F4";

@@ -145,7 +145,7 @@ export default function SignInScreen() {
         phone: form.phone, website: form.website, address: form.address, approved: false,
       });
 
-      await setDoc(doc(db, "users", u.uid), userDoc);
+      await setDoc(doc(db, "users", u.uid), userDoc, { merge: true });
 
       if (role === "owner" && form.petName) {
         await addDoc(collection(db, "users", u.uid, "pets"), {
