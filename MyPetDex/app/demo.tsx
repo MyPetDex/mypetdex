@@ -14,7 +14,7 @@ const logoSrc = require("@/assets/images/logo-transparent.png");
 
 export default function DemoLandingPage() {
   const router = useRouter();
-  const { signInAnonymously } = useAuth();
+  const { signInAnon } = useAuth();
 
   // On web, detect desktop and show a "use mobile" message
   const isDesktop = isWeb && typeof window !== "undefined" && window.innerWidth > 768;
@@ -22,7 +22,7 @@ export default function DemoLandingPage() {
   // Native app: auto sign-in as demo silently, no credentials shown
   useEffect(() => {
     if (isWeb) return;
-    signInAnonymously()
+    signInAnon()
       .then(() => router.replace("/(tabs)"))
       .catch(() => router.replace("/(auth)/sign-in"));
   }, []);
