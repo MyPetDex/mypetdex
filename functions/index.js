@@ -630,6 +630,44 @@ exports.createPortalSession = onRequest({ secrets: [stripeSecretKey], cors: true
     res.status(500).json({ error: err.message });
   }
 });
+// ─── Welcome Email — fired once when a user's email becomes verified ────────
+exports.sendWelcomeEmail = onCall({ cors: true, secrets: [resendKey] }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new Error("Unauthorized");
+
+  const { email } = request.data || {};
+
+  try {
+    const userRecord = await admin.auth().getUser(uid);
+    const targetEmail = email || userRecord.email;
+    if (!targetEmail) throw new Error("No email address on account");
+
+    const userDoc = await db.collection("users").doc(uid).get();
+    const d = userDoc.exists ? userDoc.data() : {};
+    const role = d.role || "owner";
+    const name = d.displayName || targetEmail.split("@")[0];
+
+    let subject, html;
+    if (role === "provider") {
+      subject = "Welcome to MyPetDex – Provider Account 🐾";
+      html = providerWelcomeHTML(d.businessName || name);
+    } else if (role === "shelter") {
+      subject = "Welcome to MyPetDex – Shelter Account 🐾";
+      html = shelterWelcomeHTML(d.shelterName || name);
+    } else {
+      subject = "Welcome to MyPetDex! 🐾";
+      html = ownerWelcomeHTML(name, d.plan || "free");
+    }
+
+    await sendEmail(resendKey.value(), { to: targetEmail, subject, html });
+    console.log(`Welcome email sent to ${targetEmail} (${role})`);
+    return { success: true };
+  } catch (err) {
+    console.error("sendWelcomeEmail error:", err);
+    throw new Error("Failed to send welcome email.");
+  }
+});
+
 // ─── Admin Notification: New Free Plan Signup ────────────────────────────────
 exports.notifyAdminFreeSignup = onCall({ cors: true, secrets: [resendKey] }, async (request) => {
   const uid = request.auth?.uid;
@@ -725,7 +763,10 @@ exports.sendVerificationEmail = onCall({ cors: true, secrets: [resendKey] }, asy
     if (role === "provider") displayName = d.businessName || displayName;
     if (role === "shelter") displayName = d.shelterName || displayName;
 
-    const verificationLink = await admin.auth().generateEmailVerificationLink(targetEmail);
+    // url + handleCodeInApp lets the verification link deep link back into the
+    // app via the "mypetdex" scheme instead of opening a plain web confirmation page
+    const actionCodeSettings = { url: "mypetdex://", handleCodeInApp: true };
+    const verificationLink = await admin.auth().generateEmailVerificationLink(targetEmail, actionCodeSettings);
 
     await sendEmail(resendKey.value(), {
       to: targetEmail,

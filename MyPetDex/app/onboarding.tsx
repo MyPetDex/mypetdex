@@ -185,7 +185,9 @@ export default function OnboardingScreen() {
         }
       }
 
-      // Best-effort — the profile is already saved, so failures here shouldn't block the user
+      // Best-effort — the profile is already saved, so failures here shouldn't block the user.
+      // Welcome email + admin "new free signup" notification are sent from AuthContext instead,
+      // once when emailVerified actually flips to true (not here at onboarding submit time).
       try {
         if (webAuth.currentUser && !webAuth.currentUser.emailVerified) {
           const sendVerification = callFunction("sendVerificationEmail");
@@ -193,15 +195,6 @@ export default function OnboardingScreen() {
         }
       } catch (e) {
         console.error("Failed to send verification email:", e);
-      }
-
-      if (userDoc.plan === "free") {
-        try {
-          const notifyAdmin = callFunction("notifyAdminFreeSignup");
-          await notifyAdmin({ email: u.email, role });
-        } catch (e) {
-          console.error("Failed to notify admin of new signup:", e);
-        }
       }
 
       router.replace("/check-email");

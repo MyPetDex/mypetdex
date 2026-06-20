@@ -3,7 +3,7 @@ import { AppState, Platform } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import {
-  auth, db, userRef,
+  auth, db, userRef, callFunction,
   GoogleAuthProvider, OAuthProvider,
   onAuthStateChanged, signOut, signInAnonymously,
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
@@ -49,6 +49,40 @@ async function ensureUserDoc(firebaseUser: any, role = "owner") {
   }
 }
 
+// Fired once when emailVerified flips false -> true. Guarded by a Firestore `welcomeSent`
+// flag (set before sending) so re-checks on app foreground / re-mounts never double-send.
+async function sendWelcomeIfNeeded(firebaseUser: any) {
+  try {
+    const ref = userRef(firebaseUser.uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data() as any;
+    if (data.welcomeSent) return;
+
+    // Mark first — if the email calls below fail, we accept a missed welcome email
+    // over a risk of sending it twice.
+    await setDoc(ref, { welcomeSent: true }, { merge: true });
+
+    try {
+      const sendWelcome = callFunction("sendWelcomeEmail");
+      await sendWelcome({ email: firebaseUser.email });
+    } catch (e) {
+      console.error("Failed to send welcome email:", e);
+    }
+
+    if (data.plan === "free") {
+      try {
+        const notifyAdmin = callFunction("notifyAdminFreeSignup");
+        await notifyAdmin({ email: firebaseUser.email, role: data.role });
+      } catch (e) {
+        console.error("Failed to notify admin of new signup:", e);
+      }
+    }
+  } catch (e) {
+    console.error("sendWelcomeIfNeeded error:", e);
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [emailVerified, setEmailVerified] = useState(false);
   const isNewUser = useRef(false);
   const pendingRole = useRef("owner");
+  const prevEmailVerified = useRef(false);
 
   // Google Sign In prompt — set by sign-in screen via expo-auth-session hook
   const googlePromptRef = useRef<(() => void) | null>(null);
@@ -102,6 +137,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     return () => sub.remove();
   }, [refreshEmailVerification]);
+
+  // Fire welcome email + admin notification exactly once, the moment emailVerified flips to true
+  useEffect(() => {
+    if (user && emailVerified && !prevEmailVerified.current) {
+      sendWelcomeIfNeeded(user);
+    }
+    prevEmailVerified.current = emailVerified;
+  }, [user, emailVerified]);
 
   // Google Sign In — triggers the expo-auth-session prompt registered by sign-in screen
   const signInWithGoogle = useCallback(() => {
