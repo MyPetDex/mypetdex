@@ -765,7 +765,7 @@ exports.sendVerificationEmail = onCall({ cors: true, secrets: [resendKey] }, asy
 
     // url + handleCodeInApp lets the verification link deep link back into the
     // app via the "mypetdex" scheme instead of opening a plain web confirmation page
-    const actionCodeSettings = { url: "https://mypetdex.app", handleCodeInApp: true };
+    const actionCodeSettings = { url: "https://mypetdex.app", handleCodeInApp: false };
     const verificationLink = await admin.auth().generateEmailVerificationLink(targetEmail, actionCodeSettings);
 
     await sendEmail(resendKey.value(), {

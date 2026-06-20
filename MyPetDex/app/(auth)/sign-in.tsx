@@ -33,7 +33,7 @@ const IOS_CLIENT_ID = "209772699227-eibpfptsff0h497q956hlru2qbeu9pm9.apps.google
 const WEB_CLIENT_ID = "209772699227-ilqlulmvqp12fau8bbvmq5ufvnbkoguc.apps.googleusercontent.com";
 
 export default function SignInScreen() {
-  const { signInWithGoogle, setGooglePrompt, signInWithApple, signInAnon, signUpWithEmail, signInWithEmail, appleAvailable, user, loading: authLoading } = useAuth();
+  const { signInWithGoogle, setGooglePrompt, signInWithApple, signUpWithEmail, signInWithEmail, appleAvailable, user, loading: authLoading } = useAuth();
   const [screen, setScreen] = useState<Screen>("landing");
   const [role, setRole] = useState<Role>("owner");
   const [step, setStep] = useState(1);
@@ -97,13 +97,6 @@ export default function SignInScreen() {
         setError("Could not sign in with Apple. Please try again.");
       }
     }
-  }
-
-  async function handleGuest() {
-    setError(""); setLoading(true);
-    try { await signInAnon(); }
-    catch { setError("Could not continue as guest."); }
-    finally { setLoading(false); }
   }
 
   async function handleRegisterStep1() {
@@ -263,7 +256,6 @@ export default function SignInScreen() {
             <Text style={styles.legalText}>Already have an account? </Text>
             <Pressable onPress={() => setScreen("login")}><Text style={styles.linkText}>Sign In</Text></Pressable>
           </View>
-          <Pressable onPress={handleGuest}><Text style={styles.guestText}>Continue as Guest</Text></Pressable>
           <Text style={styles.legal}>🔒 Your data is encrypted and never shared with third parties.</Text>
         </View>
       </SafeAreaView>
@@ -522,7 +514,6 @@ const styles = StyleSheet.create({
   bottomLinks: { flexDirection: "row", justifyContent: "center", alignItems: "center" },
   legalText: { fontSize: 14, color: "#888" },
   linkText: { fontSize: 14, color: BRAND, fontWeight: "700" },
-  guestText: { textAlign: "center", fontSize: 14, color: "#aaa" },
   legal: { fontSize: 11, color: "#bbb", textAlign: "center" },
   backBtn: { paddingHorizontal: 20, paddingVertical: 12 },
   backBtnText: { fontSize: 17, color: BRAND, fontWeight: "600" },

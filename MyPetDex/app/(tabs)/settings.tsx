@@ -1,8 +1,10 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import * as WebBrowser from "expo-web-browser";
+import { webAuth, webDb } from "@/lib/firebase";
+import { doc, deleteDoc, collection, getDocs } from "firebase/firestore";
 
 const BRAND = "#4486F4";
 
@@ -11,6 +13,42 @@ export default function SettingsScreen() {
   const router = useRouter();
   const [notifications, setNotifications] = useState(true);
   const [reminders, setReminders] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: confirmDeleteAccount },
+      ]
+    );
+  }
+
+  async function confirmDeleteAccount() {
+    const u = webAuth.currentUser;
+    if (!u) return;
+    setDeleting(true);
+    try {
+      const petsSnap = await getDocs(collection(webDb, "users", u.uid, "pets"));
+      await Promise.all(petsSnap.docs.map((petDoc) => deleteDoc(petDoc.ref)));
+      await deleteDoc(doc(webDb, "users", u.uid));
+
+      await u.delete();
+
+      router.replace("/(auth)/sign-in");
+    } catch (e: any) {
+      if (e?.code === "auth/requires-recent-login") {
+        Alert.alert("Sign In Required", "Please sign out and sign back in, then try again.");
+      } else {
+        Alert.alert("Error", "Could not delete your account. Please try again.");
+      }
+      console.error("Delete account failed:", e);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -92,6 +130,15 @@ export default function SettingsScreen() {
         <Text style={styles.signOutText}>Sign Out</Text>
       </Pressable>
 
+      {/* Delete Account */}
+      <Pressable
+        style={[styles.deleteBtn, deleting && styles.deleteBtnDisabled]}
+        onPress={handleDeleteAccount}
+        disabled={deleting}
+      >
+        <Text style={styles.deleteText}>{deleting ? "Deleting…" : "Delete Account"}</Text>
+      </Pressable>
+
       <Text style={styles.version}>MyPetDex v1.0.0</Text>
     </ScrollView>
   );
@@ -120,5 +167,8 @@ const styles = StyleSheet.create({
   chevron: { fontSize: 20, color: "#ccc" },
   signOutBtn: { backgroundColor: "#fff", borderRadius: 14, padding: 16, alignItems: "center", borderWidth: 1, borderColor: "#ffcccc" },
   signOutText: { fontSize: 16, fontWeight: "600", color: "#E53935" },
+  deleteBtn: { backgroundColor: "#E53935", borderRadius: 14, padding: 16, alignItems: "center" },
+  deleteBtnDisabled: { opacity: 0.6 },
+  deleteText: { fontSize: 16, fontWeight: "700", color: "#fff" },
   version: { textAlign: "center", fontSize: 12, color: "#bbb" },
 });

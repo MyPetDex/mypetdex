@@ -35,6 +35,10 @@ export function useAuth(): AuthContextValue {
 }
 
 async function ensureUserDoc(firebaseUser: any, role = "owner") {
+  // Anonymous demo users never get a Firestore profile — there's no real email/identity
+  // to attach one to, and it's how "Unknown user" docs with a null email end up in the DB.
+  if (firebaseUser.isAnonymous) return;
+
   const ref = userRef(firebaseUser.uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) {

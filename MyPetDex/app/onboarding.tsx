@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { db, webAuth, callFunction } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { doc, setDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const BRAND = "#4486F4";
@@ -185,18 +185,9 @@ export default function OnboardingScreen() {
         }
       }
 
-      // Best-effort — the profile is already saved, so failures here shouldn't block the user.
-      // Welcome email + admin "new free signup" notification are sent from AuthContext instead,
-      // once when emailVerified actually flips to true (not here at onboarding submit time).
-      try {
-        if (webAuth.currentUser && !webAuth.currentUser.emailVerified) {
-          const sendVerification = callFunction("sendVerificationEmail");
-          await sendVerification({ email: webAuth.currentUser.email });
-        }
-      } catch (e) {
-        console.error("Failed to send verification email:", e);
-      }
-
+      // Verification email is sent from check-email.tsx on mount (native SDK, once).
+      // Welcome email + admin "new free signup" notification fire from AuthContext instead,
+      // only when emailVerified actually flips to true — never from here.
       router.replace("/check-email");
     } catch (e: any) {
       setError(e.message || "Something went wrong.");

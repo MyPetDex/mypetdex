@@ -2,10 +2,11 @@ import {
   View, Text, StyleSheet, Pressable, ActivityIndicator, Image, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { webAuth, callFunction } from "@/lib/firebase";
+import { webAuth } from "@/lib/firebase";
+import { sendEmailVerification } from "firebase/auth";
 
 const BRAND = "#4486F4";
 
@@ -16,6 +17,23 @@ export default function CheckEmailScreen() {
   const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
   const [resent, setResent] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const hasSentRef = useRef(false);
+
+  // Send the initial verification email exactly once per mount — guards against
+  // double-sends from React StrictMode / navigation re-renders invalidating the link
+  useEffect(() => {
+    if (hasSentRef.current || !webAuth.currentUser || webAuth.currentUser.emailVerified) return;
+    hasSentRef.current = true;
+    sendEmailVerification(webAuth.currentUser).catch(console.error);
+  }, []);
+
+  // Tick down the resend cooldown once a second
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setInterval(() => setResendCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [resendCooldown]);
 
   async function handleSignOut() {
     try {
@@ -37,14 +55,15 @@ export default function CheckEmailScreen() {
   }
 
   async function handleResend() {
+    if (resendCooldown > 0) return;
     setResending(true);
     setError("");
     setResent(false);
     try {
       if (webAuth.currentUser) {
-        const sendVerification = callFunction("sendVerificationEmail");
-        await sendVerification({ email: webAuth.currentUser.email });
+        await sendEmailVerification(webAuth.currentUser);
         setResent(true);
+        setResendCooldown(60);
       }
     } catch {
       setError("Could not resend the email. Please try again in a moment.");
@@ -91,13 +110,15 @@ export default function CheckEmailScreen() {
         </Pressable>
 
         <Pressable
-          style={[styles.secondaryBtn, resending && styles.btnDisabled]}
+          style={[styles.secondaryBtn, (resending || resendCooldown > 0) && styles.btnDisabled]}
           onPress={handleResend}
-          disabled={resending}
+          disabled={resending || resendCooldown > 0}
         >
           {resending
             ? <ActivityIndicator color={BRAND} />
-            : <Text style={styles.secondaryBtnText}>Resend Verification Email</Text>}
+            : <Text style={styles.secondaryBtnText}>
+                {resendCooldown > 0 ? `Resend Verification Email (${resendCooldown}s)` : "Resend Verification Email"}
+              </Text>}
         </Pressable>
       </View>
     </View>

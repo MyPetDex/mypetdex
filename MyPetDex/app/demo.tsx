@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, Image } from "react-native";
+import { useState } from "react";
+import { View, Text, StyleSheet, ActivityIndicator, Image, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { isWeb } from "@/lib/platform";
@@ -15,25 +15,36 @@ const logoSrc = require("@/assets/images/logo-transparent.png");
 export default function DemoLandingPage() {
   const router = useRouter();
   const { signInAnon } = useAuth();
+  const [starting, setStarting] = useState(false);
 
   // On web, detect desktop and show a "use mobile" message
   const isDesktop = isWeb && typeof window !== "undefined" && window.innerWidth > 768;
 
-  // Native app: auto sign-in as demo silently, no credentials shown
-  useEffect(() => {
-    if (isWeb) return;
-    signInAnon()
-      .then(() => router.replace("/(tabs)"))
-      .catch(() => router.replace("/(auth)/sign-in"));
-  }, []);
+  // Anonymous sign-in only ever happens here, from an explicit tap — never automatically
+  async function handleStartDemo() {
+    setStarting(true);
+    try {
+      await signInAnon();
+      router.replace("/(tabs)");
+    } catch {
+      router.replace("/(auth)/sign-in");
+    } finally {
+      setStarting(false);
+    }
+  }
 
   if (!isWeb) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.inner}>
           <Image source={logoSrc} style={styles.logoImg} />
-          <ActivityIndicator size="large" color={BRAND} style={{ marginBottom: 12 }} />
-          <Text style={styles.sub}>Opening demo…</Text>
+          <Text style={styles.title}>Try MyPetDex</Text>
+          <Text style={styles.sub}>Explore the app instantly with a demo account — no sign-up required.</Text>
+          <Pressable style={styles.primaryBtn} onPress={handleStartDemo} disabled={starting}>
+            {starting
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.primaryBtnText}>Continue to Demo</Text>}
+          </Pressable>
         </View>
       </SafeAreaView>
     );
