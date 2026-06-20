@@ -2,13 +2,16 @@ import {
   View, Text, StyleSheet, Pressable, ActivityIndicator, Image, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { webAuth } from "@/lib/firebase";
-import { sendEmailVerification } from "firebase/auth";
+import { webAuth, callFunction } from "@/lib/firebase";
 
 const BRAND = "#4486F4";
+
+// Module-level — persists across re-renders and remounts (e.g. navigation re-entry,
+// React StrictMode double-invoke), unlike a ref which resets when the component remounts.
+const sentForUid = new Set<string>();
 
 export default function CheckEmailScreen() {
   const router = useRouter();
@@ -18,14 +21,14 @@ export default function CheckEmailScreen() {
   const [error, setError] = useState("");
   const [resent, setResent] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const hasSentRef = useRef(false);
 
-  // Send the initial verification email exactly once per mount — guards against
-  // double-sends from React StrictMode / navigation re-renders invalidating the link
+  // Send the initial verification email exactly once per uid — the module-level Set
+  // survives remounts (unlike a ref), so even re-navigating to this screen won't re-send
   useEffect(() => {
-    if (hasSentRef.current || !webAuth.currentUser || webAuth.currentUser.emailVerified) return;
-    hasSentRef.current = true;
-    sendEmailVerification(webAuth.currentUser).catch(console.error);
+    const uid = webAuth.currentUser?.uid;
+    if (!uid || sentForUid.has(uid) || webAuth.currentUser?.emailVerified) return;
+    sentForUid.add(uid);
+    callFunction("sendVerificationEmail")().catch(console.error);
   }, []);
 
   // Tick down the resend cooldown once a second
@@ -61,7 +64,7 @@ export default function CheckEmailScreen() {
     setResent(false);
     try {
       if (webAuth.currentUser) {
-        await sendEmailVerification(webAuth.currentUser);
+        await callFunction("sendVerificationEmail")();
         setResent(true);
         setResendCooldown(60);
       }

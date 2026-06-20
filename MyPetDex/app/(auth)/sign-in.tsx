@@ -9,7 +9,7 @@ import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  auth, db, sendEmailVerification,
+  auth, db,
   doc, setDoc, addDoc, collection, serverTimestamp,
   GoogleAuthProvider, signInWithCredential, callFunction,
 } from "@/lib/firebase";
@@ -19,7 +19,7 @@ WebBrowser.maybeCompleteAuthSession();
 const BRAND = "#4486F4";
 const BLUE = "#4486F4";
 
-type Screen = "landing" | "role" | "register" | "login" | "verify";
+type Screen = "landing" | "role" | "register" | "login";
 type Role = "owner" | "provider" | "shelter";
 
 const US_STATES = [
@@ -151,9 +151,7 @@ export default function SignInScreen() {
           weightUnit: "lbs", createdAt: serverTimestamp(),
         });
       }
-
-      await sendEmailVerification(u);
-      setScreen("verify");
+      // Verification email is sent from check-email.tsx — AuthGuard routes there automatically.
     } catch (e: any) {
       setError(e.message || "Could not complete registration.");
     }
@@ -185,14 +183,6 @@ export default function SignInScreen() {
       Alert.alert("Check your inbox", `If ${form.email} has an account, a reset link was sent.`);
     }
     setLoading(false);
-  }
-
-  async function resendVerification() {
-    try {
-      const u = pendingUser || auth.currentUser;
-      if (u) await sendEmailVerification(u);
-      Alert.alert("Sent!", "Verification email sent. Check your inbox.");
-    } catch { Alert.alert("Error", "Could not send verification email."); }
   }
 
   // mypetdex.app/terms redirects (App Store, etc.) which breaks Linking.openURL on iOS —
@@ -257,30 +247,6 @@ export default function SignInScreen() {
             <Pressable onPress={() => setScreen("login")}><Text style={styles.linkText}>Sign In</Text></Pressable>
           </View>
           <Text style={styles.legal}>🔒 Your data is encrypted and never shared with third parties.</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // ── Verify ───────────────────────────────────────────────────────────────────
-  if (screen === "verify") {
-    return (
-      <SafeAreaView style={styles.safeContainer}>
-        <BackHeader onBack={() => setScreen("login")} label="Sign In" />
-        <View style={styles.container}>
-          <View style={styles.hero}>
-            <Text style={{ fontSize: 64 }}>📧</Text>
-            <Text style={styles.title}>Check Your Email</Text>
-            <Text style={styles.subtitle}>We sent a verification link to {form.email}. Please verify to continue.</Text>
-          </View>
-          <View style={styles.buttons}>
-            <Pressable style={styles.primaryBtn} onPress={resendVerification}>
-              <Text style={styles.primaryBtnText}>Resend Verification Email</Text>
-            </Pressable>
-            <Pressable style={styles.secondaryBtn} onPress={() => setScreen("login")}>
-              <Text style={styles.secondaryBtnText}>Back to Sign In</Text>
-            </Pressable>
-          </View>
         </View>
       </SafeAreaView>
     );
@@ -544,7 +510,6 @@ const styles = StyleSheet.create({
   stateChipText: { fontSize: 13, color: "#666" },
   stateChipTextActive: { color: BRAND, fontWeight: "700" },
   pricingText: { fontSize: 11, color: "#aaa", textAlign: "center", marginTop: 10 },
-  buttons: { gap: 14, paddingHorizontal: 28 },
   checkboxRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   checkboxBox: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: "#ccc", alignItems: "center", justifyContent: "center", marginTop: 1, backgroundColor: "#fff" },
   checkboxBoxChecked: { backgroundColor: BRAND, borderColor: BRAND },

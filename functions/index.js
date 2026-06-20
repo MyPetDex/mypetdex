@@ -1,6 +1,5 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onRequest, onCall } = require("firebase-functions/v2/https");
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const { Resend } = require("resend");
@@ -19,60 +18,6 @@ async function sendEmail(keyValue, { to, subject, html, from }) {
   const resend = new Resend(keyValue);
   return resend.emails.send({ from: from || `${FROM_NAME} <${FROM_EMAIL}>`, to, subject, html });
 }
-
-// ─── Welcome Email Triggered on New User Document ────────────────────────────
-exports.onNewUser = onDocumentCreated(
-  { document: "users/{uid}", secrets: [resendKey] },
-  async (event) => {
-    const profile = event.data.data();
-    const { role, email, name, businessName, shelterName } = profile;
-    if (!email || !role) return;
-
-
-    let welcomeMsg = null;
-    if (role === "owner") {
-      welcomeMsg = {
-        to: email,
-        from: { email: FROM_EMAIL, name: FROM_NAME },
-        subject: "Welcome to MyPetDex! 🐾",
-        html: ownerWelcomeHTML(name || email.split("@")[0], profile?.plan || "free"),
-      };
-    } else if (role === "provider") {
-      welcomeMsg = {
-        to: email,
-        from: { email: FROM_EMAIL, name: FROM_NAME },
-        subject: "Welcome to MyPetDex – Provider Account 🐾",
-        html: providerWelcomeHTML(businessName || name || email.split("@")[0]),
-      };
-    } else if (role === "shelter") {
-      welcomeMsg = {
-        to: email,
-        from: { email: FROM_EMAIL, name: FROM_NAME },
-        subject: "Welcome to MyPetDex – Shelter Account 🐾",
-        html: shelterWelcomeHTML(shelterName || name || email.split("@")[0]),
-      };
-    }
-
-
-
-    const adminMsg = {
-      to: ADMIN_EMAIL,
-      subject: `✅ New ${role} signup: ${email}`,
-      html: adminNotificationHTML(role, email, profile),
-    };
-
-    try {
-      if (welcomeMsg) await sendEmail(resendKey.value(), { to: welcomeMsg.to, subject: welcomeMsg.subject, html: welcomeMsg.html });
-      await sendEmail(resendKey.value(), { to: adminMsg.to, subject: adminMsg.subject, html: adminMsg.html });
-      console.log(`Welcome + admin emails sent for ${email} (${role})`);
-      await db.collection("stats").doc("public").update({
-        userCount: admin.firestore.FieldValue.increment(1)
-      });
-    } catch (err) {
-      console.error("Email error:", err.response?.body || err);
-    }
-  }
-);
 
 // ─── Scheduled Pet Reminders ──────────────────────────────────────────────────
 exports.sendScheduledReminders = onSchedule(
@@ -748,15 +693,28 @@ exports.sendVerificationEmail = onCall({ cors: true, secrets: [resendKey] }, asy
   const uid = request.auth?.uid;
   if (!uid) throw new Error("Unauthorized");
 
-  const { email } = request.data || {};
-
   try {
+    // Auth record is the authoritative source for email — Firestore's email field can
+    // be null or stale, so it is never used here.
     const userRecord = await admin.auth().getUser(uid);
-    const targetEmail = email || userRecord.email;
+    const targetEmail = userRecord.email;
     if (!targetEmail) throw new Error("No email address on account");
 
-    const userDoc = await db.collection("users").doc(uid).get();
+    const userRef = db.collection("users").doc(uid);
+    const userDoc = await userRef.get();
     const d = userDoc.exists ? userDoc.data() : {};
+
+    // Server-side rate limit — if we sent one in the last 60s, no-op silently instead
+    // of sending again (a second link immediately invalidates the first one).
+    const lastSent = d.lastVerificationEmailSentAt;
+    if (lastSent) {
+      const lastSentMs = typeof lastSent.toMillis === "function" ? lastSent.toMillis() : new Date(lastSent).getTime();
+      if (Date.now() - lastSentMs < 60 * 1000) {
+        console.log(`sendVerificationEmail: rate-limited for ${targetEmail} (uid ${uid})`);
+        return { success: true };
+      }
+    }
+
     const role = d.role || "owner";
     const plan = d.plan || "free";
     let displayName = d.displayName || targetEmail.split("@")[0];
@@ -774,6 +732,8 @@ exports.sendVerificationEmail = onCall({ cors: true, secrets: [resendKey] }, asy
       subject: "Verify your MyPetDex email",
       html: verificationEmailHTML(displayName, role, plan, verificationLink),
     });
+
+    await userRef.set({ lastVerificationEmailSentAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
 
     console.log(`Verification email sent to ${targetEmail} (${role})`);
     return { success: true };

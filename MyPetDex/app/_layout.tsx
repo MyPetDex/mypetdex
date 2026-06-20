@@ -123,7 +123,7 @@ function AuthGuard() {
         router.replace("/onboarding");
       }
     }
-  }, [user, authLoading, profile, profileLoading, segments, emailVerified]);
+  }, [user, authLoading, profile?.onboardingComplete, profileLoading, segments, emailVerified]);
 
   return null;
 }
