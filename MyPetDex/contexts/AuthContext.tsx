@@ -55,7 +55,12 @@ async function sendWelcomeIfNeeded(firebaseUser: any) {
   try {
     const ref = userRef(firebaseUser.uid);
     const snap = await getDoc(ref);
-    if (!snap.exists()) return;
+    if (!snap.exists()) {
+      // Doc missing (e.g. deleted) — we can't tell whether a welcome email already went
+      // out, so mark it sent rather than risk sending blind once the doc reappears.
+      await setDoc(ref, { welcomeSent: true }, { merge: true });
+      return;
+    }
     const data = snap.data() as any;
     if (data.welcomeSent) return;
 
@@ -90,7 +95,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [emailVerified, setEmailVerified] = useState(false);
   const isNewUser = useRef(false);
   const pendingRole = useRef("owner");
-  const prevEmailVerified = useRef(false);
+  // null = baseline not yet established for the current user (avoids treating an
+  // already-verified user's initial login as a false->true "transition")
+  const prevEmailVerified = useRef<boolean | null>(null);
 
   // Google Sign In prompt — set by sign-in screen via expo-auth-session hook
   const googlePromptRef = useRef<(() => void) | null>(null);
@@ -107,6 +114,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await ensureUserDoc(firebaseUser, pendingRole.current);
         isNewUser.current = false;
       }
+      // Establish this session's baseline BEFORE updating emailVerified state, so the
+      // welcome-email effect below only sees a "transition" for a real false->true flip
+      // (via refreshEmailVerification), never for an already-verified user just logging in.
+      prevEmailVerified.current = firebaseUser ? !!firebaseUser.emailVerified : null;
       setUser(firebaseUser);
       setEmailVerified(!!firebaseUser?.emailVerified);
       setLoading(false);
@@ -138,9 +149,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, [refreshEmailVerification]);
 
-  // Fire welcome email + admin notification exactly once, the moment emailVerified flips to true
+  // Fire welcome email + admin notification exactly once, the moment emailVerified flips to true.
+  // Only an explicit `false -> true` transition counts — not the initial baseline for a
+  // user who logs in already verified (prevEmailVerified.current === null in that case).
   useEffect(() => {
-    if (user && emailVerified && !prevEmailVerified.current) {
+    if (user && emailVerified && prevEmailVerified.current === false) {
       sendWelcomeIfNeeded(user);
     }
     prevEmailVerified.current = emailVerified;
