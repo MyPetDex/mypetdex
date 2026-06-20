@@ -630,6 +630,33 @@ exports.createPortalSession = onRequest({ secrets: [stripeSecretKey], cors: true
     res.status(500).json({ error: err.message });
   }
 });
+// ─── Admin Notification: New Free Plan Signup ────────────────────────────────
+exports.notifyAdminFreeSignup = onCall({ cors: true, secrets: [resendKey] }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new Error("Unauthorized");
+
+  const { email, role } = request.data || {};
+  if (!email) throw new Error("Missing email");
+
+  try {
+    await sendEmail(resendKey.value(), {
+      to: "mypetdexapp@gmail.com",
+      subject: "New Free Plan Signup",
+      html: emailBase(`
+        <h1>🆕 New Free Plan Signup</h1>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="color:#64748B;padding:7px 10px;font-size:13px;border-bottom:1px solid #E2E8F0;">Email</td><td style="color:#1E293B;padding:7px 10px;font-size:13px;border-bottom:1px solid #E2E8F0;font-weight:600;">${email}</td></tr>
+          <tr><td style="color:#64748B;padding:7px 10px;font-size:13px;">Role</td><td style="color:#1E293B;padding:7px 10px;font-size:13px;font-weight:600;">${role || "owner"}</td></tr>
+        </table>
+      `),
+    });
+    return { success: true };
+  } catch (err) {
+    console.error("notifyAdminFreeSignup error:", err);
+    throw new Error("Failed to send admin notification.");
+  }
+});
+
 // ─── Send Branded Verification Email ─────────────────────────────────────────
 exports.sendBrandedVerificationEmail = onCall({ cors: true, secrets: [resendKey] }, async (request) => {
   const uid = request.auth?.uid;

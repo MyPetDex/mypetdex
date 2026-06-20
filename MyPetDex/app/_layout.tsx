@@ -69,7 +69,7 @@ function ModalCloseButton() {
 }
 
 function AuthGuard() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, emailVerified } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
   const segments = useSegments();
   const router = useRouter();
@@ -91,30 +91,39 @@ function AuthGuard() {
 
     const inAuthGroup = segments.some(s => s === "(auth)");
     const inOnboarding = segments.some(s => s === "onboarding");
+    const inCheckEmail = segments.some(s => s === "check-email");
     const inExplore = segments.some(s => s === "explore");
 
-    // Admin always bypasses onboarding
+    // Admin always bypasses onboarding and email verification
     const isAdmin = user?.email === "mypetdexapp@gmail.com";
     // User has completed onboarding if they have city, businessName, or shelterName
     const hasCompletedOnboarding = isAdmin || !!(profile?.city || profile?.businessName || profile?.shelterName || profile?.onboardingComplete);
+    const needsEmailVerification = !isAdmin && !emailVerified;
 
     if (!user && !inAuthGroup && !inExplore) {
       router.replace("/(auth)/sign-in");
     } else if (user && inAuthGroup) {
       if (!hasCompletedOnboarding) {
         router.replace("/onboarding");
+      } else if (needsEmailVerification) {
+        router.replace("/check-email");
       } else {
         router.replace("/(tabs)");
       }
     } else if (user && inOnboarding && hasCompletedOnboarding) {
       // Already completed onboarding — race condition guard: redirect away
-      router.replace("/(tabs)");
-    } else if (user && !inAuthGroup && !inOnboarding) {
+      router.replace(needsEmailVerification ? "/check-email" : "/(tabs)");
+    } else if (user && inCheckEmail) {
+      // Verified (or just became verified, e.g. on app foreground) — let them in
+      if (!needsEmailVerification) {
+        router.replace("/(tabs)");
+      }
+    } else if (user && !inAuthGroup && !inOnboarding && !inCheckEmail) {
       if (!hasCompletedOnboarding) {
         router.replace("/onboarding");
       }
     }
-  }, [user, authLoading, profile, profileLoading, segments]);
+  }, [user, authLoading, profile, profileLoading, segments, emailVerified]);
 
   return null;
 }
@@ -163,6 +172,10 @@ export default Sentry.wrap(function RootLayout() {
         />
         <Stack.Screen
           name="onboarding"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="check-email"
           options={{ headerShown: false }}
         />
         <Stack.Screen name="modal" />

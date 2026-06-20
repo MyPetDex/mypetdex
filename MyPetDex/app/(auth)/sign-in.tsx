@@ -1,9 +1,9 @@
 import {
   View, Text, StyleSheet, Pressable, TextInput,
   ActivityIndicator, ScrollView, Alert, KeyboardAvoidingView,
-  Platform, Image, SafeAreaView,
+  Platform, Image, SafeAreaView, Linking,
 } from "react-native";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
@@ -40,6 +40,8 @@ export default function SignInScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [pendingUser, setPendingUser] = useState<any>(null);
+  const [age13, setAge13] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // ── Google Sign In via expo-auth-session ──────────────────────────────────
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -109,6 +111,8 @@ export default function SignInScreen() {
     if (form.password.length < 8) { setError("Password must be at least 8 characters."); return; }
     if (!/[!@#$%^&*(),.?":{}|<>]/.test(form.password)) { setError('Password must include at least one special character (e.g. @, #, !)'); return; }
     if (form.password !== form.confirmPassword) { setError("Passwords do not match."); return; }
+    if (!age13) { setError("You must confirm you are 13 years of age or older to sign up."); return; }
+    if (!acceptedTerms) { setError("Please accept the Terms and Conditions to continue."); return; }
     setLoading(true); setError("");
     try {
       const u = await signUpWithEmail(form.email, form.password, form.name);
@@ -196,6 +200,17 @@ export default function SignInScreen() {
       if (u) await sendEmailVerification(u);
       Alert.alert("Sent!", "Verification email sent. Check your inbox.");
     } catch { Alert.alert("Error", "Could not send verification email."); }
+  }
+
+  function Checkbox({ checked, onToggle, children }: { checked: boolean; onToggle: () => void; children: ReactNode }) {
+    return (
+      <Pressable style={styles.checkboxRow} onPress={onToggle} hitSlop={8}>
+        <View style={[styles.checkboxBox, checked && styles.checkboxBoxChecked]}>
+          {checked ? <Text style={styles.checkboxMark}>✓</Text> : null}
+        </View>
+        <Text style={styles.checkboxLabel}>{children}</Text>
+      </Pressable>
+    );
   }
 
   function BackHeader({ onBack, label = "Back" }: { onBack: () => void; label?: string }) {
@@ -353,7 +368,27 @@ export default function SignInScreen() {
               <TextInput style={styles.input} value={form.password} onChangeText={set("password")} placeholder="e.g. MyPet@2024" placeholderTextColor="#aaa" secureTextEntry />
               <Text style={styles.fieldLabel}>Confirm Password *</Text>
               <TextInput style={styles.input} value={form.confirmPassword} onChangeText={set("confirmPassword")} placeholder="Re-enter password" placeholderTextColor="#aaa" secureTextEntry />
-              <Pressable style={[styles.primaryBtn, { backgroundColor: BLUE }, loading && { opacity: 0.6 }]} onPress={handleRegisterStep1} disabled={loading}>
+
+              <View style={{ marginTop: 14, gap: 10 }}>
+                <Checkbox checked={age13} onToggle={() => setAge13(v => !v)}>
+                  I am 13 years of age or older
+                </Checkbox>
+                <Checkbox checked={acceptedTerms} onToggle={() => setAcceptedTerms(v => !v)}>
+                  I accept the{" "}
+                  <Text
+                    style={styles.checkboxLink}
+                    onPress={() => Linking.openURL("https://mypetdex.app/terms")}
+                  >
+                    Terms and Conditions
+                  </Text>
+                </Checkbox>
+              </View>
+
+              <Pressable
+                style={[styles.primaryBtn, { backgroundColor: BLUE }, (loading || !age13 || !acceptedTerms) && { opacity: 0.6 }]}
+                onPress={handleRegisterStep1}
+                disabled={loading || !age13 || !acceptedTerms}
+              >
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>{rc.cta}</Text>}
               </Pressable>
               <Text style={styles.pricingText}>{rc.pricing}</Text>
@@ -509,4 +544,10 @@ const styles = StyleSheet.create({
   stateChipTextActive: { color: BRAND, fontWeight: "700" },
   pricingText: { fontSize: 11, color: "#aaa", textAlign: "center", marginTop: 10 },
   buttons: { gap: 14, paddingHorizontal: 28 },
+  checkboxRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  checkboxBox: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: "#ccc", alignItems: "center", justifyContent: "center", marginTop: 1, backgroundColor: "#fff" },
+  checkboxBoxChecked: { backgroundColor: BRAND, borderColor: BRAND },
+  checkboxMark: { color: "#fff", fontSize: 13, fontWeight: "800" },
+  checkboxLabel: { flex: 1, fontSize: 13, color: "#444", lineHeight: 19 },
+  checkboxLink: { color: BRAND, fontWeight: "700", textDecorationLine: "underline" },
 });

@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { db } from "@/lib/firebase";
+import { db, webAuth, sendEmailVerification, callFunction } from "@/lib/firebase";
 import { doc, setDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const BRAND = "#4486F4";
@@ -172,7 +172,25 @@ export default function OnboardingScreen() {
         });
       }
 
-      router.replace("/(tabs)");
+      // Best-effort — the profile is already saved, so failures here shouldn't block the user
+      try {
+        if (webAuth.currentUser && !webAuth.currentUser.emailVerified) {
+          await sendEmailVerification(webAuth.currentUser);
+        }
+      } catch (e) {
+        console.error("Failed to send verification email:", e);
+      }
+
+      if (userDoc.plan === "free") {
+        try {
+          const notifyAdmin = callFunction("notifyAdminFreeSignup");
+          await notifyAdmin({ email: u.email, role });
+        } catch (e) {
+          console.error("Failed to notify admin of new signup:", e);
+        }
+      }
+
+      router.replace("/check-email");
     } catch (e: any) {
       setError(e.message || "Something went wrong.");
     } finally {

@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import {
@@ -14,6 +14,8 @@ import {
 interface AuthContextValue {
   user: any;
   loading: boolean;
+  emailVerified: boolean;
+  refreshEmailVerification: () => Promise<boolean>;
   signInWithGoogle: () => void;
   setGooglePrompt: (fn: (() => void) | null) => void;
   signInWithApple: () => Promise<void>;
@@ -51,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
   const isNewUser = useRef(false);
   const pendingRole = useRef("owner");
 
@@ -70,10 +73,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isNewUser.current = false;
       }
       setUser(firebaseUser);
+      setEmailVerified(!!firebaseUser?.emailVerified);
       setLoading(false);
     });
     return unsub;
   }, []);
+
+  // Re-checks emailVerified against Firebase Auth — call after sending/clicking a verification link
+  const refreshEmailVerification = useCallback(async (): Promise<boolean> => {
+    if (!auth.currentUser) return false;
+    try {
+      await auth.currentUser.reload();
+    } catch {
+      // Network error or user deleted — fall through with last known state
+    }
+    const verified = !!auth.currentUser?.emailVerified;
+    setEmailVerified(verified);
+    return verified;
+  }, []);
+
+  // On app foreground, re-check verification so a user who verifies in their email app
+  // and returns to MyPetDex is routed into the main app without manually tapping anything
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active" && auth.currentUser && !auth.currentUser.emailVerified) {
+        refreshEmailVerification();
+      }
+    });
+    return () => sub.remove();
+  }, [refreshEmailVerification]);
 
   // Google Sign In — triggers the expo-auth-session prompt registered by sign-in screen
   const signInWithGoogle = useCallback(() => {
@@ -135,13 +163,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(
     () => ({
-      user, loading, appleAvailable,
+      user, loading, appleAvailable, emailVerified, refreshEmailVerification,
       signInWithGoogle, setGooglePrompt,
       signInWithApple,
       signInWithEmail, signUpWithEmail,
       signInAnon, signOut: doSignOut,
     }),
-    [user, loading, appleAvailable, signInWithGoogle, setGooglePrompt, signInWithApple, signInWithEmail, signUpWithEmail, signInAnon, doSignOut]
+    [user, loading, appleAvailable, emailVerified, refreshEmailVerification, signInWithGoogle, setGooglePrompt, signInWithApple, signInWithEmail, signUpWithEmail, signInAnon, doSignOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
