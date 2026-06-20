@@ -202,6 +202,16 @@ export default function SignInScreen() {
     } catch { Alert.alert("Error", "Could not send verification email."); }
   }
 
+  // mypetdex.app/terms redirects (App Store, etc.) which breaks Linking.openURL on iOS —
+  // WebBrowser handles redirects safely in an in-app browser sheet instead.
+  async function handleOpenTerms() {
+    try {
+      await WebBrowser.openBrowserAsync("https://mypetdex.app/terms");
+    } catch {
+      try { await Linking.openURL("https://mypetdex.app/terms"); } catch {}
+    }
+  }
+
   function Checkbox({ checked, onToggle, children }: { checked: boolean; onToggle: () => void; children: ReactNode }) {
     return (
       <Pressable style={styles.checkboxRow} onPress={onToggle} hitSlop={8}>
@@ -377,7 +387,7 @@ export default function SignInScreen() {
                   I accept the{" "}
                   <Text
                     style={styles.checkboxLink}
-                    onPress={() => Linking.openURL("https://mypetdex.app/terms")}
+                    onPress={handleOpenTerms}
                   >
                     Terms and Conditions
                   </Text>

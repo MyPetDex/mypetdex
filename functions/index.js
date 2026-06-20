@@ -15,9 +15,9 @@ const FROM_EMAIL = "help@mypetdex.app";
 const FROM_NAME = "MyPetDex";
 const ADMIN_EMAIL = "help@mypetdex.app";
 
-async function sendEmail(keyValue, { to, subject, html }) {
+async function sendEmail(keyValue, { to, subject, html, from }) {
   const resend = new Resend(keyValue);
-  return resend.emails.send({ from: `${FROM_NAME} <${FROM_EMAIL}>`, to, subject, html });
+  return resend.emails.send({ from: from || `${FROM_NAME} <${FROM_EMAIL}>`, to, subject, html });
 }
 
 // ─── Welcome Email Triggered on New User Document ────────────────────────────
@@ -701,6 +701,43 @@ exports.sendBrandedVerificationEmail = onCall({ cors: true, secrets: [resendKey]
     return { success: true };
   } catch (err) {
     console.error("sendBrandedVerificationEmail error:", err);
+    throw new Error("Failed to send verification email. Please try again.");
+  }
+});
+
+// ─── Send Verification Email (Resend-only — Firebase's default delivery is unreliable) ──
+exports.sendVerificationEmail = onCall({ cors: true, secrets: [resendKey] }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new Error("Unauthorized");
+
+  const { email } = request.data || {};
+
+  try {
+    const userRecord = await admin.auth().getUser(uid);
+    const targetEmail = email || userRecord.email;
+    if (!targetEmail) throw new Error("No email address on account");
+
+    const userDoc = await db.collection("users").doc(uid).get();
+    const d = userDoc.exists ? userDoc.data() : {};
+    const role = d.role || "owner";
+    const plan = d.plan || "free";
+    let displayName = d.displayName || targetEmail.split("@")[0];
+    if (role === "provider") displayName = d.businessName || displayName;
+    if (role === "shelter") displayName = d.shelterName || displayName;
+
+    const verificationLink = await admin.auth().generateEmailVerificationLink(targetEmail);
+
+    await sendEmail(resendKey.value(), {
+      to: targetEmail,
+      from: "MyPetDex <noreply@mypetdex.app>",
+      subject: "Verify your MyPetDex email",
+      html: verificationEmailHTML(displayName, role, plan, verificationLink),
+    });
+
+    console.log(`Verification email sent to ${targetEmail} (${role})`);
+    return { success: true };
+  } catch (err) {
+    console.error("sendVerificationEmail error:", err);
     throw new Error("Failed to send verification email. Please try again.");
   }
 });

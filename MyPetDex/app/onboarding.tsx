@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { db, webAuth, sendEmailVerification, callFunction } from "@/lib/firebase";
+import { db, webAuth, callFunction } from "@/lib/firebase";
 import { doc, setDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const BRAND = "#4486F4";
@@ -162,20 +162,34 @@ export default function OnboardingScreen() {
         });
       }
 
-      await setDoc(doc(db, "users", u.uid), { ...userDoc, updatedAt: serverTimestamp() }, { merge: true });
+      const userPath = `users/${u.uid}`;
+      try {
+        await setDoc(doc(db, "users", u.uid), { ...userDoc, updatedAt: serverTimestamp() }, { merge: true });
+      } catch (e: any) {
+        console.error(`Firestore write failed at ${userPath}:`, e);
+        throw e;
+      }
+
       if (role === "owner" && petName.trim()) {
-        await addDoc(collection(db, "users", u.uid, "pets"), {
-          name: petName.trim(),
-          species: petType.toLowerCase(),
-          breed: "Mixed/Other",
-          createdAt: serverTimestamp(),
-        });
+        const petsPath = `users/${u.uid}/pets`;
+        try {
+          await addDoc(collection(db, "users", u.uid, "pets"), {
+            name: petName.trim(),
+            species: petType.toLowerCase(),
+            breed: "Mixed/Other",
+            createdAt: serverTimestamp(),
+          });
+        } catch (e: any) {
+          console.error(`Firestore write failed at ${petsPath}:`, e);
+          throw e;
+        }
       }
 
       // Best-effort — the profile is already saved, so failures here shouldn't block the user
       try {
         if (webAuth.currentUser && !webAuth.currentUser.emailVerified) {
-          await sendEmailVerification(webAuth.currentUser);
+          const sendVerification = callFunction("sendVerificationEmail");
+          await sendVerification({ email: webAuth.currentUser.email });
         }
       } catch (e) {
         console.error("Failed to send verification email:", e);

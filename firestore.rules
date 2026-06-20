@@ -28,9 +28,11 @@ service cloud.firestore {
     match /users/{userId} {
       // Allow creating profile immediately on registration (before email verification)
       allow create: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
-      // Read requires verification (or admin/demo)
+      // Read own profile allowed without email verification — needed for onAuthStateChanged/profile
+      // listeners that run immediately after signup, before the user has verified their email.
+      // Reading OTHER users' shelter/provider profiles (public browsing) still requires verification.
       allow read: if isAdmin()
-        || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId)
+        || (isSignedIn() && request.auth.uid == userId)
         || ((isEmailVerified() || isDemoAccount()) && (
              (resource.data.role == 'shelter' && resource.data.status == 'approved') ||
              (resource.data.role == 'provider')
@@ -40,7 +42,8 @@ service cloud.firestore {
       // Delete requires verification
       allow delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
       match /{subPath=**} {
-        allow read: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
+        // Read own subcollection docs (e.g. pets) allowed without email verification, same reasoning as above
+        allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
         allow create: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
         allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
         allow delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);

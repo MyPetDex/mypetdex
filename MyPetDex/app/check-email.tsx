@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { webAuth, sendEmailVerification } from "@/lib/firebase";
+import { webAuth, callFunction } from "@/lib/firebase";
 
 const BRAND = "#4486F4";
 
@@ -42,7 +42,8 @@ export default function CheckEmailScreen() {
     setResent(false);
     try {
       if (webAuth.currentUser) {
-        await sendEmailVerification(webAuth.currentUser);
+        const sendVerification = callFunction("sendVerificationEmail");
+        await sendVerification({ email: webAuth.currentUser.email });
         setResent(true);
       }
     } catch {
