@@ -117,6 +117,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (firebaseUser && isNewUser.current) {
         await ensureUserDoc(firebaseUser, pendingRole.current);
         isNewUser.current = false;
+        // OAuth users (Google/Apple) arrive already email-verified, so the
+        // prevEmailVerified false→true effect never fires for them. Send welcome here instead.
+        if (firebaseUser.emailVerified && !firebaseUser.isAnonymous) {
+          sendWelcomeIfNeeded(firebaseUser);
+        }
       }
       // Establish this session's baseline BEFORE updating emailVerified state, so the
       // welcome-email effect below only sees a "transition" for a real false->true flip
