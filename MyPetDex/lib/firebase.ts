@@ -16,7 +16,7 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDe2oPOd6n7M7MOeFs_HSjT7hyWe_0_HsE",
+  apiKey: "AIzaSyBdAkYiA3HJe5a0uvdbeRK_iD-GOljg38U",
   authDomain: "auth.mypetdex.app",
   projectId: "mypetdex-c4315",
   storageBucket: "mypetdex-c4315.firebasestorage.app",
