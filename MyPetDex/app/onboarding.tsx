@@ -185,10 +185,13 @@ export default function OnboardingScreen() {
         }
       }
 
-      // Verification email is sent from check-email.tsx on mount (native SDK, once).
-      // Welcome email + admin "new free signup" notification fire from AuthContext instead,
-      // only when emailVerified actually flips to true — never from here.
-      router.replace("/check-email");
+      // OAuth users (Google/Apple) are already verified — skip check-email.
+      // Email/password users need to verify — send them to check-email.
+      if (u.emailVerified) {
+        router.replace("/(tabs)");
+      } else {
+        router.replace("/check-email");
+      }
     } catch (e: any) {
       setError(e.message || "Something went wrong.");
     } finally {

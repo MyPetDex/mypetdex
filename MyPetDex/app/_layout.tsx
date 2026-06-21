@@ -121,9 +121,11 @@ function AuthGuard() {
     } else if (user && !inAuthGroup && !inOnboarding && !inCheckEmail) {
       if (!hasCompletedOnboarding) {
         router.replace("/onboarding");
+      } else if (needsEmailVerification) {
+        router.replace("/check-email");
       }
     }
-  }, [user, authLoading, profile?.onboardingComplete, profileLoading, segments, emailVerified]);
+  }, [user, authLoading, profile?.onboardingComplete, profile?.city, profile?.businessName, profile?.shelterName, profileLoading, segments, emailVerified]);
 
   return null;
 }

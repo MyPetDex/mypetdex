@@ -130,6 +130,7 @@ export default function SignInScreen() {
         uid: u.uid, email: u.email, displayName: form.name,
         role, plan: role === "owner" ? "free" : role,
         state: form.state, city: form.city,
+        onboardingComplete: true,
         createdAt: serverTimestamp(),
       };
       if (role === "provider") Object.assign(userDoc, {
