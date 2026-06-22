@@ -20,7 +20,14 @@
         "NSCameraUsageDescription": "MyPetDex uses your camera to add pet photos.",
         "NSPhotoLibraryUsageDescription": "MyPetDex accesses your photos to set pet profile pictures.",
         "NSMicrophoneUsageDescription": "MyPetDex may use your microphone for video recording.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.209772699227-eibpfptsff0h497q956hlru2qbeu9pm9"
+            ]
+          }
+        ]
       }
     },
     "android": {

@@ -1,4 +1,3 @@
-import { isWeb } from "@/lib/platform";
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
 import { webDb } from "@/lib/firebase";
@@ -23,7 +22,6 @@ export default function ProviderBookings() {
   }, [user]);
 
   async function loadBookings() {
-    if (!isWeb) { setLoading(false); return; }
     try {
       const snap = await getDocs(query(collection(webDb, "bookings"), where("providerId", "==", user!.uid)));
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));

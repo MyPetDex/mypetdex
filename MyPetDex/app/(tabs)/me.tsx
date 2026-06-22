@@ -8,8 +8,8 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
-import { db } from "@/lib/firebase";
-import { collection, onSnapshot } from "firebase/firestore";
+import { db, webAuth, webDb } from "@/lib/firebase";
+import { collection, onSnapshot, doc, deleteDoc, getDocs } from "firebase/firestore";
 
 const BRAND = "#4C6EF5";
 const BG = "#F4F6FB";
@@ -42,6 +42,7 @@ export default function MeScreen() {
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -66,6 +67,38 @@ export default function MeScreen() {
       setShowUpgrade(true);
     } else {
       router.push("/pet/add");
+    }
+  }
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure? This permanently deletes your account and all pet data. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: confirmDeleteAccount },
+      ]
+    );
+  }
+
+  async function confirmDeleteAccount() {
+    const u = webAuth.currentUser;
+    if (!u) return;
+    setDeleting(true);
+    try {
+      const petsSnap = await getDocs(collection(webDb, "users", u.uid, "pets"));
+      await Promise.all(petsSnap.docs.map((petDoc) => deleteDoc(petDoc.ref)));
+      await deleteDoc(doc(webDb, "users", u.uid));
+      await u.delete();
+      router.replace("/(auth)/sign-in");
+    } catch (e: any) {
+      if (e?.code === "auth/requires-recent-login") {
+        Alert.alert("Sign In Required", "Please sign out and sign back in, then try again.");
+      } else {
+        Alert.alert("Error", "Could not delete account. Please try again.");
+      }
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -308,13 +341,14 @@ export default function MeScreen() {
           <Text style={styles.settingsSectionTitle}>Account</Text>
           <View style={styles.settingsCard}>
             {[
-              { label: "Privacy Policy", icon: "🔒" },
-              { label: "Terms of Service", icon: "📄" },
-              { label: "Rate MyPetDex", icon: "⭐" },
+              { label: "Privacy Policy", icon: "🔒", onPress: () => Linking.openURL("https://home.mypetdex.app/privacy.html") },
+              { label: "Terms of Service", icon: "📄", onPress: () => Linking.openURL("https://home.mypetdex.app/terms.html") },
+              { label: "Rate MyPetDex", icon: "⭐", onPress: () => Linking.openURL("https://apps.apple.com/app/mypetdex/id6772248051?action=write-review") },
             ].map((item, i, arr) => (
               <Pressable
                 key={item.label}
                 style={[styles.settingsRow, i === arr.length - 1 && styles.settingsRowLast]}
+                onPress={item.onPress}
               >
                 <Text style={styles.settingsRowIcon}>{item.icon}</Text>
                 <Text style={styles.settingsRowLabel}>{item.label}</Text>
@@ -335,6 +369,14 @@ export default function MeScreen() {
 
           <Pressable style={styles.signOutBtn} onPress={handleSignOut}>
             <Text style={styles.signOutText}>Sign Out</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.deleteBtn, deleting && { opacity: 0.6 }]}
+            onPress={handleDeleteAccount}
+            disabled={deleting}
+          >
+            <Text style={styles.deleteBtnText}>{deleting ? "Deleting…" : "Delete Account"}</Text>
           </Pressable>
 
           <Text style={styles.version}>MyPetDex v1.0.0 · help@mypetdex.app</Text>
@@ -484,6 +526,8 @@ const styles = StyleSheet.create({
   feedbackBtnSub: { fontSize: 12, color: TEXT2, marginTop: 2 },
   signOutBtn: { backgroundColor: "#fff", borderRadius: 16, padding: 16, alignItems: "center", borderWidth: 1, borderColor: "#FECDD3", marginTop: 12 },
   signOutText: { fontSize: 16, fontWeight: "600", color: "#E53935" },
+  deleteBtn: { backgroundColor: "#E53935", borderRadius: 16, padding: 16, alignItems: "center", marginTop: 10 },
+  deleteBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
   version: { textAlign: "center", fontSize: 12, color: "#C0C8D8", marginTop: 16 },
   // ── Feedback modal ───────────────────────────────────────────────────
   modalContainer: { flex: 1, backgroundColor: BG },

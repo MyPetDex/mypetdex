@@ -1,4 +1,3 @@
-import { isWeb } from "@/lib/platform";
 import { useState, useCallback } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Alert } from "react-native";
 import { webDb } from "@/lib/firebase";
@@ -17,7 +16,7 @@ export default function ShelterPets() {
   const [filter, setFilter] = useState("all");
 
   const loadPets = useCallback(async () => {
-    if (!user || !isWeb) { setLoading(false); return; }
+    if (!user) { setLoading(false); return; }
     try {
       const snap = await getDocs(query(collection(webDb, "shelter_pets"), where("shelterId", "==", user.uid)));
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));

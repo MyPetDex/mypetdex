@@ -1,4 +1,3 @@
-import { isWeb } from "@/lib/platform";
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { webDb } from "@/lib/firebase";
@@ -18,7 +17,6 @@ export default function ProviderProfile() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     async function load() {
-      if (!isWeb) { setLoading(false); return; }
       const snap = await getDoc(doc(webDb, "users", user!.uid));
       if (snap.exists()) setProfile(snap.data());
       setLoading(false);

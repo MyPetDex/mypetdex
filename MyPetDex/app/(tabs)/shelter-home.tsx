@@ -1,4 +1,3 @@
-import { isWeb } from "@/lib/platform";
 import { useEffect, useState, useCallback } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { webDb } from "@/lib/firebase";
@@ -16,7 +15,7 @@ export default function ShelterHome() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!user || !isWeb) { setLoading(false); return; }
+    if (!user) { setLoading(false); return; }
     try {
       const snap = await getDoc(doc(webDb, "users", user.uid));
       if (snap.exists()) setProfile(snap.data());
@@ -42,7 +41,7 @@ export default function ShelterHome() {
     <ScrollView style={s.container} contentContainerStyle={s.content}>
       <View style={s.header}>
         <View style={s.avatar}>
-          <Ionicons name="home-heart-outline" size={28} color="#fff" />
+          <Ionicons name="heart-outline" size={28} color="#fff" />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={s.name}>{name}</Text>

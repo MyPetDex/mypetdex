@@ -6,6 +6,7 @@ import { useFonts } from "expo-font";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { registerForPushNotifications } from "@/lib/notifications";
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -74,10 +75,26 @@ function AuthGuard() {
   const router = useRouter();
   const notifRegistered = useRef(false); // tracks if push was registered this session
 
-  // Reset notif flag on sign out so re-registration works on next onboarding
+  // Reset notif flag on sign out
   useEffect(() => {
     if (!user) notifRegistered.current = false;
   }, [user]);
+
+  // Register push notifications for existing users who already completed onboarding
+  // (new users get it at the end of onboarding.tsx instead)
+  useEffect(() => {
+    if (
+      user &&
+      !notifRegistered.current &&
+      !authLoading &&
+      !profileLoading &&
+      emailVerified &&
+      (profile?.city || profile?.businessName || profile?.shelterName || profile?.onboardingComplete)
+    ) {
+      notifRegistered.current = true;
+      registerForPushNotifications(user.uid);
+    }
+  }, [user, authLoading, profileLoading, emailVerified, profile?.city, profile?.businessName, profile?.shelterName, profile?.onboardingComplete]);
 
   useEffect(() => {
     if (authLoading || (user && profileLoading)) return;

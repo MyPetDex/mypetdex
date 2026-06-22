@@ -1,4 +1,3 @@
-import { isWeb } from "@/lib/platform";
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import { webDb } from "@/lib/firebase";
@@ -16,7 +15,6 @@ export default function ProviderReviews() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     async function load() {
-      if (!isWeb) { setLoading(false); return; }
       try {
         const snap = await getDocs(query(collection(webDb, "reviews"), where("providerId", "==", user!.uid), where("published", "==", true)));
         const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
