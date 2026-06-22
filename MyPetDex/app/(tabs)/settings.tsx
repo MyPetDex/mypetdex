@@ -1,9 +1,9 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Linking, Modal, TextInput, KeyboardAvoidingView, Platform } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import * as WebBrowser from "expo-web-browser";
-import { webAuth, webDb } from "@/lib/firebase";
+import { webAuth, webDb, callFunction } from "@/lib/firebase";
 import { doc, deleteDoc, collection, getDocs } from "firebase/firestore";
 
 const BRAND = "#4486F4";
@@ -14,6 +14,9 @@ export default function SettingsScreen() {
   const [notifications, setNotifications] = useState(true);
   const [reminders, setReminders] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackSending, setFeedbackSending] = useState(false);
 
   function handleDeleteAccount() {
     Alert.alert(
@@ -34,9 +37,7 @@ export default function SettingsScreen() {
       const petsSnap = await getDocs(collection(webDb, "users", u.uid, "pets"));
       await Promise.all(petsSnap.docs.map((petDoc) => deleteDoc(petDoc.ref)));
       await deleteDoc(doc(webDb, "users", u.uid));
-
       await u.delete();
-
       router.replace("/(auth)/sign-in");
     } catch (e: any) {
       if (e?.code === "auth/requires-recent-login") {
@@ -50,8 +51,64 @@ export default function SettingsScreen() {
     }
   }
 
+  async function handleSendFeedback() {
+    if (!feedbackText.trim()) {
+      Alert.alert("Please enter your feedback.");
+      return;
+    }
+    setFeedbackSending(true);
+    try {
+      const fn = callFunction("notifyAdminFreeSignup");
+      await fn({
+        email: user?.email || "unknown",
+        role: `FEEDBACK: ${feedbackText.trim()}`,
+      });
+      setFeedbackText("");
+      setFeedbackVisible(false);
+      Alert.alert("Thank you!", "Your feedback has been sent.");
+    } catch (e) {
+      Alert.alert("Error", "Could not send feedback. Please try again.");
+    } finally {
+      setFeedbackSending(false);
+    }
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+
+      {/* Feedback Modal */}
+      <Modal visible={feedbackVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setFeedbackVisible(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Send Feedback</Text>
+              <Pressable onPress={() => setFeedbackVisible(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.modalSubtitle}>We read every message. What's on your mind?</Text>
+            <TextInput
+              style={styles.feedbackInput}
+              multiline
+              numberOfLines={6}
+              placeholder="Tell us what you love, what's broken, or what you'd like to see..."
+              placeholderTextColor="#aaa"
+              value={feedbackText}
+              onChangeText={setFeedbackText}
+              textAlignVertical="top"
+              autoFocus
+            />
+            <Pressable
+              style={[styles.sendBtn, feedbackSending && { opacity: 0.6 }]}
+              onPress={handleSendFeedback}
+              disabled={feedbackSending}
+            >
+              <Text style={styles.sendBtnText}>{feedbackSending ? "Sending…" : "Send Feedback"}</Text>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* Profile */}
       <View style={styles.profileCard}>
         <View style={styles.avatar}>
@@ -101,19 +158,23 @@ export default function SettingsScreen() {
           {[
             {
               label: "Privacy Policy", icon: "🔒",
-              onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/privacy.html"),
+              onPress: () => Linking.openURL("https://home.mypetdex.app/privacy.html"),
             },
             {
               label: "Terms of Service", icon: "📄",
-              onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/terms.html"),
+              onPress: () => Linking.openURL("https://home.mypetdex.app/terms.html"),
             },
             {
-              label: "Contact Support", icon: "💬",
-              onPress: () => WebBrowser.openBrowserAsync("mailto:support@mypetdex.app"),
+              label: "Send Feedback", icon: "💬",
+              onPress: () => setFeedbackVisible(true),
+            },
+            {
+              label: "Contact Support", icon: "📧",
+              onPress: () => Linking.openURL("mailto:help@mypetdex.app"),
             },
             {
               label: "Rate MyPetDex", icon: "⭐",
-              onPress: () => {},
+              onPress: () => Linking.openURL("https://apps.apple.com/app/mypetdex/id6772248051?action=write-review"),
             },
           ].map((item, i, arr) => (
             <Pressable key={item.label} style={[styles.row, i === arr.length - 1 && styles.rowLast]} onPress={item.onPress}>
@@ -171,4 +232,12 @@ const styles = StyleSheet.create({
   deleteBtnDisabled: { opacity: 0.6 },
   deleteText: { fontSize: 16, fontWeight: "700", color: "#fff" },
   version: { textAlign: "center", fontSize: 12, color: "#bbb" },
+  modalContainer: { flex: 1, padding: 24, paddingTop: 32, backgroundColor: "#fff" },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  modalTitle: { fontSize: 22, fontWeight: "700", color: "#1a1a1a" },
+  modalClose: { fontSize: 20, color: "#888", padding: 4 },
+  modalSubtitle: { fontSize: 14, color: "#888", marginBottom: 16 },
+  feedbackInput: { borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 12, padding: 14, fontSize: 15, color: "#1a1a1a", minHeight: 140, marginBottom: 16, backgroundColor: "#fafafa" },
+  sendBtn: { backgroundColor: BRAND, borderRadius: 14, padding: 16, alignItems: "center" },
+  sendBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
 });
