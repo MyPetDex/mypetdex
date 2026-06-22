@@ -259,7 +259,7 @@ export default function SignInScreen() {
       <SafeAreaView style={styles.safeContainer}>
         <BackHeader onBack={() => setScreen("landing")} />
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}>
-          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={true}>
             <Image source={require("../../assets/images/logo-transparent.png")} style={styles.logoSmall} resizeMode="contain" />
             <Text style={styles.title}>Welcome back 👋</Text>
             {error ? <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View> : null}
@@ -305,7 +305,7 @@ export default function SignInScreen() {
     <SafeAreaView style={styles.safeContainer}>
       <BackHeader onBack={() => step === 1 ? setScreen("landing") : setStep(1)} label={step === 1 ? "Back" : "Previous step"} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={true}>
           <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 8 }}>
             <Pressable onPress={() => setScreen("login")}><Text style={styles.linkText}>Already have an account? <Text style={{ color: BLUE }}>Sign In</Text></Text></Pressable>
           </View>
