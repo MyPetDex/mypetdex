@@ -9,6 +9,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { registerForPushNotifications } from "@/lib/notifications";
 
 const BRAND = "#4486F4";
 const BLUE  = "#4486F4";
@@ -184,6 +185,9 @@ export default function OnboardingScreen() {
           throw e;
         }
       }
+
+      // Request push notification permission now — best moment is right after onboarding
+      registerForPushNotifications(u.uid);
 
       // OAuth users (Google/Apple) are already verified — skip check-email.
       // Email/password users need to verify — send them to check-email.
