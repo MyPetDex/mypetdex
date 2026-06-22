@@ -6,7 +6,7 @@ import * as WebBrowser from "expo-web-browser";
 import { webAuth, webDb, callFunction } from "@/lib/firebase";
 import { doc, deleteDoc, collection, getDocs } from "firebase/firestore";
 
-const BRAND = "#4486F4";
+const BRAND = "#4C6EF5";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
@@ -205,39 +205,43 @@ export default function SettingsScreen() {
   );
 }
 
+const TEXT = "#0F172A";
+const TEXT2 = "#64748B";
+const BG = "#F4F6FB";
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f8f8" },
-  content: { padding: 20, paddingBottom: 40, gap: 20 },
-  profileCard: { backgroundColor: "#fff", borderRadius: 16, padding: 20, flexDirection: "row", alignItems: "center", gap: 16 },
-  avatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: BRAND, alignItems: "center", justifyContent: "center" },
-  avatarText: { fontSize: 26, fontWeight: "700", color: "#fff" },
-  profileName: { fontSize: 18, fontWeight: "700", color: "#1a1a1a" },
-  profileEmail: { fontSize: 13, color: "#888", marginTop: 2 },
+  container: { flex: 1, backgroundColor: BG },
+  content: { padding: 20, paddingBottom: 48, gap: 20 },
+  profileCard: { backgroundColor: "#fff", borderRadius: 20, padding: 20, flexDirection: "row", alignItems: "center", gap: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
+  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: BRAND, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: BRAND + "35" },
+  avatarText: { fontSize: 28, fontWeight: "800", color: "#fff" },
+  profileName: { fontSize: 18, fontWeight: "700", color: TEXT },
+  profileEmail: { fontSize: 13, color: TEXT2, marginTop: 2 },
   section: { gap: 8 },
-  sectionTitle: { fontSize: 13, fontWeight: "600", color: "#888", textTransform: "uppercase", letterSpacing: 0.5, paddingHorizontal: 4 },
-  card: { backgroundColor: "#fff", borderRadius: 14, overflow: "hidden" },
-  planCard: { backgroundColor: "#fff", borderRadius: 14, padding: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  planName: { fontSize: 16, fontWeight: "600", color: "#1a1a1a" },
-  planDesc: { fontSize: 13, color: "#888", marginTop: 2 },
-  comingSoonBadge: { backgroundColor: "#F5F5F5", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: "#E0E0E0" },
-  comingSoonText: { color: "#888", fontSize: 13, fontWeight: "600" },
-  row: { flexDirection: "row", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: "#f0f0f0", gap: 12 },
+  sectionTitle: { fontSize: 11, fontWeight: "700", color: TEXT2, textTransform: "uppercase", letterSpacing: 0.8, paddingHorizontal: 4 },
+  card: { backgroundColor: "#fff", borderRadius: 16, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
+  planCard: { backgroundColor: "#fff", borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  planName: { fontSize: 16, fontWeight: "600", color: TEXT },
+  planDesc: { fontSize: 13, color: TEXT2, marginTop: 2 },
+  comingSoonBadge: { backgroundColor: "#F0F2F8", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: "#DDE2F0" },
+  comingSoonText: { color: TEXT2, fontSize: 13, fontWeight: "600" },
+  row: { flexDirection: "row", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: "#F0F2F8", gap: 12 },
   rowLast: { borderBottomWidth: 0 },
   rowIcon: { fontSize: 18 },
-  rowLabel: { flex: 1, fontSize: 15, color: "#1a1a1a" },
-  chevron: { fontSize: 20, color: "#ccc" },
-  signOutBtn: { backgroundColor: "#fff", borderRadius: 14, padding: 16, alignItems: "center", borderWidth: 1, borderColor: "#ffcccc" },
+  rowLabel: { flex: 1, fontSize: 15, color: TEXT },
+  chevron: { fontSize: 20, color: "#C7D2E8" },
+  signOutBtn: { backgroundColor: "#fff", borderRadius: 16, padding: 16, alignItems: "center", borderWidth: 1, borderColor: "#FECDD3" },
   signOutText: { fontSize: 16, fontWeight: "600", color: "#E53935" },
-  deleteBtn: { backgroundColor: "#E53935", borderRadius: 14, padding: 16, alignItems: "center" },
+  deleteBtn: { backgroundColor: "#E53935", borderRadius: 16, padding: 16, alignItems: "center" },
   deleteBtnDisabled: { opacity: 0.6 },
   deleteText: { fontSize: 16, fontWeight: "700", color: "#fff" },
-  version: { textAlign: "center", fontSize: 12, color: "#bbb" },
+  version: { textAlign: "center", fontSize: 12, color: "#C0C8D8" },
   modalContainer: { flex: 1, padding: 24, paddingTop: 32, backgroundColor: "#fff" },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  modalTitle: { fontSize: 22, fontWeight: "700", color: "#1a1a1a" },
-  modalClose: { fontSize: 20, color: "#888", padding: 4 },
-  modalSubtitle: { fontSize: 14, color: "#888", marginBottom: 16 },
-  feedbackInput: { borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 12, padding: 14, fontSize: 15, color: "#1a1a1a", minHeight: 140, marginBottom: 16, backgroundColor: "#fafafa" },
-  sendBtn: { backgroundColor: BRAND, borderRadius: 14, padding: 16, alignItems: "center" },
+  modalTitle: { fontSize: 22, fontWeight: "700", color: TEXT },
+  modalClose: { fontSize: 20, color: TEXT2, padding: 4 },
+  modalSubtitle: { fontSize: 14, color: TEXT2, marginBottom: 16 },
+  feedbackInput: { borderWidth: 1.5, borderColor: "#E0E4F0", borderRadius: 16, padding: 14, fontSize: 15, color: TEXT, minHeight: 140, marginBottom: 16, backgroundColor: "#F8F9FC" },
+  sendBtn: { backgroundColor: BRAND, borderRadius: 16, padding: 16, alignItems: "center", shadowColor: BRAND, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
   sendBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
 });

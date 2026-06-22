@@ -51,7 +51,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   }
 }
 
-const BRAND = "#4486F4";
+const BRAND = "#4C6EF5";
 
 // Close button rendered as headerLeft for modal screens on iOS
 function ModalCloseButton() {

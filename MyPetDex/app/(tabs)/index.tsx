@@ -10,8 +10,11 @@ import UpgradePrompt from "@/components/UpgradePrompt";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, doc, getDoc } from "firebase/firestore";
 
-const BRAND = "#4486F4";
-const BLUE = "#4486F4";
+const BRAND = "#4C6EF5";
+const BRAND_DARK = "#3A5BD9";
+const BG = "#F4F6FB";
+const TEXT = "#0F172A";
+const TEXT2 = "#64748B";
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -91,15 +94,21 @@ export default function HomeScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hello, {firstName} 👋</Text>
-          <Text style={styles.sub}>Welcome to MyPetDex</Text>
-        </View>
-        {planLabel && (
-          <View style={styles.planBadge}>
-            <Text style={styles.planBadgeText}>{planLabel}</Text>
+        <View style={styles.headerInner}>
+          <View>
+            <Text style={styles.greeting}>Hello, {firstName} 👋</Text>
+            <Text style={styles.sub}>Welcome to MyPetDex</Text>
           </View>
-        )}
+          {planLabel ? (
+            <View style={styles.planBadge}>
+              <Text style={styles.planBadgeText}>{planLabel}</Text>
+            </View>
+          ) : (
+            <View style={styles.headerPawBadge}>
+              <Text style={{ fontSize: 22 }}>🐾</Text>
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Pet Section */}
@@ -195,20 +204,28 @@ export default function HomeScreen() {
       {/* Quick Access */}
       <Text style={styles.sectionTitle}>Quick Access</Text>
       <View style={styles.quickGrid}>
-        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/ai")}>
-          <Text style={styles.quickEmoji}>🤖</Text>
-          <Text style={styles.quickLabel}>MyPetDex AI</Text>
+        <Pressable style={[styles.quickCard, { backgroundColor: "#EDE9FE" }]} onPress={() => router.push("/(tabs)/ai")}>
+          <View style={[styles.quickIconCircle, { backgroundColor: "#7C3AED" }]}>
+            <Text style={styles.quickEmoji}>✨</Text>
+          </View>
+          <Text style={styles.quickLabel}>AI Assistant</Text>
         </Pressable>
-        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/shopping")}>
-          <Text style={styles.quickEmoji}>🛒</Text>
+        <Pressable style={[styles.quickCard, { backgroundColor: "#D1FAE5" }]} onPress={() => router.push("/(tabs)/shopping")}>
+          <View style={[styles.quickIconCircle, { backgroundColor: "#059669" }]}>
+            <Text style={styles.quickEmoji}>🛒</Text>
+          </View>
           <Text style={styles.quickLabel}>Shop</Text>
         </Pressable>
-        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/explore")}>
-          <Text style={styles.quickEmoji}>🔍</Text>
+        <Pressable style={[styles.quickCard, { backgroundColor: "#FED7AA" }]} onPress={() => router.push("/(tabs)/explore")}>
+          <View style={[styles.quickIconCircle, { backgroundColor: "#EA580C" }]}>
+            <Text style={styles.quickEmoji}>🗺️</Text>
+          </View>
           <Text style={styles.quickLabel}>Services</Text>
         </Pressable>
-        <Pressable style={styles.quickCard} onPress={handleAddPet}>
-          <Text style={styles.quickEmoji}>➕</Text>
+        <Pressable style={[styles.quickCard, { backgroundColor: "#DBEAFE" }]} onPress={handleAddPet}>
+          <View style={[styles.quickIconCircle, { backgroundColor: BRAND }]}>
+            <Text style={styles.quickEmoji}>➕</Text>
+          </View>
           <Text style={styles.quickLabel}>Add Pet</Text>
         </Pressable>
       </View>
@@ -216,7 +233,7 @@ export default function HomeScreen() {
       {/* Discover */}
       <Text style={styles.sectionTitle}>Discover</Text>
       <Pressable style={styles.discoverCard} onPress={() => router.push("/(tabs)/explore")}>
-        <View style={styles.discoverIcon}>
+        <View style={[styles.discoverIcon, { backgroundColor: "#EDE9FE" }]}>
           <Text style={styles.discoverEmoji}>🔍</Text>
         </View>
         <View style={styles.discoverInfo}>
@@ -227,10 +244,10 @@ export default function HomeScreen() {
       </Pressable>
 
       <Pressable
-        style={[styles.discoverCard, styles.discoverCardGreen]}
+        style={[styles.discoverCard, { borderLeftColor: "#059669" }]}
         onPress={() => router.push("/(tabs)/explore")}
       >
-        <View style={[styles.discoverIcon, styles.discoverIconGreen]}>
+        <View style={[styles.discoverIcon, { backgroundColor: "#D1FAE5" }]}>
           <Text style={styles.discoverEmoji}>🏠</Text>
         </View>
         <View style={styles.discoverInfo}>
@@ -279,63 +296,72 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F0F4FF" },
-  content: { padding: 20, paddingBottom: 40 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24, backgroundColor: BRAND, margin: -20, marginBottom: 20, padding: 20, paddingTop: 16, paddingBottom: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
-  greeting: { fontSize: 22, fontWeight: "700", color: "#fff" },
-  sub: { fontSize: 14, color: "rgba(255,255,255,0.8)", marginTop: 2 },
-  planBadge: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
+  container: { flex: 1, backgroundColor: BG },
+  content: { padding: 20, paddingBottom: 48 },
+  // ── Header ──────────────────────────────────────────────────────────
+  header: { backgroundColor: BRAND, margin: -20, marginBottom: 24, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 28 },
+  headerInner: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  greeting: { fontSize: 26, fontWeight: "800", color: "#fff", letterSpacing: -0.5 },
+  sub: { fontSize: 14, color: "rgba(255,255,255,0.75)", marginTop: 3 },
+  planBadge: { backgroundColor: "rgba(255,255,255,0.22)", borderRadius: 20, paddingHorizontal: 13, paddingVertical: 6, borderWidth: 1, borderColor: "rgba(255,255,255,0.35)" },
   planBadgeText: { color: "#fff", fontSize: 12, fontWeight: "700" },
-  sectionTitle: { fontSize: 17, fontWeight: "600", color: "#1a1a1a", marginBottom: 12, marginTop: 20 },
-  emptyCard: { backgroundColor: "#fff", borderRadius: 16, padding: 32, alignItems: "center", gap: 8 },
-  emptyEmoji: { fontSize: 48 },
-  emptyTitle: { fontSize: 18, fontWeight: "600", color: "#1a1a1a" },
-  emptySub: { fontSize: 14, color: "#888", textAlign: "center" },
-  addBtn: { backgroundColor: BRAND, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24, marginTop: 4 },
-  addBtnText: { color: "#fff", fontSize: 15, fontWeight: "600" },
-  pickerBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10, borderWidth: 1, borderColor: BRAND + "44", alignSelf: "flex-start", gap: 8 },
+  headerPawBadge: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  // ── Section titles ───────────────────────────────────────────────────
+  sectionTitle: { fontSize: 18, fontWeight: "700", color: TEXT, marginBottom: 12, marginTop: 24, letterSpacing: -0.3 },
+  // ── Empty state ──────────────────────────────────────────────────────
+  emptyCard: { backgroundColor: "#fff", borderRadius: 20, padding: 36, alignItems: "center", gap: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
+  emptyEmoji: { fontSize: 52 },
+  emptyTitle: { fontSize: 18, fontWeight: "700", color: TEXT },
+  emptySub: { fontSize: 14, color: TEXT2, textAlign: "center" },
+  addBtn: { backgroundColor: BRAND, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 28, marginTop: 6 },
+  addBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  // ── Pet picker ───────────────────────────────────────────────────────
+  pickerBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10, borderWidth: 1.5, borderColor: BRAND + "55", alignSelf: "flex-start", gap: 8 },
   pickerEmoji: { fontSize: 18 },
-  pickerName: { fontSize: 15, fontWeight: "700", color: "#1a1a1a" },
+  pickerName: { fontSize: 15, fontWeight: "700", color: TEXT },
   pickerChevron: { fontSize: 13, color: BRAND, fontWeight: "700" },
-  petDashCard: { backgroundColor: "#fff", borderRadius: 18, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3 },
-  petDashTop: { flexDirection: "row", alignItems: "center", padding: 18, gap: 14 },
-  petDashAvatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: BRAND + "20", alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  petDashAvatarImage: { width: 64, height: 64, borderRadius: 32 },
-  petDashEmoji: { fontSize: 34 },
+  // ── Pet dashboard card ───────────────────────────────────────────────
+  petDashCard: { backgroundColor: "#fff", borderRadius: 20, overflow: "hidden", shadowColor: BRAND, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 16, elevation: 5 },
+  petDashTop: { flexDirection: "row", alignItems: "center", padding: 20, gap: 16 },
+  petDashAvatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: "#EDE9FE", alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 3, borderColor: BRAND + "30" },
+  petDashAvatarImage: { width: 72, height: 72, borderRadius: 36 },
+  petDashEmoji: { fontSize: 38 },
   petDashInfo: { flex: 1 },
-  petDashName: { fontSize: 20, fontWeight: "700", color: "#1a1a1a" },
-  petDashBreed: { fontSize: 13, color: "#888", marginTop: 2 },
-  petDashMeta: { flexDirection: "row", gap: 6, marginTop: 8, flexWrap: "wrap" },
-  metaChip: { backgroundColor: "#F5F5F5", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  metaChipText: { fontSize: 12, color: "#555", fontWeight: "500" },
-  vetRow: { backgroundColor: "#FFF8E7", paddingHorizontal: 18, paddingVertical: 10, borderTopWidth: 1, borderTopColor: "#F5E9C8" },
+  petDashName: { fontSize: 22, fontWeight: "800", color: TEXT, letterSpacing: -0.3 },
+  petDashBreed: { fontSize: 13, color: TEXT2, marginTop: 2 },
+  petDashMeta: { flexDirection: "row", gap: 6, marginTop: 10, flexWrap: "wrap" },
+  metaChip: { backgroundColor: "#F0F4FF", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  metaChipText: { fontSize: 12, color: BRAND, fontWeight: "600" },
+  vetRow: { backgroundColor: "#FFFBEB", paddingHorizontal: 20, paddingVertical: 11, borderTopWidth: 1, borderTopColor: "#FDE68A" },
   vetText: { fontSize: 13, color: "#B45309", fontWeight: "600" },
   statsRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#F0F0F0" },
-  statBox: { flex: 1, alignItems: "center", paddingVertical: 14, gap: 4 },
+  statBox: { flex: 1, alignItems: "center", paddingVertical: 16, gap: 4 },
   statDivider: { width: 1, backgroundColor: "#F0F0F0", marginVertical: 10 },
-  statValue: { fontSize: 18, fontWeight: "700", color: BRAND },
-  statLabel: { fontSize: 11, color: "#888", fontWeight: "500" },
+  statValue: { fontSize: 20, fontWeight: "800", color: BRAND },
+  statLabel: { fontSize: 11, color: TEXT2, fontWeight: "500" },
+  // ── Quick access grid ────────────────────────────────────────────────
   quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  quickCard: { backgroundColor: "#fff", borderRadius: 14, padding: 16, alignItems: "center", width: "47%", gap: 8 },
-  quickEmoji: { fontSize: 32 },
-  quickLabel: { fontSize: 13, fontWeight: "600", color: "#1a1a1a" },
-  discoverCard: { backgroundColor: "#fff", borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", marginBottom: 12, borderLeftWidth: 4, borderLeftColor: BLUE, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
-  discoverCardGreen: { borderLeftColor: BRAND },
-  discoverIcon: { width: 48, height: 48, borderRadius: 12, backgroundColor: "#EEF3FF", alignItems: "center", justifyContent: "center", marginRight: 14 },
-  discoverIconGreen: { backgroundColor: "#f0f8f4" },
+  quickCard: { borderRadius: 18, padding: 18, alignItems: "center", width: "47%", gap: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  quickIconCircle: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  quickEmoji: { fontSize: 24 },
+  quickLabel: { fontSize: 13, fontWeight: "700", color: TEXT },
+  // ── Discover cards ───────────────────────────────────────────────────
+  discoverCard: { backgroundColor: "#fff", borderRadius: 18, padding: 16, flexDirection: "row", alignItems: "center", marginBottom: 12, borderLeftWidth: 4, borderLeftColor: BRAND, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  discoverIcon: { width: 50, height: 50, borderRadius: 14, alignItems: "center", justifyContent: "center", marginRight: 14 },
   discoverEmoji: { fontSize: 24 },
   discoverInfo: { flex: 1 },
-  discoverTitle: { fontSize: 15, fontWeight: "700", color: "#1a1a1a" },
-  discoverSub: { fontSize: 12, color: "#888", marginTop: 2 },
-  discoverArrow: { fontSize: 24, color: "#ccc", fontWeight: "600" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
-  modalSheet: { backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, gap: 8 },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: "#1a1a1a", marginBottom: 8 },
-  modalPetRow: { flexDirection: "row", alignItems: "center", padding: 14, borderRadius: 14, gap: 12, backgroundColor: "#F8F8F8" },
-  modalPetRowActive: { backgroundColor: BRAND + "15", borderWidth: 1.5, borderColor: BRAND },
-  modalPetEmoji: { fontSize: 28 },
+  discoverTitle: { fontSize: 15, fontWeight: "700", color: TEXT },
+  discoverSub: { fontSize: 12, color: TEXT2, marginTop: 3 },
+  discoverArrow: { fontSize: 24, color: "#C7D2E8", fontWeight: "600" },
+  // ── Pet picker modal ─────────────────────────────────────────────────
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+  modalSheet: { backgroundColor: "#fff", borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 44, gap: 10 },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: TEXT, marginBottom: 6 },
+  modalPetRow: { flexDirection: "row", alignItems: "center", padding: 14, borderRadius: 16, gap: 12, backgroundColor: "#F8F9FC" },
+  modalPetRowActive: { backgroundColor: BRAND + "12", borderWidth: 1.5, borderColor: BRAND },
+  modalPetEmoji: { fontSize: 30 },
   modalPetInfo: { flex: 1 },
-  modalPetName: { fontSize: 16, fontWeight: "700", color: "#1a1a1a" },
-  modalPetBreed: { fontSize: 13, color: "#888", marginTop: 2 },
+  modalPetName: { fontSize: 16, fontWeight: "700", color: TEXT },
+  modalPetBreed: { fontSize: 13, color: TEXT2, marginTop: 2 },
   modalCheck: { fontSize: 18, color: BRAND, fontWeight: "700" },
 });

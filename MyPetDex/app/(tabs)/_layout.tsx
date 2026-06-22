@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
 
-const BRAND = "#4486F4";
+const BRAND = "#4C6EF5";
 
 export default function TabLayout() {
   const { user } = useAuth();
@@ -23,16 +23,23 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: BRAND,
-        tabBarInactiveTintColor: "#999",
+        tabBarInactiveTintColor: "#A0AABF",
         tabBarStyle: {
           backgroundColor: "#fff",
-          borderTopColor: "#f0f0f0",
-          paddingBottom: Platform.OS === "ios" ? 20 : 8,
-          height: Platform.OS === "ios" ? 82 : 62,
+          borderTopColor: "#EEF0F8",
+          borderTopWidth: 1,
+          paddingBottom: Platform.OS === "ios" ? 22 : 8,
+          height: Platform.OS === "ios" ? 86 : 64,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 12,
         },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
         headerStyle: { backgroundColor: "#fff" },
         headerShadowVisible: false,
-        headerTitleStyle: { fontWeight: "700", fontSize: 18 },
+        headerTitleStyle: { fontWeight: "700", fontSize: 18, color: "#0F172A" },
       }}
     >
       {/* ── Pet Owner tabs ─────────────────────────────────────────── */}

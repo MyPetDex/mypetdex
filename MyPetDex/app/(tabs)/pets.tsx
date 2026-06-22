@@ -10,7 +10,10 @@ import { collection, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
 
-const BRAND = "#4486F4";
+const BRAND = "#4C6EF5";
+const BG = "#F4F6FB";
+const TEXT = "#0F172A";
+const TEXT2 = "#64748B";
 
 export default function PetsScreen() {
   const router = useRouter();
@@ -154,29 +157,29 @@ export default function PetsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f8f8" },
-  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", margin: 16, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: "#eee" },
+  container: { flex: 1, backgroundColor: BG },
+  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", margin: 16, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
   searchIcon: { fontSize: 16, marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 15, color: "#1a1a1a" },
+  searchInput: { flex: 1, fontSize: 15, color: TEXT },
   list: { padding: 16, paddingTop: 0, gap: 12 },
-  emptyCard: { backgroundColor: "#fff", borderRadius: 16, padding: 32, alignItems: "center", marginTop: 20, gap: 8 },
-  emptyEmoji: { fontSize: 48 },
-  emptyTitle: { fontSize: 18, fontWeight: "600", color: "#1a1a1a" },
-  emptySub: { fontSize: 14, color: "#888", textAlign: "center" },
-  card: { backgroundColor: "#fff", borderRadius: 14, padding: 16, flexDirection: "row", alignItems: "center" },
-  avatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: "#f0f8f4", alignItems: "center", justifyContent: "center", marginRight: 14 },
-  avatarEmoji: { fontSize: 32 },
+  emptyCard: { backgroundColor: "#fff", borderRadius: 20, padding: 36, alignItems: "center", marginTop: 20, gap: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
+  emptyEmoji: { fontSize: 52 },
+  emptyTitle: { fontSize: 18, fontWeight: "700", color: TEXT },
+  emptySub: { fontSize: 14, color: TEXT2, textAlign: "center" },
+  card: { backgroundColor: "#fff", borderRadius: 18, padding: 16, flexDirection: "row", alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: "#EDE9FE", alignItems: "center", justifyContent: "center", marginRight: 14, overflow: "hidden", borderWidth: 2.5, borderColor: BRAND + "25" },
+  avatarEmoji: { fontSize: 34 },
   info: { flex: 1 },
-  name: { fontSize: 17, fontWeight: "700", color: "#1a1a1a" },
-  breed: { fontSize: 13, color: "#888", marginTop: 2 },
+  name: { fontSize: 17, fontWeight: "700", color: TEXT },
+  breed: { fontSize: 13, color: TEXT2, marginTop: 2 },
   tags: { flexDirection: "row", gap: 6, marginTop: 8 },
-  tag: { backgroundColor: "#f0f8f4", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  tagText: { fontSize: 12, color: BRAND, fontWeight: "500" },
+  tag: { backgroundColor: "#EDE9FE", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  tagText: { fontSize: 12, color: "#7C3AED", fontWeight: "600" },
   cardRight: { alignItems: "center", gap: 6 },
-  chevron: { fontSize: 22, color: "#ccc" },
+  chevron: { fontSize: 22, color: "#C7D2E8" },
   deleteBtn: { padding: 4 },
   deleteBtnText: { fontSize: 18 },
-  addBtn: { backgroundColor: BRAND, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 8 },
-  addBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  hint: { textAlign: "center", fontSize: 12, color: "#bbb", marginTop: 8 },
+  addBtn: { backgroundColor: BRAND, borderRadius: 16, paddingVertical: 15, alignItems: "center", marginTop: 8, shadowColor: BRAND, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  addBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  hint: { textAlign: "center", fontSize: 12, color: "#C0C8D8", marginTop: 8 },
 });
