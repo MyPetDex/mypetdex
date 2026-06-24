@@ -5,9 +5,8 @@ import {
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { db, storage } from "@/lib/firebase";
+import { db, uploadPetPhoto } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from "expo-image-picker";
 
 const BRAND = "#4486F4";
@@ -127,23 +126,10 @@ export default function AddPetScreen() {
 
   function showPhotoOptions() {
     Alert.alert("Pet Photo", "Choose a photo source", [
-      { text: "Camera", onPress: takePhoto },
-      { text: "Photo Library", onPress: pickPhoto },
+      { text: "Camera", onPress: () => setTimeout(takePhoto, 300) },
+      { text: "Photo Library", onPress: () => setTimeout(pickPhoto, 300) },
       { text: "Cancel", style: "cancel" },
     ]);
-  }
-
-  async function uploadPhoto(uid: string, petId: string, uri: string): Promise<string> {
-    setUploadingPhoto(true);
-    try {
-      const storageRef = ref(storage, `users/${uid}/pets/${petId}/photo.jpg`);
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      await uploadBytes(storageRef, blob);
-      return await getDownloadURL(storageRef);
-    } finally {
-      setUploadingPhoto(false);
-    }
   }
 
   async function handleSave() {
@@ -179,11 +165,15 @@ export default function AddPetScreen() {
       // Upload photo if selected
       if (photoUri) {
         try {
-          const photoURL = await uploadPhoto(user.uid, docRef.id, photoUri);
+          setUploadingPhoto(true);
+          const photoURL = await uploadPetPhoto(user.uid, docRef.id, photoUri);
           const { updateDoc, doc } = await import("firebase/firestore");
           await updateDoc(doc(db, "users", user.uid, "pets", docRef.id), { photoURL });
         } catch (photoErr) {
           console.error("Photo upload failed (pet saved without photo):", photoErr);
+          Alert.alert("Photo not saved", "Your pet was saved but the photo couldn't be uploaded. You can add it later.");
+        } finally {
+          setUploadingPhoto(false);
         }
       }
 

@@ -1,10 +1,11 @@
 import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, KeyboardAvoidingView, Platform } from "react-native";
 import { useState, useRef } from "react";
 import { usePlan } from "@/hooks/usePlan";
-import UpgradePrompt from "@/components/UpgradePrompt";
 import { useRouter } from "expo-router";
+import { auth } from "@/lib/firebase";
 
-const BRAND = "#4486F4";
+const BRAND = "#4C6EF5";
+const AI_PROXY_URL = "https://us-central1-mypetdex-c4315.cloudfunctions.net/aiProxy";
 
 type Message = { role: "user" | "assistant"; text: string };
 
@@ -50,20 +51,27 @@ export default function AIVetScreen() {
     setLoading(true);
 
     try {
-      const apiUrl = Platform.OS === "web" ? "/api/chat" : "https://app.mypetdex.app/api/chat";
-      const response = await fetch(apiUrl, {
+      // Get Firebase ID token — proves the user is logged in and lets the server check their plan
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("Not authenticated");
+
+      // Build conversation history (last 10 messages to keep context but limit cost)
+      const history = [...messages.slice(-10), userMsg].map(m => ({
+        role: m.role === "user" ? "user" : "assistant",
+        content: m.text,
+      }));
+
+      const response = await fetch(AI_PROXY_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 500,
-          system: "You are a helpful AI vet assistant for the MyPetDex app. Give concise, friendly advice about pet health, nutrition, and behavior. Always recommend seeing a real vet for serious concerns. Keep responses under 150 words.",
-          messages: [{ role: "user", content: text }],
-        }),
+        body: JSON.stringify({ messages: history }),
       });
+
       const data = await response.json();
+      if (data.error) throw new Error(data.error);
       const reply = data.content?.[0]?.text || "Sorry, I couldn't get a response. Please try again.";
       setMessages(prev => [...prev, { role: "assistant", text: reply }]);
     } catch {

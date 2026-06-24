@@ -7,11 +7,10 @@ import { useState, useEffect } from "react";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
-import { db, storage } from "@/lib/firebase";
+import { db, uploadPetPhoto } from "@/lib/firebase";
 import {
   doc, onSnapshot, updateDoc, deleteDoc, arrayUnion, arrayRemove,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from "expo-image-picker";
 import DatePicker from "@/components/DatePicker";
 import QRCode from "react-native-qrcode-svg";
@@ -177,8 +176,8 @@ export default function PetProfileScreen() {
 
   function showPhotoOptions() {
     Alert.alert("Pet Photo", "Choose a photo source", [
-      { text: "Camera", onPress: takeEditPhoto },
-      { text: "Photo Library", onPress: pickEditPhoto },
+      { text: "Camera", onPress: () => setTimeout(takeEditPhoto, 300) },
+      { text: "Photo Library", onPress: () => setTimeout(pickEditPhoto, 300) },
       { text: "Cancel", style: "cancel" },
     ]);
   }
@@ -203,13 +202,10 @@ export default function PetProfileScreen() {
       // Upload new photo if selected
       if (editPhotoUri) {
         try {
-          const storageRef = ref(storage, `users/${user!.uid}/pets/${pet.id}/photo.jpg`);
-          const response = await fetch(editPhotoUri);
-          const blob = await response.blob();
-          await uploadBytes(storageRef, blob);
-          updates.photoURL = await getDownloadURL(storageRef);
+          updates.photoURL = await uploadPetPhoto(user!.uid, pet.id, editPhotoUri);
         } catch (photoErr) {
           console.error("Photo upload failed:", photoErr);
+          Alert.alert("Photo not saved", "Your changes were saved but the photo couldn't be uploaded. Please try again.");
         }
       }
 

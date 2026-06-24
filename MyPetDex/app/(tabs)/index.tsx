@@ -204,27 +204,27 @@ export default function HomeScreen() {
       {/* Quick Access */}
       <Text style={styles.sectionTitle}>Quick Access</Text>
       <View style={styles.quickGrid}>
-        <Pressable style={[styles.quickCard, { backgroundColor: "#EDE9FE" }]} onPress={() => router.push("/(tabs)/ai")}>
-          <View style={[styles.quickIconCircle, { backgroundColor: "#7C3AED" }]}>
-            <Text style={styles.quickEmoji}>✨</Text>
+        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/ai")}>
+          <View style={[styles.quickIconBadge, { backgroundColor: "#EDE9FE" }]}>
+            <Text style={styles.quickEmoji}>🤖</Text>
           </View>
-          <Text style={styles.quickLabel}>AI Assistant</Text>
+          <Text style={styles.quickLabel}>MyPetDex{"\n"}Assistant</Text>
         </Pressable>
-        <Pressable style={[styles.quickCard, { backgroundColor: "#D1FAE5" }]} onPress={() => router.push("/(tabs)/shopping")}>
-          <View style={[styles.quickIconCircle, { backgroundColor: "#059669" }]}>
-            <Text style={styles.quickEmoji}>🛒</Text>
+        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/shopping")}>
+          <View style={[styles.quickIconBadge, { backgroundColor: "#DCFCE7" }]}>
+            <Text style={styles.quickEmoji}>🛍️</Text>
           </View>
-          <Text style={styles.quickLabel}>Shop</Text>
+          <Text style={styles.quickLabel}>Pet Shop</Text>
         </Pressable>
-        <Pressable style={[styles.quickCard, { backgroundColor: "#FED7AA" }]} onPress={() => router.push("/(tabs)/explore")}>
-          <View style={[styles.quickIconCircle, { backgroundColor: "#EA580C" }]}>
-            <Text style={styles.quickEmoji}>🗺️</Text>
+        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/explore")}>
+          <View style={[styles.quickIconBadge, { backgroundColor: "#FEF3C7" }]}>
+            <Text style={styles.quickEmoji}>📍</Text>
           </View>
           <Text style={styles.quickLabel}>Services</Text>
         </Pressable>
-        <Pressable style={[styles.quickCard, { backgroundColor: "#DBEAFE" }]} onPress={handleAddPet}>
-          <View style={[styles.quickIconCircle, { backgroundColor: BRAND }]}>
-            <Text style={styles.quickEmoji}>➕</Text>
+        <Pressable style={styles.quickCard} onPress={handleAddPet}>
+          <View style={[styles.quickIconBadge, { backgroundColor: "#DBEAFE" }]}>
+            <Text style={styles.quickEmoji}>🐾</Text>
           </View>
           <Text style={styles.quickLabel}>Add Pet</Text>
         </Pressable>
@@ -340,11 +340,11 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 20, fontWeight: "800", color: BRAND },
   statLabel: { fontSize: 11, color: TEXT2, fontWeight: "500" },
   // ── Quick access grid ────────────────────────────────────────────────
-  quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  quickCard: { borderRadius: 18, padding: 18, alignItems: "center", width: "47%", gap: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
-  quickIconCircle: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
-  quickEmoji: { fontSize: 24 },
-  quickLabel: { fontSize: 13, fontWeight: "700", color: TEXT },
+  quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  quickCard: { backgroundColor: "#fff", borderRadius: 16, padding: 16, alignItems: "flex-start", width: "47%", gap: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
+  quickIconBadge: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  quickEmoji: { fontSize: 22 },
+  quickLabel: { fontSize: 13, fontWeight: "700", color: TEXT, lineHeight: 18 },
   // ── Discover cards ───────────────────────────────────────────────────
   discoverCard: { backgroundColor: "#fff", borderRadius: 18, padding: 16, flexDirection: "row", alignItems: "center", marginBottom: 12, borderLeftWidth: 4, borderLeftColor: BRAND, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   discoverIcon: { width: 50, height: 50, borderRadius: 14, alignItems: "center", justifyContent: "center", marginRight: 14 },

@@ -83,7 +83,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="ai"
         options={{
-          title: "MyPetDex AI",
+          title: "MyPetDex Assistant",
           href: isProvider || isShelter || isAdmin ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sparkles-outline" size={size} color={color} />

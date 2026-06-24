@@ -7,6 +7,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
+import { makeRedirectUri } from "expo-auth-session";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   auth, db,
@@ -47,11 +48,14 @@ export default function SignInScreen() {
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: IOS_CLIENT_ID,
     webClientId: WEB_CLIENT_ID,
+    redirectUri: Platform.OS === "ios"
+      ? "com.googleusercontent.apps.209772699227-eibpfptsff0h497q956hlru2qbeu9pm9:/"
+      : makeRedirectUri(),
   });
 
   // Register promptAsync with AuthContext so signInWithGoogle() can trigger it
   useEffect(() => {
-    setGooglePrompt(request ? () => () => promptAsync() : null);
+    setGooglePrompt(request ? () => promptAsync() : null);
     return () => setGooglePrompt(null);
   }, [request]);
 
@@ -229,7 +233,7 @@ export default function SignInScreen() {
           </View>
           <View style={styles.roleCards}>
             {([
-              { role: "owner" as Role, emoji: "🐾", title: "Pet Owner", desc: "Manage health records, reminders, AI tips & more" },
+              { role: "owner" as Role, emoji: "🐾", title: "Pet Owner", desc: "Manage health records, reminders & personalized tips" },
               { role: "provider" as Role, emoji: "🛎️", title: "Service Provider", desc: "Grow your pet business & get discovered locally" },
               { role: "shelter" as Role, emoji: "🏠", title: "Animal Shelter", desc: "List adoptable pets & connect with loving families" },
             ]).map(({ role: r, emoji, title, desc }) => (

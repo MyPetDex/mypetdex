@@ -1,0 +1,29 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper: user is signed in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    // Helper: requesting user owns this uid's storage path
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    // Helper: user is the admin
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'mypetdexapp@gmail.com';
+    }
+
+    // Pet photos live at users/{uid}/pets/{petId}/photo.jpg — only the owning
+    // user (or admin) may read/write anything under their own uid path.
+    match /users/{uid}/{allPaths=**} {
+      allow read, write: if isOwner(uid) || isAdmin();
+    }
+
+    // Deny everything else by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

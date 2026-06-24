@@ -8,8 +8,9 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
-import { db, webAuth, webDb } from "@/lib/firebase";
+import { db, webAuth, webDb, callFunction } from "@/lib/firebase";
 import { collection, onSnapshot, doc, deleteDoc, getDocs } from "firebase/firestore";
+import * as WebBrowser from "expo-web-browser";
 
 const BRAND = "#4C6EF5";
 const BG = "#F4F6FB";
@@ -135,11 +136,8 @@ export default function MeScreen() {
     }
     setFeedbackSending(true);
     try {
-      const subject = encodeURIComponent(`[MyPetDex Feedback] ${feedbackSubject}`);
-      const body = encodeURIComponent(
-        `From: ${user?.displayName || "User"} (${user?.email})\n\nSubject: ${feedbackSubject}\n\n${feedbackMessage}`
-      );
-      await Linking.openURL(`mailto:help@mypetdex.app?subject=${subject}&body=${body}`);
+      const fn = callFunction("sendFeedback");
+      await fn({ subject: feedbackSubject, message: feedbackMessage.trim() });
       setFeedbackSent(true);
       setTimeout(() => {
         setShowFeedback(false);
@@ -148,7 +146,7 @@ export default function MeScreen() {
         setFeedbackSubject("General Feedback");
       }, 2000);
     } catch {
-      Alert.alert("Error", "Could not open mail app. Please email help@mypetdex.app directly.");
+      Alert.alert("Error", "Could not send feedback. Please email help@mypetdex.app directly.");
     }
     setFeedbackSending(false);
   }
@@ -341,8 +339,8 @@ export default function MeScreen() {
           <Text style={styles.settingsSectionTitle}>Account</Text>
           <View style={styles.settingsCard}>
             {[
-              { label: "Privacy Policy", icon: "🔒", onPress: () => Linking.openURL("https://home.mypetdex.app/privacy.html") },
-              { label: "Terms of Service", icon: "📄", onPress: () => Linking.openURL("https://home.mypetdex.app/terms.html") },
+              { label: "Privacy Policy", icon: "🔒", onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/privacy.html") },
+              { label: "Terms of Service", icon: "📄", onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/terms.html") },
               { label: "Rate MyPetDex", icon: "⭐", onPress: () => Linking.openURL("https://apps.apple.com/app/mypetdex/id6772248051?action=write-review") },
             ].map((item, i, arr) => (
               <Pressable

@@ -52,21 +52,18 @@ export default function SettingsScreen() {
   }
 
   async function handleSendFeedback() {
-    if (!feedbackText.trim()) {
-      Alert.alert("Please enter your feedback.");
+    if (!feedbackText.trim() || feedbackText.trim().length < 10) {
+      Alert.alert("Too short", "Please write at least 10 characters.");
       return;
     }
     setFeedbackSending(true);
     try {
-      const fn = callFunction("notifyAdminFreeSignup");
-      await fn({
-        email: user?.email || "unknown",
-        role: `FEEDBACK: ${feedbackText.trim()}`,
-      });
+      const fn = callFunction("sendFeedback");
+      await fn({ subject: "General Feedback", message: feedbackText.trim() });
       setFeedbackText("");
       setFeedbackVisible(false);
       Alert.alert("Thank you!", "Your feedback has been sent.");
-    } catch (e) {
+    } catch {
       Alert.alert("Error", "Could not send feedback. Please try again.");
     } finally {
       setFeedbackSending(false);
@@ -158,19 +155,15 @@ export default function SettingsScreen() {
           {[
             {
               label: "Privacy Policy", icon: "🔒",
-              onPress: () => Linking.openURL("https://home.mypetdex.app/privacy.html"),
+              onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/privacy.html"),
             },
             {
               label: "Terms of Service", icon: "📄",
-              onPress: () => Linking.openURL("https://home.mypetdex.app/terms.html"),
+              onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/terms.html"),
             },
             {
               label: "Send Feedback", icon: "💬",
               onPress: () => setFeedbackVisible(true),
-            },
-            {
-              label: "Contact Support", icon: "📧",
-              onPress: () => Linking.openURL("mailto:help@mypetdex.app"),
             },
             {
               label: "Rate MyPetDex", icon: "⭐",

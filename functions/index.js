@@ -136,20 +136,100 @@ exports.sendScheduledReminders = onSchedule(
 );
 
 // ─── AI Proxy ─────────────────────────────────────────────────────────────────
+// ─── Helper: verify Firebase ID token and return uid ─────────────────────────
+async function verifyToken(req) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith("Bearer ")) return null;
+  try {
+    const decoded = await admin.auth().verifyIdToken(auth.split("Bearer ")[1]);
+    return decoded.uid;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Helper: check user plan from Firestore ───────────────────────────────────
+async function getUserPlan(uid) {
+  try {
+    const snap = await db.collection("users").doc(uid).get();
+    return snap.exists ? (snap.data().plan || "free") : "free";
+  } catch {
+    return "free";
+  }
+}
+
+// ─── AI Proxy — routes Anthropic calls through server so key is never in app ──
 exports.aiProxy = onRequest(
-  { cors: true, secrets: [resendKey, anthropicKey] },
+  { cors: true, secrets: [anthropicKey] },
   async (req, res) => {
+    // 1. Verify Firebase Auth token
+    const uid = await verifyToken(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    // 2. Check plan — AI assistant is plus/family only
+    const plan = await getUserPlan(uid);
+    if (plan !== "plus" && plan !== "family") {
+      return res.status(403).json({ error: "AI assistant requires Plus or Family plan" });
+    }
+
     try {
-      const PET_RESTRICTION = `\n\nIMPORTANT: You ONLY answer questions related to pets and pet care. If asked about anything unrelated to pets (politics, coding, shopping, travel, finance, etc.), politely decline and redirect: "I'm PetDex AI and I can only help with pet-related questions! 🐾"`;
+      const PET_SYSTEM = `You are MyPetDex Assistant, an expert in pet health, nutrition, behavior, and care. You ONLY answer questions about pets — dogs, cats, birds, fish, reptiles, and other animals. If asked about anything unrelated to pets (politics, coding, travel, finance, people, etc.), respond: "I'm MyPetDex Assistant and I can only help with pet-related questions! 🐾 Ask me anything about your pet's health, food, or behavior." Keep answers friendly, concise, and always recommend a vet for serious health concerns.`;
 
       const body = req.body;
-      // Keep app system prompt but add restriction
-      const modifiedBody = {
-        ...body,
-        system: (body.system || "") + PET_RESTRICTION,
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: body.max_tokens || 1000,
-      };
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": anthropicKey.value(),
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 600,
+          system: PET_SYSTEM,
+          messages: body.messages || [],
+        }),
+      });
+      const data = await response.json();
+      res.json(data);
+    } catch (err) {
+      console.error("aiProxy error:", err);
+      res.status(500).json({ error: "AI request failed" });
+    }
+  }
+);
+
+// ─── Get Pet Recipe — generates healthy meal recipe for a pet ─────────────────
+exports.getRecipe = onRequest(
+  { cors: true, secrets: [anthropicKey] },
+  async (req, res) => {
+    // 1. Verify Firebase Auth token
+    const uid = await verifyToken(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    // 2. Check plan — recipes are plus/family only
+    const plan = await getUserPlan(uid);
+    if (plan !== "plus" && plan !== "family") {
+      return res.status(403).json({ error: "Pet recipes require Plus or Family plan" });
+    }
+
+    const { petName, species, breed, age, weight, allergies } = req.body;
+    if (!species) return res.status(400).json({ error: "Missing pet species" });
+
+    try {
+      const prompt = `Create a healthy homemade meal recipe for a ${species}${breed ? ` (${breed})` : ""}${age ? `, ${age} old` : ""}${weight ? `, ${weight}` : ""}${allergies ? `. Allergies/avoid: ${allergies}` : ""}.
+
+Return a JSON object with exactly this structure:
+{
+  "name": "Recipe name",
+  "description": "One sentence description",
+  "ingredients": ["ingredient 1 with amount", "ingredient 2 with amount"],
+  "instructions": ["Step 1", "Step 2", "Step 3"],
+  "nutritionTip": "One key nutrition benefit",
+  "warning": "Any important safety note or null"
+}
+
+Only return valid JSON, no other text.`;
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -158,15 +238,21 @@ exports.aiProxy = onRequest(
           "x-api-key": anthropicKey.value(),
           "anthropic-version": "2023-06-01",
         },
-        body: JSON.stringify(modifiedBody),
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 800,
+          messages: [{ role: "user", content: prompt }],
+        }),
       });
       const data = await response.json();
-      console.log("Anthropic response status:", response.status);
-      console.log("Anthropic response:", JSON.stringify(data).substring(0, 200));
-      res.json(data);
+      const text = data.content?.[0]?.text || "{}";
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const recipe = jsonMatch ? JSON.parse(jsonMatch[0]) : { error: "Could not generate recipe" };
+      res.json(recipe);
     } catch (err) {
-      console.error("AI proxy error:", err);
-      res.status(500).json({ error: "AI proxy failed" });
+      console.error("getRecipe error:", err);
+      res.status(500).json({ error: "Recipe generation failed" });
     }
   }
 );
@@ -886,3 +972,42 @@ function passwordResetEmailHTML(email, resetLink) {
       <p style="text-align:center;font-size:13px;margin-top:16px;">Need help? <a href="mailto:help@mypetdex.app" style="color:#4486F4;">help@mypetdex.app</a></p>
   `);
 }
+
+// ─── Send Feedback ────────────────────────────────────────────────────────────
+exports.sendFeedback = onCall({ cors: true, secrets: [resendKey] }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new Error("Unauthorized");
+
+  const { subject, message } = request.data || {};
+  if (!message || message.trim().length < 10) throw new Error("Message too short");
+
+  let userEmail = "unknown@mypetdex.app";
+  let userName = "A user";
+  try {
+    const userRecord = await admin.auth().getUser(uid);
+    userEmail = userRecord.email || userEmail;
+    userName = userRecord.displayName || userEmail.split("@")[0];
+  } catch {}
+
+  try {
+    await sendEmail(resendKey.value(), {
+      to: ADMIN_EMAIL,
+      from: `MyPetDex Feedback <${FROM_EMAIL}>`,
+      subject: `[Feedback] ${subject || "General Feedback"} — from ${userName}`,
+      html: emailBase(`
+        <h1>💬 New Feedback</h1>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+          <tr><td style="color:#64748B;padding:7px 10px;font-size:13px;border-bottom:1px solid #E2E8F0;">From</td><td style="color:#1E293B;padding:7px 10px;font-size:13px;font-weight:600;">${userName} (${userEmail})</td></tr>
+          <tr><td style="color:#64748B;padding:7px 10px;font-size:13px;">Subject</td><td style="color:#1E293B;padding:7px 10px;font-size:13px;font-weight:600;">${subject || "General Feedback"}</td></tr>
+        </table>
+        <div style="background:#F8FAFC;border-radius:12px;padding:16px;border:1px solid #E2E8F0;">
+          <p style="color:#1E293B;font-size:15px;line-height:1.6;margin:0;">${message.replace(/\n/g, "<br>")}</p>
+        </div>
+      `),
+    });
+    return { success: true };
+  } catch (err) {
+    console.error("sendFeedback error:", err);
+    throw new Error("Failed to send feedback. Please try again.");
+  }
+});
