@@ -185,6 +185,7 @@ export default function PetProfileScreen() {
   async function saveEdit() {
     if (!editName.trim()) { Alert.alert("Missing info", "Please enter your pet's name."); return; }
     setEditSaving(true);
+    let photoUploadFailed = false;
     try {
       const updates: Record<string, any> = {
         name: editName.trim(),
@@ -199,18 +200,20 @@ export default function PetProfileScreen() {
         licenseNumber: editLicense.trim() || null,
       };
 
-      // Upload new photo if selected
       if (editPhotoUri) {
         try {
           updates.photoURL = await uploadPetPhoto(user!.uid, pet.id, editPhotoUri);
         } catch (photoErr) {
           console.error("Photo upload failed:", photoErr);
-          Alert.alert("Photo not saved", "Your changes were saved but the photo couldn't be uploaded. Please try again.");
+          photoUploadFailed = true;
         }
       }
 
       await updateDoc(doc(db, "users", user!.uid, "pets", pet.id), updates);
       setShowEdit(false);
+      if (photoUploadFailed) {
+        Alert.alert("Photo not saved", "Your other changes were saved but the photo couldn't be uploaded. Please try again.");
+      }
     } catch {
       Alert.alert("Error", "Could not save changes. Please try again.");
     }

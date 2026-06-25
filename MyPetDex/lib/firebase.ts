@@ -55,8 +55,17 @@ export const petRef = (uid: string, petId: string) => doc(db, "users", uid, "pet
 export async function uploadPetPhoto(uid: string, petId: string, localUri: string): Promise<string> {
   const storageRef = ref(storage, `users/${uid}/pets/${petId}/photo.jpg`);
   const response = await fetch(localUri);
+  if (!response.ok) {
+    throw new Error(`Failed to read photo (${response.status})`);
+  }
   const blob = await response.blob();
-  await uploadBytes(storageRef, blob);
+  if (!blob.size) {
+    throw new Error("Photo file is empty");
+  }
+  const contentType = blob.type && blob.type !== "application/octet-stream"
+    ? blob.type
+    : "image/jpeg";
+  await uploadBytes(storageRef, blob, { contentType });
   return getDownloadURL(storageRef);
 }
 

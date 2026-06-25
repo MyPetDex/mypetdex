@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { db, uploadPetPhoto } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
 import * as ImagePicker from "expo-image-picker";
 
 const BRAND = "#4486F4";
@@ -167,7 +167,6 @@ export default function AddPetScreen() {
         try {
           setUploadingPhoto(true);
           const photoURL = await uploadPetPhoto(user.uid, docRef.id, photoUri);
-          const { updateDoc, doc } = await import("firebase/firestore");
           await updateDoc(doc(db, "users", user.uid, "pets", docRef.id), { photoURL });
         } catch (photoErr) {
           console.error("Photo upload failed (pet saved without photo):", photoErr);

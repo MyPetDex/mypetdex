@@ -367,13 +367,13 @@ export default function ExploreScreen() {
                         <Text style={styles.providerType}>{p.serviceType || p.service}</Text>
                         <Text style={styles.providerLocation}>📍 {[p.city, p.state].filter(Boolean).join(", ")}</Text>
                       </View>
-                      {p.rating && (
+                      {p.rating != null && p.rating !== "" ? (
                         <View style={styles.ratingBadge}>
                           <Text style={styles.ratingText}>⭐ {p.rating}</Text>
                         </View>
-                      )}
+                      ) : null}
                     </View>
-                    {p.phone && <Text style={styles.providerPhone}>📞 {p.phone}</Text>}
+                    {p.phone ? <Text style={styles.providerPhone}>📞 {p.phone}</Text> : null}
                   </Pressable>
                 ))}
               </View>

@@ -226,16 +226,16 @@ export default function MeScreen() {
                       <Text style={styles.name}>{pet.name}</Text>
                       <Text style={styles.breed}>{pet.breed || pet.species}</Text>
                       <View style={styles.tags}>
-                        {pet.age && (
+                        {pet.age != null && pet.age !== "" ? (
                           <View style={styles.tag}>
                             <Text style={styles.tagText}>Age: {pet.age}</Text>
                           </View>
-                        )}
-                        {pet.weight && (
+                        ) : null}
+                        {pet.weight != null && pet.weight !== "" ? (
                           <View style={styles.tag}>
                             <Text style={styles.tagText}>{pet.weight} {pet.weightUnit || "lbs"}</Text>
                           </View>
-                        )}
+                        ) : null}
                       </View>
                     </View>
                     <Text style={styles.chevron}>›</Text>
