@@ -4,7 +4,6 @@ import {
 } from "react-native";
 import { useState, useRef } from "react";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { isWeb } from "@/lib/platform";
 import { webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 
@@ -77,6 +76,29 @@ interface AdoptPet {
   city: string;
 }
 
+function mapUserToProvider(data: Record<string, unknown>, uid: string) {
+  const city = String(data.city || "");
+  const state = String(data.state || "");
+  const service = String(data.service || data.serviceType || "");
+  return {
+    id: `user_${uid}`,
+    businessName: String(data.businessName || data.displayName || "Provider"),
+    name: String(data.businessName || data.displayName || "Provider"),
+    city,
+    state,
+    stateCity: city && state ? `${state}_${city.toLowerCase()}` : undefined,
+    service,
+    serviceType: service,
+    phone: String(data.phone || ""),
+    website: String(data.website || ""),
+    address: String(data.address || ""),
+    bio: String(data.bio || ""),
+    priceRange: String(data.priceRange || ""),
+    role: "provider",
+    source: "signup",
+  };
+}
+
 export default function ExploreScreen() {
   const { profile } = useUserProfile();
   const [activeTab, setActiveTab] = useState<ExploreTab>("services");
@@ -124,25 +146,25 @@ export default function ExploreScreen() {
 
     try {
       const runQuery = async (): Promise<any[]> => {
-        if (isWeb) {
-          let q;
-          if (stateCityKey) {
-            q = query(collection(webDb, "seedProviders"), where("stateCity", "==", stateCityKey), limit(100));
-          } else {
-            q = query(collection(webDb, "seedProviders"), where("state", "==", stateFilter), limit(500));
-          }
-          const snap = await getDocs(q);
-          return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        } else {
-          let q;
-          if (stateCityKey) {
-            q = query(collection(webDb, "seedProviders"), where("stateCity", "==", stateCityKey), limit(100));
-          } else {
-            q = query(collection(webDb, "seedProviders"), where("state", "==", stateFilter), limit(500));
-          }
-          const snap = await getDocs(q);
-          return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const seedQ = stateCityKey
+          ? query(collection(webDb, "seedProviders"), where("stateCity", "==", stateCityKey), limit(100))
+          : query(collection(webDb, "seedProviders"), where("state", "==", stateFilter), limit(500));
+        const usersQ = query(
+          collection(webDb, "users"),
+          where("role", "==", "provider"),
+          where("state", "==", stateFilter),
+          limit(200),
+        );
+
+        const [seedSnap, usersSnap] = await Promise.all([getDocs(seedQ), getDocs(usersQ)]);
+        const seedResults = seedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        let userResults = usersSnap.docs.map((d) => mapUserToProvider(d.data() as Record<string, unknown>, d.id));
+
+        if (cityTrim) {
+          userResults = userResults.filter((p) => p.city?.toLowerCase() === cityTrim);
         }
+
+        return [...seedResults, ...userResults];
       };
 
       const timeoutP = new Promise<never>((_, reject) =>

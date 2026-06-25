@@ -174,6 +174,15 @@ export default Sentry.wrap(function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="adopt"
+          options={{
+            presentation: "modal",
+            headerShown: true,
+            title: "Adopt a Pet",
+            headerLeft: () => <ModalCloseButton />,
+          }}
+        />
+        <Stack.Screen
           name="settings/subscription"
           options={{
             presentation: "modal",

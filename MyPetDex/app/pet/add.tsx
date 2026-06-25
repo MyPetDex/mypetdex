@@ -1,6 +1,7 @@
 import {
   View, Text, StyleSheet, ScrollView, TextInput, Pressable,
   Switch, ActivityIndicator, Modal, FlatList, Image, Alert,
+  KeyboardAvoidingView, Platform,
 } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
@@ -185,6 +186,11 @@ export default function AddPetScreen() {
   }
 
   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+    >
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -362,6 +368,7 @@ export default function AddPetScreen() {
         )}
       </Pressable>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

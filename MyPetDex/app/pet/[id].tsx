@@ -1,7 +1,7 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   ActivityIndicator, Alert, TextInput, Modal, Platform,
-  Share, Linking, Switch, Image, FlatList,
+  Share, Linking, Switch, Image, FlatList, KeyboardAvoidingView,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
@@ -352,6 +352,11 @@ export default function PetProfileScreen() {
 
       {/* Edit Pet Modal */}
       <Modal visible={showEdit} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowEdit(false)}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+        >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Edit {pet.name}</Text>
@@ -444,6 +449,7 @@ export default function PetProfileScreen() {
             </Pressable>
           </ScrollView>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>

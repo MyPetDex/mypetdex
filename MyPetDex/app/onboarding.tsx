@@ -2,6 +2,7 @@ import { isWeb } from "@/lib/platform";
 import {
   View, Text, StyleSheet, ScrollView, TextInput, Pressable,
   ActivityIndicator, Modal, FlatList, Image, Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
@@ -204,6 +205,11 @@ export default function OnboardingScreen() {
   }
 
   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+    >
     <View style={styles.root}>
       {/* Pinned header — always visible, never scrolls away, not blocked by loading */}
       <SafeAreaView edges={["top"]} style={styles.header}>
@@ -482,6 +488,7 @@ export default function OnboardingScreen() {
       </View>
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   );
 }
 

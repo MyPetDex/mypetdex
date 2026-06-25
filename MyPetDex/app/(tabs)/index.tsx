@@ -245,7 +245,7 @@ export default function HomeScreen() {
 
       <Pressable
         style={[styles.discoverCard, { borderLeftColor: "#059669" }]}
-        onPress={() => router.push("/(tabs)/explore")}
+        onPress={() => router.push("/adopt")}
       >
         <View style={[styles.discoverIcon, { backgroundColor: "#D1FAE5" }]}>
           <Text style={styles.discoverEmoji}>🏠</Text>
