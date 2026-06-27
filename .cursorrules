@@ -1,0 +1,193 @@
+# MyPetDex — Cursor Rules
+# Read this entire file before making any change to this project.
+
+## What We're Building
+MyPetDex is an iOS app that helps pet owners manage their pets' health, find local pet services, and connect with shelters. There is also a marketing website.
+
+The project has TWO parts in this repo:
+- `MyPetDex/` — the Expo iOS app (branch: `main`)
+- Root level — the marketing website hosted on Vercel (branch: `master`)
+
+---
+
+## App: MyPetDex (Expo iOS)
+
+### Core Rule: Expo Web SDK Only
+- **NEVER** use React Native Firebase (`@react-native-firebase/*`)
+- **NEVER** use native Firebase SDK
+- **ALWAYS** use Firebase Web SDK (`firebase` npm package)
+- **NEVER** suggest native modules unless they are already in `package.json`
+- This is a pure **Expo** app — all packages must be Expo-compatible
+
+### Tech Stack
+- **Framework**: Expo SDK 56, Expo Router (file-based routing)
+- **Language**: TypeScript
+- **Platform**: iOS only (no Android planned)
+- **Auth**: `expo-auth-session` for Google OAuth, `expo-apple-authentication` for Apple Sign In
+- **Database**: Firebase Firestore (Web SDK)
+- **Storage**: Firebase Storage (Web SDK) — photos uploaded via `XMLHttpRequest` blob method
+- **Functions**: Firebase Cloud Functions v2 (`onCall`, `onRequest`)
+- **Notifications**: `expo-notifications`
+- **Error tracking**: Sentry (`@sentry/react-native`)
+- **Image picker**: `expo-image-picker`
+- **Browser**: `expo-web-browser` (SFSafariViewController — stays in app)
+- **Deep linking**: `expo-linking`
+
+### Firebase Project
+- Project ID: `mypetdex-c4315`
+- Storage bucket: `mypetdex-c4315.firebasestorage.app`
+- Auth domain: `auth.mypetdex.app`
+- Bundle ID: `app.mypetdex`
+- All Firebase config lives in `MyPetDex/lib/firebase.ts`
+
+### Firestore Collections
+- `users/{uid}` — user profile (role, plan, email, displayName, pushToken, onboardingComplete)
+- `users/{uid}/pets/{petId}` — pet profiles (name, breed, age, weight, photoURL, status)
+- `users/{uid}/pets/{petId}/records` — vet/vaccine/medication records
+- `users/{uid}/pets/{petId}/reminders` — reminders
+- `seedProviders` — manually seeded service providers
+- `shelter_pets` — shelter/adoption listings
+- `feedback` — user feedback submissions
+- `ingredients_master` — food ingredients database
+- `nutrient_targets` — nutritional targets
+- `recipes_vetted` — vetted pet food recipes
+- `shopProducts` — pet shop product listings
+- `reviews` — provider reviews
+- `siteReviews` — website reviews
+- `stats` — app statistics
+
+### User Roles
+- `owner` — pet owner (default)
+- `provider` — service provider (groomer, vet, trainer, walker, etc.)
+- `shelter` — animal shelter
+- Admin: `mypetdexapp@gmail.com`
+
+### Cloud Functions (deployed, live)
+- `aiProxy` — calls Anthropic Claude API for AI chat
+- `getRecipe` — generates pet food recipes via Claude
+- `sendFeedback` — sends feedback email via Resend
+- `sendWelcomeEmail` — sends welcome email on first verified login
+- `notifyAdminFreeSignup` — notifies admin of new signups
+All functions use Firebase Secrets for sensitive keys — never hardcode API keys in functions.
+
+---
+
+## API Keys — Security Rules (CRITICAL)
+
+### Where API keys live:
+| Key | Where stored | How accessed |
+|-----|-------------|--------------|
+| Anthropic API key | Firebase Secret (`anthropic-key`) | `defineSecret()` in Cloud Functions only |
+| Resend API key | Firebase Secret (`resend-key`) | `defineSecret()` in Cloud Functions only |
+| Google OAuth Client IDs | `.env.local` (not committed) | `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` |
+| RescueGroups API key | `.env.local` (not committed) | `EXPO_PUBLIC_RESCUEGROUPS_API_KEY` |
+| Firebase config | `lib/firebase.ts` | Safe to be public — restricted by bundle ID + domain in Firebase console |
+
+### Rules:
+- **NEVER** hardcode any API key in any file
+- **NEVER** put secret keys in `app.json`, `eas.json`, or any committed file
+- **NEVER** call Anthropic, Resend, or any paid external API directly from the app — always go through a Cloud Function
+- **NEVER** expose Firebase Secrets in client code
+- If a new external API is needed, add it as a Firebase Secret and call it from a Cloud Function
+- `.env.local` is gitignored — always check before adding new env vars
+
+---
+
+## Build & Deploy Rules
+
+### Development (free, no build needed):
+```bash
+npx expo start --dev-client --tunnel
+```
+Then open the MyPetDex dev app on iPhone and connect.
+
+### Push code changes to dev (free OTA update):
+```bash
+eas update --channel development --message "description"
+```
+
+### Push fixes to production users (free OTA update — no build):
+```bash
+eas update --channel production --message "description"
+```
+Use this for JS-only fixes. Production users get the update automatically.
+
+### New App Store build (costs $2, only when necessary):
+```bash
+eas build --platform ios --profile production --auto-submit
+```
+Only needed for: new native packages, app.json changes (icons, permissions), or major version releases.
+
+### NEVER suggest a production build for testing — always use OTA update or dev client.
+
+### Git branches:
+- `main` — Expo app code
+- `master` — marketing website only (Vercel watches `master`, not `main`)
+
+---
+
+## Website: home.mypetdex.app
+- Hosted on Vercel, connected to `master` branch
+- Static HTML files: `privacy.html`, `terms.html`
+- Domain: `home.mypetdex.app`
+- App Store link: `https://apps.apple.com/app/mypetdex/id6772248051`
+- **No API keys on the website** — it is purely static HTML/CSS/JS
+- Never add server-side code or environment variables to the website
+
+---
+
+## App Architecture
+
+### Auth flow:
+1. User opens app → checks Firebase Auth state
+2. Not logged in → `/(auth)/sign-in.tsx`
+3. Logged in but onboarding not complete → `/(auth)/onboarding.tsx`
+4. Fully set up → `/(tabs)/` main app
+
+### Navigation (Expo Router file-based):
+- `/(tabs)/index.tsx` — Home screen
+- `/(tabs)/explore.tsx` — Find services + adopt pets
+- `/(tabs)/shopping.tsx` — Pet shop
+- `/(tabs)/ai.tsx` — MyPetDex Assistant (AI chat)
+- `/(tabs)/me.tsx` — Profile, settings, feedback
+- `/pet/[id].tsx` — Pet detail page
+- `/pet/add.tsx` — Add new pet
+
+### Key files:
+- `MyPetDex/lib/firebase.ts` — All Firebase initialization + helpers
+- `MyPetDex/contexts/AuthContext.tsx` — Auth state, Google/Apple sign-in logic
+- `MyPetDex/app/(tabs)/_layout.tsx` — Tab bar configuration
+- `functions/index.js` — All Cloud Functions
+
+---
+
+## Code Conventions
+- Use `WebBrowser.openBrowserAsync()` for Privacy Policy, Terms — never `Linking.openURL` for web pages
+- Use `Linking.openURL` only for App Store links
+- All feedback goes through `callFunction("sendFeedback")` — never `mailto:`
+- Photo uploads use `XMLHttpRequest` blob method — never `fetch().blob()` (broken in Expo's fetch)
+- Never use `expo-file-system` for uploads
+- Keyboard handling: wrap forms in `KeyboardAvoidingView behavior="padding"` on iOS
+- Clear search state when user leaves a search screen (`useFocusEffect` or on unmount)
+- Text strings must always be inside `<Text>` components — never render raw strings in `<View>`
+- Use `Boolean(value)` or `value != null` checks instead of `&&` with numbers/strings to avoid rendering `0` or `""` as text
+
+---
+
+## What's Live & Working
+- Google Sign In ✅
+- Apple Sign In ✅
+- Email/Password auth ✅
+- Push notifications ✅
+- Welcome email on signup ✅
+- Feedback Cloud Function ✅
+- AI Assistant (Claude via Cloud Function) ✅
+- Firebase Storage rules deployed ✅
+- Privacy Policy / Terms (in-app browser) ✅
+- OTA updates configured ✅
+
+## Known Issues Being Fixed
+- Photo upload (XMLHttpRequest fix in progress)
+- Service providers who sign up via app not appearing in explore search
+- Role re-selection shown after Google OAuth (welcome email fires for wrong role)
+- Search results not cleared when leaving screen
