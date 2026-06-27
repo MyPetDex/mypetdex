@@ -114,9 +114,16 @@ function extractZipFromAddress(address?: string): string | null {
   return match ? match[1] : null;
 }
 
-function matchesZip(listing: { zip?: string; address?: string }, zip: string): boolean {
+function matchesZipForSeed(listing: { zip?: string }, zip: string): boolean {
   if (!zip) return true;
-  const listingZip = listing.zip || extractZipFromAddress(listing.address) || "";
+  const explicitZip = String(listing.zip || "").trim();
+  if (!explicitZip) return true;
+  return explicitZip === zip;
+}
+
+function matchesZipForUser(listing: { zip?: string; address?: string }, zip: string): boolean {
+  if (!zip) return true;
+  const listingZip = String(listing.zip || "").trim() || extractZipFromAddress(listing.address) || "";
   return listingZip === zip;
 }
 
@@ -187,10 +194,10 @@ export default function ExploreScreen() {
         const [seedSnap, usersSnap] = await Promise.all([getDocs(seedQ), getDocs(usersQ)]);
         const seedResults = seedSnap.docs
           .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((p) => matchesZip(p, zipTrim));
+          .filter((p) => matchesZipForSeed(p, zipTrim));
         const userResults = usersSnap.docs
           .map((d) => mapUserToListing(d.data() as Record<string, unknown>, d.id))
-          .filter((p) => matchesZip(p, zipTrim));
+          .filter((p) => matchesZipForUser(p, zipTrim));
 
         return [...seedResults, ...userResults];
       };
