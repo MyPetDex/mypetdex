@@ -114,13 +114,6 @@ function extractZipFromAddress(address?: string): string | null {
   return match ? match[1] : null;
 }
 
-function matchesZipForSeed(listing: { zip?: string }, zip: string): boolean {
-  if (!zip) return true;
-  const explicitZip = String(listing.zip || "").trim();
-  if (!explicitZip) return true;
-  return explicitZip === zip;
-}
-
 function matchesZipForUser(listing: { zip?: string; address?: string }, zip: string): boolean {
   if (!zip) return true;
   const listingZip = String(listing.zip || "").trim() || extractZipFromAddress(listing.address) || "";
@@ -179,11 +172,6 @@ export default function ExploreScreen() {
 
     try {
       const runQuery = async (): Promise<any[]> => {
-        const seedQ = query(
-          collection(webDb, "seedProviders"),
-          where("state", "==", stateFilter),
-          limit(500),
-        );
         const usersQ = query(
           collection(webDb, "users"),
           where("role", "in", ["provider", "shelter"]),
@@ -191,14 +179,23 @@ export default function ExploreScreen() {
           limit(200),
         );
 
-        const [seedSnap, usersSnap] = await Promise.all([getDocs(seedQ), getDocs(usersQ)]);
-        const seedResults = seedSnap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((p) => matchesZipForSeed(p, zipTrim));
-        const userResults = usersSnap.docs
-          .map((d) => mapUserToListing(d.data() as Record<string, unknown>, d.id))
-          .filter((p) => matchesZipForUser(p, zipTrim));
+        if (zipTrim) {
+          const usersSnap = await getDocs(usersQ);
+          return usersSnap.docs
+            .map((d) => mapUserToListing(d.data() as Record<string, unknown>, d.id))
+            .filter((p) => matchesZipForUser(p, zipTrim));
+        }
 
+        const seedQ = query(
+          collection(webDb, "seedProviders"),
+          where("state", "==", stateFilter),
+          limit(500),
+        );
+        const [seedSnap, usersSnap] = await Promise.all([getDocs(seedQ), getDocs(usersQ)]);
+        const seedResults = seedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const userResults = usersSnap.docs.map((d) =>
+          mapUserToListing(d.data() as Record<string, unknown>, d.id),
+        );
         return [...seedResults, ...userResults];
       };
 
