@@ -242,7 +242,6 @@ export default function ExploreScreen() {
         );
 
         const [seedSnap, usersSnap] = await Promise.all([getDocs(seedQ), getDocs(usersQ)]);
-        let seedResults = seedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         let localResults = usersSnap.docs.map((d) =>
           mapUserToListing(d.data() as Record<string, unknown>, d.id),
         );
@@ -250,6 +249,11 @@ export default function ExploreScreen() {
         if (zipTrim) {
           localResults = localResults.filter((p) => matchesZipForUser(p, zipTrim));
         }
+
+        // When zip is entered, hide seed providers — show only real local signups
+        let seedResults = zipTrim
+          ? []
+          : seedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
         seedResults = filterByService(seedResults, activeSvc);
         localResults = filterByService(localResults, activeSvc);
