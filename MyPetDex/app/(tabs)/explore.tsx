@@ -120,6 +120,61 @@ function matchesZipForUser(listing: { zip?: string; address?: string }, zip: str
   return listingZip === zip;
 }
 
+function filterByService(listings: any[], service: string): any[] {
+  if (!service) return listings;
+  return listings.filter((p) =>
+    String(p.serviceType || p.service || "").toLowerCase() === service.toLowerCase(),
+  );
+}
+
+function ProviderCard({
+  p,
+  badge,
+}: {
+  p: any;
+  badge: "mypetdex" | "user";
+}) {
+  return (
+    <Pressable
+      style={styles.providerCard}
+      onPress={() => p.website && Linking.openURL(p.website.startsWith("http") ? p.website : `https://${p.website}`)}
+    >
+      <View style={styles.providerHeader}>
+        <View style={styles.providerIcon}>
+          <Text style={{ fontSize: 22 }}>
+            {SERVICE_TYPES.find((s) => s.label === p.serviceType || s.label === p.service)?.emoji ||
+              (p.role === "shelter" ? "🏠" : "🐾")}
+          </Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <View style={styles.providerNameRow}>
+            <Text style={styles.providerName}>{p.businessName || p.name}</Text>
+            {badge === "mypetdex" ? (
+              <View style={styles.mypetdexVerifiedBadge}>
+                <Text style={styles.mypetdexVerifiedText}>🏅 MyPetDex Verified</Text>
+              </View>
+            ) : p.verified === true ? (
+              <View style={styles.verifiedBadge}>
+                <Text style={styles.verifiedText}>✅ Verified</Text>
+              </View>
+            ) : null}
+          </View>
+          <Text style={styles.providerType}>{p.serviceType || p.service}</Text>
+          <Text style={styles.providerLocation}>
+            📍 {[p.city, p.state, p.zip || extractZipFromAddress(p.address)].filter(Boolean).join(", ")}
+          </Text>
+        </View>
+        {p.rating != null && p.rating !== "" ? (
+          <View style={styles.ratingBadge}>
+            <Text style={styles.ratingText}>⭐ {p.rating}</Text>
+          </View>
+        ) : null}
+      </View>
+      {p.phone ? <Text style={styles.providerPhone}>📞 {p.phone}</Text> : null}
+    </Pressable>
+  );
+}
+
 export default function ExploreScreen() {
   const { profile } = useUserProfile();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
@@ -140,7 +195,8 @@ export default function ExploreScreen() {
   // (Expo Router unmounts tabs when navigating away, so state is always fresh)
 
   // Providers state
-  const [providers, setProviders] = useState<any[]>([]);
+  const [seedProviders, setSeedProviders] = useState<any[]>([]);
+  const [localProviders, setLocalProviders] = useState<any[]>([]);
   const [providerLoading, setProviderLoading] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
   const [providerError, setProviderError] = useState("");
@@ -162,7 +218,8 @@ export default function ExploreScreen() {
     setShowCancel(false);
     if (cancelTimerRef.current) clearTimeout(cancelTimerRef.current);
     cancelTimerRef.current = setTimeout(() => setShowCancel(true), 2000);
-    setProviders([]);
+    setSeedProviders([]);
+    setLocalProviders([]);
     setProviderError("");
 
     const activeSvc = overrideService !== undefined ? overrideService : serviceFilter;
@@ -171,7 +228,12 @@ export default function ExploreScreen() {
     const TIMEOUT_MS = 6000;
 
     try {
-      const runQuery = async (): Promise<any[]> => {
+      const runQuery = async (): Promise<{ seed: any[]; local: any[] }> => {
+        const seedQ = query(
+          collection(webDb, "seedProviders"),
+          where("state", "==", stateFilter),
+          limit(500),
+        );
         const usersQ = query(
           collection(webDb, "users"),
           where("role", "in", ["provider", "shelter"]),
@@ -179,39 +241,31 @@ export default function ExploreScreen() {
           limit(200),
         );
 
-        if (zipTrim) {
-          const usersSnap = await getDocs(usersQ);
-          return usersSnap.docs
-            .map((d) => mapUserToListing(d.data() as Record<string, unknown>, d.id))
-            .filter((p) => matchesZipForUser(p, zipTrim));
-        }
-
-        const seedQ = query(
-          collection(webDb, "seedProviders"),
-          where("state", "==", stateFilter),
-          limit(500),
-        );
         const [seedSnap, usersSnap] = await Promise.all([getDocs(seedQ), getDocs(usersQ)]);
-        const seedResults = seedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        const userResults = usersSnap.docs.map((d) =>
+        let seedResults = seedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        let localResults = usersSnap.docs.map((d) =>
           mapUserToListing(d.data() as Record<string, unknown>, d.id),
         );
-        return [...seedResults, ...userResults];
+
+        if (zipTrim) {
+          localResults = localResults.filter((p) => matchesZipForUser(p, zipTrim));
+        }
+
+        seedResults = filterByService(seedResults, activeSvc);
+        localResults = filterByService(localResults, activeSvc);
+
+        return { seed: seedResults, local: localResults };
       };
 
       const timeoutP = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Taking too long — try again in a moment.")), TIMEOUT_MS)
       );
 
-      let results: any[] = await Promise.race([runQuery(), timeoutP]);
+      const { seed, local } = await Promise.race([runQuery(), timeoutP]);
 
-      // Filter by service type
-      if (activeSvc) results = results.filter((p: any) =>
-        p.serviceType?.toLowerCase() === activeSvc.toLowerCase()
-      );
-
-      if (myId !== searchIdRef.current) return; // cancelled — ignore stale result
-      setProviders(results);
+      if (myId !== searchIdRef.current) return;
+      setSeedProviders(seed);
+      setLocalProviders(local);
     } catch (e: any) {
       if (myId !== searchIdRef.current) return;
       console.error("Provider search error:", e);
@@ -403,44 +457,24 @@ export default function ExploreScreen() {
                 <Text style={styles.comingSoonTitle}>Search failed</Text>
                 <Text style={styles.comingSoonSub}>{providerError}</Text>
               </View>
-            ) : providers.length > 0 ? (
+            ) : seedProviders.length > 0 || localProviders.length > 0 ? (
               <View>
-                <Text style={styles.resultsCount}>{providers.length} providers found</Text>
-                {providers.map((p: any) => (
-                  <Pressable
-                    key={p.id}
-                    style={styles.providerCard}
-                    onPress={() => p.website && Linking.openURL(p.website.startsWith("http") ? p.website : `https://${p.website}`)}
-                  >
-                    <View style={styles.providerHeader}>
-                      <View style={styles.providerIcon}>
-                        <Text style={{ fontSize: 22 }}>
-                          {SERVICE_TYPES.find(s => s.label === p.serviceType || s.label === p.service)?.emoji || "🐾"}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <View style={styles.providerNameRow}>
-                          <Text style={styles.providerName}>{p.businessName || p.name}</Text>
-                          {p.verified === true ? (
-                            <View style={styles.verifiedBadge}>
-                              <Text style={styles.verifiedText}>✅ Verified</Text>
-                            </View>
-                          ) : null}
-                        </View>
-                        <Text style={styles.providerType}>{p.serviceType || p.service}</Text>
-                        <Text style={styles.providerLocation}>
-                          📍 {[p.city, p.state, p.zip || extractZipFromAddress(p.address)].filter(Boolean).join(", ")}
-                        </Text>
-                      </View>
-                      {p.rating != null && p.rating !== "" ? (
-                        <View style={styles.ratingBadge}>
-                          <Text style={styles.ratingText}>⭐ {p.rating}</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                    {p.phone ? <Text style={styles.providerPhone}>📞 {p.phone}</Text> : null}
-                  </Pressable>
-                ))}
+                {seedProviders.length > 0 ? (
+                  <View style={styles.resultsSection}>
+                    <Text style={styles.sectionHeader}>MyPetDex Verified Providers</Text>
+                    {seedProviders.map((p: any) => (
+                      <ProviderCard key={p.id} p={p} badge="mypetdex" />
+                    ))}
+                  </View>
+                ) : null}
+                {localProviders.length > 0 ? (
+                  <View style={styles.resultsSection}>
+                    <Text style={styles.sectionHeader}>Local Providers Near You</Text>
+                    {localProviders.map((p: any) => (
+                      <ProviderCard key={p.id} p={p} badge="user" />
+                    ))}
+                  </View>
+                ) : null}
               </View>
             ) : (
               <View style={styles.comingSoonBox}>
@@ -639,7 +673,8 @@ const styles = StyleSheet.create({
   serviceDesc: { fontSize: 10, color: "#888", textAlign: "center", marginTop: 2 },
 
   // Coming soon
-  resultsCount: { fontSize: 13, color: "#888", marginBottom: 12, marginTop: 4 },
+  resultsSection: { marginTop: 8 },
+  sectionHeader: { fontSize: 14, fontWeight: "700", color: "#1a1a1a", marginBottom: 12, marginTop: 8 },
   providerCard: { backgroundColor: "#fff", borderRadius: 14, padding: 14, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   providerHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   providerIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#f0faf5", alignItems: "center", justifyContent: "center" },
@@ -647,6 +682,8 @@ const styles = StyleSheet.create({
   providerNameRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
   verifiedBadge: { backgroundColor: "#DCFCE7", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   verifiedText: { fontSize: 11, fontWeight: "700", color: "#166534" },
+  mypetdexVerifiedBadge: { backgroundColor: "#DCFCE7", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  mypetdexVerifiedText: { fontSize: 11, fontWeight: "700", color: "#166534" },
   providerType: { fontSize: 12, color: BRAND, fontWeight: "600", marginTop: 2 },
   providerLocation: { fontSize: 12, color: "#888", marginTop: 2 },
   providerPhone: { fontSize: 13, color: "#555", marginTop: 8 },
