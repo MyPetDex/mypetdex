@@ -2,7 +2,8 @@ import {
   View, Text, StyleSheet, ScrollView, Pressable,
   TextInput, ActivityIndicator, Image, Linking, Modal, FlatList,
 } from "react-native";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
@@ -101,7 +102,13 @@ function mapUserToProvider(data: Record<string, unknown>, uid: string) {
 
 export default function ExploreScreen() {
   const { profile } = useUserProfile();
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [activeTab, setActiveTab] = useState<ExploreTab>("services");
+
+  useEffect(() => {
+    if (tab === "adopt") setActiveTab("adopt");
+    else if (tab === "services") setActiveTab("services");
+  }, [tab]);
 
   // Services state — always starts fresh
   const [serviceFilter, setServiceFilter] = useState("");

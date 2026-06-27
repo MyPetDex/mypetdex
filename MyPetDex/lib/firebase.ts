@@ -54,52 +54,16 @@ export const petRef = (uid: string, petId: string) => doc(db, "users", uid, "pet
 // ── Storage helper ────────────────────────────────────────────────────────────
 export async function uploadPetPhoto(uid: string, petId: string, localUri: string): Promise<string> {
   const storageRef = ref(storage, `users/${uid}/pets/${petId}/photo.jpg`);
-  try {
-    console.error("[uploadPetPhoto] start", { uid, petId, localUri });
-
-    const response = await fetch(localUri);
-    console.error("[uploadPetPhoto] fetch response", {
-      ok: response.ok,
-      status: response.status,
-      contentType: response.headers.get("content-type"),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to read photo (${response.status})`);
-    }
-
-    const blob = await response.blob();
-    console.error("[uploadPetPhoto] blob ready", {
-      localUri,
-      size: blob.size,
-      type: blob.type,
-    });
-
-    if (!blob.size) {
-      throw new Error("Photo file is empty");
-    }
-
-    const contentType = blob.type && blob.type !== "application/octet-stream"
-      ? blob.type
-      : "image/jpeg";
-
-    console.error("[uploadPetPhoto] uploading", { contentType, path: `users/${uid}/pets/${petId}/photo.jpg` });
-    await uploadBytes(storageRef, blob, { contentType });
-
-    const downloadURL = await getDownloadURL(storageRef);
-    console.error("[uploadPetPhoto] success", { downloadURL });
-    return downloadURL;
-  } catch (err: unknown) {
-    const firebaseErr = err as { code?: string; message?: string; customData?: { serverResponse?: string } };
-    console.error("[uploadPetPhoto] failed", {
-      localUri,
-      code: firebaseErr?.code,
-      message: firebaseErr?.message ?? String(err),
-      serverResponse: firebaseErr?.customData?.serverResponse,
-      stack: err instanceof Error ? err.stack : undefined,
-    });
-    throw err;
-  }
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.onload = () => resolve(xhr.response);
+    xhr.onerror = () => reject(new Error("Failed to fetch image blob"));
+    xhr.responseType = "blob";
+    xhr.open("GET", localUri);
+    xhr.send();
+  });
+  await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
+  return getDownloadURL(storageRef);
 }
 
 // ── Callable functions ────────────────────────────────────────────────────────
