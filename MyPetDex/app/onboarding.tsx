@@ -92,6 +92,7 @@ export default function OnboardingScreen() {
     }
   }, [roleParam]);
   const [city, setCity] = useState("");
+  const [zip, setZip] = useState("");
 
   // Owner fields
   const [petName, setPetName] = useState("");
@@ -147,6 +148,7 @@ export default function OnboardingScreen() {
           phone: phone.trim(),
           website: website.trim(),
           bio: bio.trim(),
+          zip: zip.trim(),
           approved: false,
         });
       }
@@ -300,6 +302,20 @@ export default function OnboardingScreen() {
             onChangeText={setCity}
             autoCapitalize="words"
           />
+
+          {role === "provider" ? (
+            <>
+              <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Zip Code</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. 07001"
+                value={zip}
+                onChangeText={(text) => setZip(text.replace(/\D/g, "").slice(0, 5))}
+                keyboardType="numeric"
+                maxLength={5}
+              />
+            </>
+          ) : null}
         </View>
 
         {/* Owner: first pet */}

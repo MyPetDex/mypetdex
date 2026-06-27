@@ -77,16 +77,23 @@ interface AdoptPet {
   city: string;
 }
 
-function mapUserToProvider(data: Record<string, unknown>, uid: string) {
+function mapUserToListing(data: Record<string, unknown>, uid: string) {
+  const role = String(data.role || "provider");
   const city = String(data.city || "");
   const state = String(data.state || "");
-  const service = String(data.service || data.serviceType || "");
+  const isShelter = role === "shelter";
+  const service = isShelter ? "Animal Shelter" : String(data.service || data.serviceType || "");
   return {
     id: `user_${uid}`,
-    businessName: String(data.businessName || data.displayName || "Provider"),
-    name: String(data.businessName || data.displayName || "Provider"),
+    businessName: isShelter
+      ? String(data.shelterName || data.displayName || "Shelter")
+      : String(data.businessName || data.displayName || "Provider"),
+    name: isShelter
+      ? String(data.shelterName || data.displayName || "Shelter")
+      : String(data.businessName || data.displayName || "Provider"),
     city,
     state,
+    zip: String(data.zip || ""),
     stateCity: city && state ? `${state}_${city.toLowerCase()}` : undefined,
     service,
     serviceType: service,
@@ -95,9 +102,22 @@ function mapUserToProvider(data: Record<string, unknown>, uid: string) {
     address: String(data.address || ""),
     bio: String(data.bio || ""),
     priceRange: String(data.priceRange || ""),
-    role: "provider",
+    role,
+    verified: data.verified === true,
     source: "signup",
   };
+}
+
+function extractZipFromAddress(address?: string): string | null {
+  if (!address) return null;
+  const match = address.match(/\b(\d{5})\b/);
+  return match ? match[1] : null;
+}
+
+function matchesZip(listing: { zip?: string; address?: string }, zip: string): boolean {
+  if (!zip) return true;
+  const listingZip = listing.zip || extractZipFromAddress(listing.address) || "";
+  return listingZip === zip;
 }
 
 export default function ExploreScreen() {
@@ -113,7 +133,7 @@ export default function ExploreScreen() {
   // Services state — always starts fresh
   const [serviceFilter, setServiceFilter] = useState("");
   const [stateFilter, setStateFilter] = useState("");
-  const [cityFilter, setCityFilter] = useState("");
+  const [serviceZip, setServiceZip] = useState("");
   const [searched, setSearched] = useState(false);
 
   // No cleanup needed — state resets naturally on each fresh mount
@@ -146,30 +166,31 @@ export default function ExploreScreen() {
     setProviderError("");
 
     const activeSvc = overrideService !== undefined ? overrideService : serviceFilter;
-    const cityTrim  = cityFilter.trim().toLowerCase();
-    const stateCityKey = cityTrim ? `${stateFilter}_${cityTrim}` : null;
+    const zipTrim = serviceZip.trim();
 
     const TIMEOUT_MS = 6000;
 
     try {
       const runQuery = async (): Promise<any[]> => {
-        const seedQ = stateCityKey
-          ? query(collection(webDb, "seedProviders"), where("stateCity", "==", stateCityKey), limit(100))
-          : query(collection(webDb, "seedProviders"), where("state", "==", stateFilter), limit(500));
+        const seedQ = query(
+          collection(webDb, "seedProviders"),
+          where("state", "==", stateFilter),
+          limit(500),
+        );
         const usersQ = query(
           collection(webDb, "users"),
-          where("role", "==", "provider"),
+          where("role", "in", ["provider", "shelter"]),
           where("state", "==", stateFilter),
           limit(200),
         );
 
         const [seedSnap, usersSnap] = await Promise.all([getDocs(seedQ), getDocs(usersQ)]);
-        const seedResults = seedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        let userResults = usersSnap.docs.map((d) => mapUserToProvider(d.data() as Record<string, unknown>, d.id));
-
-        if (cityTrim) {
-          userResults = userResults.filter((p) => p.city?.toLowerCase() === cityTrim);
-        }
+        const seedResults = seedSnap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((p) => matchesZip(p, zipTrim));
+        const userResults = usersSnap.docs
+          .map((d) => mapUserToListing(d.data() as Record<string, unknown>, d.id))
+          .filter((p) => matchesZip(p, zipTrim));
 
         return [...seedResults, ...userResults];
       };
@@ -323,11 +344,13 @@ export default function ExploreScreen() {
           <View style={styles.filterRow}>
             <StateDropdown value={stateFilter} onSelect={setStateFilter} />
             <TextInput
-              style={styles.cityInput}
-              placeholder="Enter city name"
+              style={styles.zipInput}
+              placeholder="Zip code"
               placeholderTextColor="#aaa"
-              value={cityFilter}
-              onChangeText={setCityFilter}
+              value={serviceZip}
+              onChangeText={(text) => setServiceZip(text.replace(/\D/g, "").slice(0, 5))}
+              keyboardType="numeric"
+              maxLength={5}
               onSubmitEditing={() => setSearched(true)}
             />
             <Pressable style={[styles.searchBtn, !stateFilter && { opacity: 0.5 }]} onPress={() => { if (!stateFilter) return; setSearched(true); searchProviders(); }}>
@@ -392,9 +415,18 @@ export default function ExploreScreen() {
                         </Text>
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.providerName}>{p.businessName || p.name}</Text>
+                        <View style={styles.providerNameRow}>
+                          <Text style={styles.providerName}>{p.businessName || p.name}</Text>
+                          {p.verified === true ? (
+                            <View style={styles.verifiedBadge}>
+                              <Text style={styles.verifiedText}>✅ Verified</Text>
+                            </View>
+                          ) : null}
+                        </View>
                         <Text style={styles.providerType}>{p.serviceType || p.service}</Text>
-                        <Text style={styles.providerLocation}>📍 {[p.city, p.state].filter(Boolean).join(", ")}</Text>
+                        <Text style={styles.providerLocation}>
+                          📍 {[p.city, p.state, p.zip || extractZipFromAddress(p.address)].filter(Boolean).join(", ")}
+                        </Text>
                       </View>
                       {p.rating != null && p.rating !== "" ? (
                         <View style={styles.ratingBadge}>
@@ -410,7 +442,7 @@ export default function ExploreScreen() {
               <View style={styles.comingSoonBox}>
                 <Text style={styles.comingSoonEmoji}>🔍</Text>
                 <Text style={styles.comingSoonTitle}>No providers found</Text>
-                <Text style={styles.comingSoonSub}>Try a different city or state</Text>
+                <Text style={styles.comingSoonSub}>Try a different zip code or state</Text>
               </View>
             )
           )}
@@ -569,7 +601,7 @@ const styles = StyleSheet.create({
   stateDropdown: { backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 13, borderWidth: 1, borderColor: "#eee", flexDirection: "row", alignItems: "center", gap: 4, minWidth: 70 },
   stateDropdownValue: { fontSize: 14, color: "#1a1a1a", fontWeight: "600" },
   stateDropdownArrow: { fontSize: 13, color: "#888" },
-  cityInput: { flex: 1, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 13, fontSize: 14, color: "#1a1a1a", borderWidth: 1, borderColor: "#eee" },
+  zipInput: { flex: 1, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 13, fontSize: 14, color: "#1a1a1a", borderWidth: 1, borderColor: "#eee" },
   searchBtn: { backgroundColor: BRAND, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, justifyContent: "center" },
   searchBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   // Picker modal
@@ -607,7 +639,10 @@ const styles = StyleSheet.create({
   providerCard: { backgroundColor: "#fff", borderRadius: 14, padding: 14, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   providerHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   providerIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#f0faf5", alignItems: "center", justifyContent: "center" },
-  providerName: { fontSize: 15, fontWeight: "700", color: "#1a1a1a", flex: 1 },
+  providerName: { fontSize: 15, fontWeight: "700", color: "#1a1a1a", flexShrink: 1 },
+  providerNameRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
+  verifiedBadge: { backgroundColor: "#DCFCE7", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  verifiedText: { fontSize: 11, fontWeight: "700", color: "#166534" },
   providerType: { fontSize: 12, color: BRAND, fontWeight: "600", marginTop: 2 },
   providerLocation: { fontSize: 12, color: "#888", marginTop: 2 },
   providerPhone: { fontSize: 13, color: "#555", marginTop: 8 },
