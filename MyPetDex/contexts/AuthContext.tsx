@@ -24,6 +24,9 @@ interface AuthContextValue {
   signInAnon: () => Promise<void>;
   signOut: () => Promise<void>;
   appleAvailable: boolean;
+  setPendingRole: (role: string) => void;
+  getPendingRole: () => string;
+  triggerWelcomeEmail: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -59,13 +62,10 @@ async function sendWelcomeIfNeeded(firebaseUser: any) {
   try {
     const ref = userRef(firebaseUser.uid);
     const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      // Doc missing (e.g. deleted) — we can't tell whether a welcome email already went
-      // out, so mark it sent rather than risk sending blind once the doc reappears.
-      await setDoc(ref, { welcomeSent: true }, { merge: true });
-      return;
-    }
+    if (!snap.exists()) return;
+
     const data = snap.data() as any;
+    if (!data.onboardingComplete) return;
     if (data.welcomeSent) return;
 
     // Mark first — if the email calls below fail, we accept a missed welcome email
@@ -226,6 +226,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
+  const setPendingRole = useCallback((role: string) => {
+    pendingRole.current = role;
+  }, []);
+
+  const getPendingRole = useCallback(() => pendingRole.current, []);
+
+  const triggerWelcomeEmail = useCallback(async () => {
+    if (auth.currentUser) {
+      await sendWelcomeIfNeeded(auth.currentUser);
+    }
+  }, []);
+
   const value = useMemo(
     () => ({
       user, loading, appleAvailable, emailVerified, refreshEmailVerification,
@@ -233,8 +245,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithApple,
       signInWithEmail, signUpWithEmail,
       signInAnon, signOut: doSignOut,
+      setPendingRole, getPendingRole, triggerWelcomeEmail,
     }),
-    [user, loading, appleAvailable, emailVerified, refreshEmailVerification, signInWithGoogle, setGooglePrompt, signInWithApple, signInWithEmail, signUpWithEmail, signInAnon, doSignOut]
+    [user, loading, appleAvailable, emailVerified, refreshEmailVerification, signInWithGoogle, setGooglePrompt, signInWithApple, signInWithEmail, signUpWithEmail, signInAnon, doSignOut, setPendingRole, getPendingRole, triggerWelcomeEmail]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

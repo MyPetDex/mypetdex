@@ -69,7 +69,7 @@ function ModalCloseButton() {
 }
 
 function AuthGuard() {
-  const { user, loading: authLoading, emailVerified } = useAuth();
+  const { user, loading: authLoading, emailVerified, getPendingRole } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
   const segments = useSegments();
   const router = useRouter();
@@ -110,11 +110,19 @@ function AuthGuard() {
     const hasCompletedOnboarding = isAdmin || !!(profile?.city || profile?.businessName || profile?.shelterName || profile?.onboardingComplete);
     const needsEmailVerification = !isAdmin && !emailVerified;
 
+    const onboardingHref = (() => {
+      const role = getPendingRole();
+      if (role === "owner" || role === "provider" || role === "shelter") {
+        return `/onboarding?role=${role}` as const;
+      }
+      return "/onboarding" as const;
+    })();
+
     if (!user && !inAuthGroup && !inExplore) {
       router.replace("/(auth)/sign-in");
     } else if (user && inAuthGroup) {
       if (!hasCompletedOnboarding) {
-        router.replace("/onboarding");
+        router.replace(onboardingHref);
       } else if (needsEmailVerification) {
         router.replace("/check-email");
       } else {
@@ -130,12 +138,12 @@ function AuthGuard() {
       }
     } else if (user && !inAuthGroup && !inOnboarding && !inCheckEmail) {
       if (!hasCompletedOnboarding) {
-        router.replace("/onboarding");
+        router.replace(onboardingHref);
       } else if (needsEmailVerification) {
         router.replace("/check-email");
       }
     }
-  }, [user, authLoading, profile?.onboardingComplete, profile?.city, profile?.businessName, profile?.shelterName, profileLoading, segments, emailVerified]);
+  }, [user, authLoading, profile?.onboardingComplete, profile?.city, profile?.businessName, profile?.shelterName, profileLoading, segments, emailVerified, getPendingRole]);
 
   return null;
 }

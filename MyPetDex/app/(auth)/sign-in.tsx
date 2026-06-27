@@ -34,7 +34,7 @@ const IOS_CLIENT_ID = "209772699227-eibpfptsff0h497q956hlru2qbeu9pm9.apps.google
 const WEB_CLIENT_ID = "209772699227-ilqlulmvqp12fau8bbvmq5ufvnbkoguc.apps.googleusercontent.com";
 
 export default function SignInScreen() {
-  const { signInWithGoogle, setGooglePrompt, signInWithApple, signUpWithEmail, signInWithEmail, appleAvailable, user, loading: authLoading } = useAuth();
+  const { signInWithGoogle, setGooglePrompt, signInWithApple, signUpWithEmail, signInWithEmail, appleAvailable, user, loading: authLoading, setPendingRole } = useAuth();
   const [screen, setScreen] = useState<Screen>("landing");
   const [role, setRole] = useState<Role>("owner");
   const [step, setStep] = useState(1);
@@ -88,6 +88,7 @@ export default function SignInScreen() {
 
   async function handleGoogle() {
     setError(""); setLoading(true);
+    setPendingRole(role);
     try { await signInWithGoogle(); }
     catch { setError("Could not sign in with Google. Please try again."); }
     finally { setLoading(false); }
@@ -95,6 +96,7 @@ export default function SignInScreen() {
 
   async function handleApple() {
     setError("");
+    setPendingRole(role);
     try { await signInWithApple(); }
     catch (e: any) {
       if (e.code !== "ERR_REQUEST_CANCELED" && e.code !== "1001") {

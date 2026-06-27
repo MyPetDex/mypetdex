@@ -1,4 +1,3 @@
-import { isWeb } from "@/lib/platform";
 import {
   View, Text, StyleSheet, ScrollView, TextInput, Pressable,
   ActivityIndicator, Modal, FlatList, Image, Platform,
@@ -6,7 +5,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -64,9 +63,16 @@ function StateDropdown({ value, onSelect }: { value: string; onSelect: (v: strin
   );
 }
 
+type OnboardingRole = "owner" | "provider" | "shelter";
+
+function isOnboardingRole(value: string | undefined): value is OnboardingRole {
+  return value === "owner" || value === "provider" || value === "shelter";
+}
+
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
+  const { user, signOut, triggerWelcomeEmail } = useAuth();
 
   async function handleSignOut() {
     try {
@@ -75,23 +81,16 @@ export default function OnboardingScreen() {
     } catch {}
   }
 
-  const [role, setRole] = useState<"owner" | "provider" | "shelter">("owner");
-  // When role is locked (came from a role-specific sign-up), hide the picker
+  const [role, setRole] = useState<OnboardingRole>("owner");
   const [roleLocked, setRoleLocked] = useState(false);
   const [state, setState] = useState("NJ");
 
-  // On mount: read the intended role saved before OAuth and pre-select it
   useEffect(() => {
-    if (isWeb && typeof localStorage !== "undefined") {
-      const saved = localStorage.getItem("mypetdex_onboarding_role") as "owner" | "provider" | "shelter" | null;
-      if (saved === "provider" || saved === "shelter" || saved === "owner") {
-        setRole(saved);
-        // Lock the picker for all roles coming from a role-specific sign-up flow
-        setRoleLocked(true);
-        localStorage.removeItem("mypetdex_onboarding_role");
-      }
+    if (isOnboardingRole(roleParam)) {
+      setRole(roleParam);
+      setRoleLocked(true);
     }
-  }, []);
+  }, [roleParam]);
   const [city, setCity] = useState("");
 
   // Owner fields
@@ -193,6 +192,7 @@ export default function OnboardingScreen() {
       // OAuth users (Google/Apple) are already verified — skip check-email.
       // Email/password users need to verify — send them to check-email.
       if (u.emailVerified) {
+        await triggerWelcomeEmail();
         router.replace("/(tabs)");
       } else {
         router.replace("/check-email");
