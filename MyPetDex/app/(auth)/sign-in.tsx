@@ -112,6 +112,7 @@ export default function SignInScreen() {
     if (form.password !== form.confirmPassword) { setError("Passwords do not match."); return; }
     if (!age13) { setError("You must confirm you are 13 years of age or older to sign up."); return; }
     if (!acceptedTerms) { setError("Please accept the Terms and Conditions to continue."); return; }
+    setPendingRole(role);
     setLoading(true); setError("");
     try {
       const u = await signUpWithEmail(form.email, form.password, form.name);

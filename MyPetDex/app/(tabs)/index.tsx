@@ -45,7 +45,7 @@ export default function HomeScreen() {
       if (role === "shelter") { router.replace("/(tabs)/shelter-home"); return; }
       if (role === "admin") { router.replace("/(tabs)/admin-dashboard"); return; }
       setRoleChecked(true);
-    });
+    }).catch(() => setRoleChecked(true));
   }, [user]);
 
   useEffect(() => {
@@ -216,7 +216,7 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.quickLabel}>Pet Shop</Text>
         </Pressable>
-        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/explore")}>
+        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/explore?tab=services")}>
           <View style={[styles.quickIconBadge, { backgroundColor: "#FEF3C7" }]}>
             <Text style={styles.quickEmoji}>📍</Text>
           </View>
@@ -232,7 +232,7 @@ export default function HomeScreen() {
 
       {/* Discover */}
       <Text style={styles.sectionTitle}>Discover</Text>
-      <Pressable style={styles.discoverCard} onPress={() => router.push("/(tabs)/explore")}>
+      <Pressable style={styles.discoverCard} onPress={() => router.push("/(tabs)/explore?tab=services")}>
         <View style={[styles.discoverIcon, { backgroundColor: "#EDE9FE" }]}>
           <Text style={styles.discoverEmoji}>🔍</Text>
         </View>

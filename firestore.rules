@@ -30,10 +30,10 @@ service cloud.firestore {
       allow create: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
       // Read own profile allowed without email verification — needed for onAuthStateChanged/profile
       // listeners that run immediately after signup, before the user has verified their email.
-      // Reading OTHER users' shelter/provider profiles (public browsing) still requires verification.
+      // Provider/shelter public profiles are business listings — any signed-in user can browse them.
       allow read: if isAdmin()
         || (isSignedIn() && request.auth.uid == userId)
-        || ((isEmailVerified() || isDemoAccount()) && (
+        || (isSignedIn() && (
              (resource.data.role == 'shelter' && resource.data.status == 'approved') ||
              (resource.data.role == 'provider')
            ));
@@ -50,12 +50,13 @@ service cloud.firestore {
       }
     }
 
-    // Shelter pets are public adoption listings — any verified user can read them
+    // Shelter pets are public adoption listings — any signed-in user can read them
     // Collection name is shelter_pets (underscore) to match app code
+    // Create allowed without email verification so shelters can add pets immediately after signup
     match /shelter_pets/{docId} {
-      allow read: if isEmailVerified() || isDemoAccount() || isAdmin();
-      allow create: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.resource.data.shelterId == request.auth.uid);
-      allow update, delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && resource.data.shelterId == request.auth.uid);
+      allow read: if isSignedIn();
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.shelterId == request.auth.uid);
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.shelterId == request.auth.uid);
     }
 
     // Generic rule for top-level collections that store an owning `uid` field

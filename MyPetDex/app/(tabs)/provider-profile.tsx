@@ -1,17 +1,27 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { webDb } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
+  Share, Linking, Alert, Modal, TextInput, Pressable, KeyboardAvoidingView, Platform,
+} from "react-native";
+import { webDb, webAuth, callFunction } from "@/lib/firebase";
+import { doc, getDoc, deleteDoc, collection, getDocs } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 
 const BRAND = "#4486F4";
+const APP_URL = "https://apps.apple.com/app/mypetdex/id6772248051";
+const APP_MESSAGE = "🐾 Check out MyPetDex — the ultimate pet care app! Track health records, get AI advice, find local services & adopt pets near you.";
 
 export default function ProviderProfile() {
   const { user, signOut } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackSending, setFeedbackSending] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -27,6 +37,66 @@ export default function ProviderProfile() {
   async function handleSignOut() {
     await signOut();
     router.replace("/(auth)/sign-in");
+  }
+
+  async function handleShareApp() {
+    try {
+      await Share.share({
+        message: `${APP_MESSAGE}\n\n${APP_URL}`,
+        url: APP_URL,
+        title: "MyPetDex — Your Pet Care App",
+      });
+    } catch {}
+  }
+
+  async function sendFeedback() {
+    if (!feedbackMessage.trim() || feedbackMessage.trim().length < 10) {
+      Alert.alert("Too short", "Please write at least 10 characters.");
+      return;
+    }
+    setFeedbackSending(true);
+    try {
+      const fn = callFunction("sendFeedback");
+      await fn({ subject: "General Feedback", message: feedbackMessage.trim() });
+      setFeedbackMessage("");
+      setShowFeedback(false);
+      Alert.alert("Thank you!", "Your feedback has been sent.");
+    } catch {
+      Alert.alert("Error", "Could not send feedback. Please email help@mypetdex.app directly.");
+    }
+    setFeedbackSending(false);
+  }
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure? This permanently deletes your account and all data. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: confirmDeleteAccount },
+      ],
+    );
+  }
+
+  async function confirmDeleteAccount() {
+    const u = webAuth.currentUser;
+    if (!u) return;
+    setDeleting(true);
+    try {
+      const petsSnap = await getDocs(collection(webDb, "users", u.uid, "pets"));
+      await Promise.all(petsSnap.docs.map((petDoc) => deleteDoc(petDoc.ref)));
+      await deleteDoc(doc(webDb, "users", u.uid));
+      await u.delete();
+      router.replace("/(auth)/sign-in");
+    } catch (e: any) {
+      if (e?.code === "auth/requires-recent-login") {
+        Alert.alert("Sign In Required", "Please sign out and sign back in, then try again.");
+      } else {
+        Alert.alert("Error", "Could not delete account. Please try again.");
+      }
+    } finally {
+      setDeleting(false);
+    }
   }
 
   if (loading) return <View style={s.center}><ActivityIndicator color={BRAND} size="large" /></View>;
@@ -53,10 +123,92 @@ export default function ProviderProfile() {
         <Row icon="pricetag-outline" label="Price Range" value={profile?.priceRange} />
       </View>
 
+      <Text style={s.sectionTitle}>Share MyPetDex</Text>
+      <View style={s.card}>
+        <TouchableOpacity style={s.menuRow} onPress={handleShareApp}>
+          <Text style={s.menuIcon}>📤</Text>
+          <Text style={s.menuLabel}>Share MyPetDex App</Text>
+          <Ionicons name="chevron-forward" size={18} color="#ccc" />
+        </TouchableOpacity>
+      </View>
+
+      <Text style={s.sectionTitle}>Account</Text>
+      <View style={s.card}>
+        {[
+          { icon: "🔒", label: "Privacy Policy", onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/privacy.html") },
+          { icon: "📄", label: "Terms of Service", onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/terms.html") },
+          { icon: "⭐", label: "Rate MyPetDex", onPress: () => Linking.openURL("https://apps.apple.com/app/mypetdex/id6772248051?action=write-review") },
+        ].map((item, i, arr) => (
+          <TouchableOpacity
+            key={item.label}
+            style={[s.menuRow, i === arr.length - 1 && s.menuRowLast]}
+            onPress={item.onPress}
+          >
+            <Text style={s.menuIcon}>{item.icon}</Text>
+            <Text style={s.menuLabel}>{item.label}</Text>
+            <Ionicons name="chevron-forward" size={18} color="#ccc" />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={s.sectionTitle}>Support</Text>
+      <View style={s.card}>
+        <TouchableOpacity style={[s.menuRow, s.menuRowLast]} onPress={() => setShowFeedback(true)}>
+          <Text style={s.menuIcon}>💬</Text>
+          <Text style={s.menuLabel}>Send Feedback</Text>
+          <Ionicons name="chevron-forward" size={18} color="#ccc" />
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity style={s.signOutBtn} onPress={handleSignOut}>
         <Ionicons name="log-out-outline" size={18} color="#EF4444" />
         <Text style={s.signOutText}>Sign Out</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[s.deleteBtn, deleting && { opacity: 0.6 }]}
+        onPress={handleDeleteAccount}
+        disabled={deleting}
+      >
+        <Text style={s.deleteBtnText}>{deleting ? "Deleting…" : "Delete Account"}</Text>
+      </TouchableOpacity>
+
+      <Text style={s.version}>MyPetDex v1.0.0 · help@mypetdex.app</Text>
+
+      <Modal visible={showFeedback} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowFeedback(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <View style={s.modalContainer}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Send Feedback</Text>
+              <Pressable onPress={() => setShowFeedback(false)}>
+                <Text style={s.modalClose}>Cancel</Text>
+              </Pressable>
+            </View>
+            <TextInput
+              style={s.feedbackInput}
+              multiline
+              numberOfLines={6}
+              placeholder="Describe your issue, suggestion or question... (min 10 characters)"
+              placeholderTextColor="#aaa"
+              value={feedbackMessage}
+              onChangeText={setFeedbackMessage}
+              textAlignVertical="top"
+              autoFocus
+            />
+            <Pressable
+              style={[s.sendBtn, (feedbackSending || feedbackMessage.trim().length < 10) && { opacity: 0.5 }]}
+              onPress={sendFeedback}
+              disabled={feedbackSending || feedbackMessage.trim().length < 10}
+            >
+              {feedbackSending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={s.sendBtnText}>Send Feedback →</Text>
+              )}
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScrollView>
   );
 }
@@ -89,4 +241,19 @@ const s = StyleSheet.create({
   rowValue: { fontSize: 14, fontWeight: "600", color: "#1E293B", maxWidth: "50%", textAlign: "right" },
   signOutBtn: { flexDirection: "row", alignItems: "center", gap: 8, padding: 14 },
   signOutText: { color: "#EF4444", fontWeight: "700", fontSize: 15 },
+  sectionTitle: { fontSize: 12, fontWeight: "700", color: "#64748B", textTransform: "uppercase", letterSpacing: 0.8, alignSelf: "flex-start", width: "100%", marginTop: 8, marginBottom: 8 },
+  menuRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" },
+  menuRowLast: { borderBottomWidth: 0 },
+  menuIcon: { fontSize: 18 },
+  menuLabel: { flex: 1, fontSize: 15, fontWeight: "600", color: "#1E293B" },
+  deleteBtn: { backgroundColor: "#E53935", borderRadius: 14, padding: 16, alignItems: "center", width: "100%", marginTop: 10 },
+  deleteBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  version: { textAlign: "center", fontSize: 12, color: "#94A3B8", marginTop: 16 },
+  modalContainer: { flex: 1, padding: 20, paddingTop: 24, backgroundColor: "#F5F8FF" },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: "#1E293B" },
+  modalClose: { fontSize: 16, color: BRAND, fontWeight: "600" },
+  feedbackInput: { backgroundColor: "#fff", borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0", padding: 14, fontSize: 15, color: "#1E293B", minHeight: 140, marginBottom: 16 },
+  sendBtn: { backgroundColor: BRAND, borderRadius: 14, paddingVertical: 16, alignItems: "center" },
+  sendBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });

@@ -164,6 +164,8 @@ Only needed for: new native packages, app.json changes (icons, permissions), or 
 ## Code Conventions
 - Use `WebBrowser.openBrowserAsync()` for Privacy Policy, Terms — never `Linking.openURL` for web pages
 - Use `Linking.openURL` only for App Store links
+- Always add `?tab=services` or `?tab=adopt` when navigating to `/(tabs)/explore` from anywhere in the app, so the correct tab is shown (never navigate to explore without a tab param)
+- Phone numbers on provider cards must be tappable: wrap in a `Pressable` that calls `Linking.openURL(\`tel:${phone.replace(/\D/g, "")}\`)` and style the text in blue (`#4486F4`)
 - All feedback goes through `callFunction("sendFeedback")` — never `mailto:`
 - Photo uploads use `XMLHttpRequest` blob method — never `fetch().blob()` (broken in Expo's fetch)
 - Never use `expo-file-system` for uploads
@@ -185,6 +187,8 @@ Only needed for: new native packages, app.json changes (icons, permissions), or 
 - Firebase Storage rules deployed ✅
 - Privacy Policy / Terms (in-app browser) ✅
 - OTA updates configured ✅
+- Clickable phone numbers on provider cards ✅
+- Explore tab navigation always includes tab param ✅
 
 ## Known Issues Being Fixed
 - Photo upload (XMLHttpRequest fix in progress)

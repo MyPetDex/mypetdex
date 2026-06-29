@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MyPetDex Admin</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --brand: #4486F4;
+      --brand-light: #e8f0fe;
+      --dark: #1E293B;
+      --mid: #475569;
+      --muted: #94A3B8;
+      --border: #E2E8F0;
+      --bg: #F5F8FF;
+      --white: #ffffff;
+      --green: #22C55E;
+      --red: #EF4444;
+      --orange: #F59E0B;
+      --purple: #8B5CF6;
+      --pink: #EC4899;
+      --amazon: #FF9900;
+      --chewy: #0073CF;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--dark); min-height: 100vh; }
+
+    /* ── Login ── */
+    #loginScreen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #1E293B 0%, #0f172a 100%);
+    }
+    .login-card {
+      background: var(--white); border-radius: 20px; padding: 40px 36px;
+      width: 100%; max-width: 400px; box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+    }
+    .login-logo { text-align: center; margin-bottom: 28px; }
+    .login-logo span { font-size: 48px; }
+    .login-logo h1 { font-size: 22px; font-weight: 800; color: var(--dark); margin-top: 8px; }
+    .login-logo p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .login-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+    .login-divider hr { flex: 1; border: none; border-top: 1px solid var(--border); }
+    .login-divider span { font-size: 12px; color: var(--muted); }
+    .btn-google {
+      width: 100%; padding: 13px; border: 1.5px solid var(--border); border-radius: 12px;
+      background: var(--white); cursor: pointer; font-size: 15px; font-weight: 600;
+      color: var(--dark); display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: background 0.15s;
+    }
+    .btn-google:hover { background: var(--bg); }
+    .btn-google svg { width: 20px; height: 20px; flex-shrink: 0; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--mid); margin-bottom: 6px; }
+    .form-input {
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px;
+      font-size: 14px; color: var(--dark); background: var(--bg); outline: none; transition: border-color 0.15s;
+    }
+    .form-input:focus { border-color: var(--brand); background: var(--white); }
+    .btn-primary {
+      width: 100%; padding: 14px; background: var(--brand); color: var(--white);
+      border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: opacity 0.15s; margin-top: 4px;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .login-error { color: var(--red); font-size: 13px; text-align: center; margin-top: 10px; min-height: 18px; }
+
+    /* ── Layout ── */
+    #dashboard { display: none; min-height: 100vh; }
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px; background: var(--dark); flex-shrink: 0;
+      display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+    }
+    .sidebar-header { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .sidebar-logo { display: flex; align-items: center; gap: 10px; }
+    .sidebar-logo span { font-size: 28px; }
+    .sidebar-logo strong { color: var(--white); font-size: 16px; font-weight: 800; }
+    .sidebar-logo small { color: rgba(255,255,255,0.4); font-size: 10px; display: block; margin-top: 1px; }
+    .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px; padding: 11px 12px;
+      border-radius: 10px; cursor: pointer; color: rgba(255,255,255,0.6);
+      font-size: 14px; font-weight: 600; transition: all 0.15s; margin-bottom: 2px;
+      border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.07); color: var(--white); }
+    .nav-item.active { background: var(--brand); color: var(--white); }
+    .nav-item .nav-icon { font-size: 18px; width: 22px; text-align: center; flex-shrink: 0; }
+    .nav-badge {
+      margin-left: auto; background: var(--red); color: var(--white);
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; min-width: 20px; text-align: center;
+    }
+    .sidebar-footer { padding: 16px 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .admin-info { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .admin-avatar {
+      width: 36px; height: 36px; border-radius: 50%; background: var(--brand);
+      display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--white); font-size: 14px; flex-shrink: 0;
+    }
+    .admin-name { font-size: 13px; font-weight: 600; color: var(--white); }
+    .admin-role { font-size: 11px; color: rgba(255,255,255,0.4); }
+    .btn-signout {
+      width: 100%; padding: 9px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);
+      background: transparent; color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-signout:hover { background: rgba(255,255,255,0.07); color: var(--white); }
+
+    /* ── Main content ── */
+    .main { flex: 1; margin-left: 240px; padding: 32px; min-width: 0; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-header { margin-bottom: 28px; }
+    .page-title { font-size: 26px; font-weight: 800; color: var(--dark); }
+    .page-subtitle { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Cards ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--white); border-radius: 14px; padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-left: 4px solid var(--brand);
+    }
+    .stat-card .stat-icon { font-size: 22px; margin-bottom: 10px; }
+    .stat-card .stat-num { font-size: 28px; font-weight: 800; color: var(--dark); }
+    .stat-card .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; font-weight: 600; }
+
+    .revenue-card {
+      background: linear-gradient(135deg, #1E293B 0%, #0f172a 100%);
+      border-radius: 18px; padding: 28px 32px; margin-bottom: 28px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    }
+    .revenue-card .rev-label { color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+    .revenue-card .rev-num { color: var(--white); font-size: 46px; font-weight: 900; line-height: 1; }
+    .revenue-card .rev-sub { color: rgba(255,255,255,0.35); font-size: 12px; margin-top: 8px; }
+    .revenue-pills { display: flex; gap: 12px; flex-wrap: wrap; }
+    .rev-pill {
+      background: rgba(255,255,255,0.08); border-radius: 10px; padding: 12px 18px; text-align: center;
+    }
+    .rev-pill .pill-num { color: var(--white); font-size: 22px; font-weight: 800; }
+    .rev-pill .pill-label { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 2px; }
+
+    /* ── Tables / lists ── */
+    .card { background: var(--white); border-radius: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden; }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 20px; border-bottom: 1px solid var(--border);
+    }
+    .card-header h3 { font-size: 15px; font-weight: 700; color: var(--dark); }
+
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+    .search-box {
+      flex: 1; min-width: 180px; padding: 9px 14px; border: 1.5px solid var(--border);
+      border-radius: 10px; font-size: 14px; color: var(--dark); background: var(--bg); outline: none;
+    }
+    .search-box:focus { border-color: var(--brand); }
+    .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-pill {
+      padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+      font-size: 12px; font-weight: 600; cursor: pointer; color: var(--mid);
+      background: var(--white); transition: all 0.15s;
+    }
+    .filter-pill.active { background: var(--brand); border-color: var(--brand); color: var(--white); }
+    .filter-pill:hover:not(.active) { border-color: var(--brand); color: var(--brand); }
+
+    .user-row {
+      display: flex; align-items: center; gap: 14px; padding: 14px 20px;
+      border-bottom: 1px solid var(--border); transition: background 0.1s;
+    }
+    .user-row:last-child { border-bottom: none; }
+    .user-row:hover { background: #fafbff; }
+    .user-row.disabled-row { opacity: 0.55; }
+    .avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: var(--white); font-size: 17px; flex-shrink: 0;
+    }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-size: 14px; font-weight: 700; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-email { font-size: 12px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+    .tag {
+      padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700;
+      color: var(--white); white-space: nowrap;
+    }
+    .user-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .action-btn {
+      padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700;
+      cursor: pointer; border: none; transition: opacity 0.15s;
+    }
+    .action-btn:hover { opacity: 0.82; }
+    .btn-verify { background: var(--brand); color: var(--white); }
+    .btn-unverify { background: var(--orange); color: var(--white); }
+    .btn-disable { background: #FEE2E2; color: var(--red); }
+    .btn-enable { background: #D1FAE5; color: #059669; }
+
+    /* ── Application cards ── */
+    .app-card {
+      padding: 18px 20px; border-bottom: 1px solid var(--border);
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .app-card:last-child { border-bottom: none; }
+    .app-info { flex: 1; }
+    .app-name { font-size: 15px; font-weight: 700; color: var(--dark); }
+    .app-email { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .app-meta { font-size: 12px; color: var(--mid); margin-top: 6px; line-height: 1.5; }
+    .app-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn-approve { background: var(--brand); color: var(--white); padding: 8px 16px; border-radius: 8px; border: none; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .btn-approve:hover { opacity: 0.85; }
+    .btn-reject { background: #FEE2E2; color: var(--red); padding: 8px 16px; border-radius: 8px; border: none; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .btn-reject:hover { opacity: 0.85; }
+
+    /* ── Review cards ── */
+    .review-card { padding: 18px 20px; border-bottom: 1px solid var(--border); }
+    .review-card:last-child { border-bottom: none; }
+    .review-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .review-meta { flex: 1; }
+    .review-client { font-size: 14px; font-weight: 700; color: var(--dark); }
+    .review-provider { font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .stars { color: #F5C842; font-size: 14px; letter-spacing: 1px; flex-shrink: 0; }
+    .review-text { font-size: 14px; color: var(--mid); line-height: 1.55; margin-bottom: 12px; background: var(--bg); padding: 10px 14px; border-radius: 10px; }
+    .review-actions { display: flex; gap: 8px; }
+
+    /* ── Products ── */
+    .product-card {
+      display: flex; align-items: center; gap: 14px; padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .product-card:last-child { border-bottom: none; }
+    .store-badge { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; color: var(--white); flex-shrink: 0; }
+    .product-info { flex: 1; min-width: 0; }
+    .product-title { font-size: 14px; font-weight: 700; color: var(--dark); }
+    .product-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .product-url { font-size: 11px; color: var(--brand); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .btn-delete { background: #FEE2E2; color: var(--red); padding: 7px 12px; border-radius: 8px; border: none; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+    .btn-delete:hover { opacity: 0.8; }
+    .btn-edit { background: #EFF6FF; color: #2563EB; padding: 7px 12px; border-radius: 8px; border: none; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+    .btn-edit:hover { opacity: 0.8; }
+    .product-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal-box {
+      background: var(--white); border-radius: 20px; width: 100%; max-width: 500px;
+      max-height: 90vh; overflow-y: auto; padding: 28px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+    }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .modal-title { font-size: 18px; font-weight: 800; color: var(--dark); }
+    .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--muted); line-height: 1; }
+    .modal-close:hover { color: var(--dark); }
+    .form-label { font-size: 12px; font-weight: 700; color: var(--mid); margin-bottom: 6px; display: block; }
+    .form-field { margin-bottom: 16px; }
+    .chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      padding: 7px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+      font-size: 12px; font-weight: 600; cursor: pointer; color: var(--mid);
+      background: var(--white); transition: all 0.15s;
+    }
+    .chip.active { background: var(--brand); border-color: var(--brand); color: var(--white); }
+    .modal-submit { width: 100%; padding: 14px; background: var(--brand); color: var(--white); border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+    .modal-submit:hover { opacity: 0.9; }
+    .modal-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Misc ── */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+    .loading-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 14px; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .results-count { padding: 12px 20px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); }
+    .btn-add {
+      display: flex; align-items: center; gap: 6px; padding: 8px 16px;
+      background: var(--brand); color: var(--white); border: none; border-radius: 10px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .btn-add:hover { opacity: 0.9; }
+    .toast {
+      position: fixed; bottom: 28px; right: 28px; background: var(--dark); color: var(--white);
+      padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 300;
+      transform: translateY(80px); opacity: 0; transition: all 0.25s;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-left: 4px solid var(--green); }
+    .toast.error { border-left: 4px solid var(--red); }
+    .section-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 20px 20px 10px; }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 200px; }
+      .main { margin-left: 200px; padding: 20px 16px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .revenue-card { flex-direction: column; }
+    }
+    @media (max-width: 600px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <span>🐾</span>
+      <h1>MyPetDex Admin</h1>
+      <p>Restricted to authorized administrators</p>
+    </div>
+    <button class="btn-google" onclick="signInGoogle()">
+      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+      Sign in with Google
+    </button>
+    <div class="login-divider"><hr /><span>or</span><hr /></div>
+    <div class="form-group">
+      <label>Email</label>
+      <input class="form-input" type="email" id="loginEmail" placeholder="mypetdexapp@gmail.com" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input class="form-input" type="password" id="loginPassword" placeholder="Password" onkeydown="if(event.key==='Enter')signInEmail()" />
+    </div>
+    <button class="btn-primary" onclick="signInEmail()">Sign In</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     DASHBOARD
+══════════════════════════════════════════════════════════ -->
+<div id="dashboard">
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <span>🐾</span>
+          <div>
+            <strong>MyPetDex</strong>
+            <small>Admin Portal</small>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" onclick="showTab('overview',this)">
+          <span class="nav-icon">📊</span> Overview
+        </button>
+        <button class="nav-item" onclick="showTab('users',this)">
+          <span class="nav-icon">👥</span> Users
+        </button>
+        <button class="nav-item" onclick="showTab('applications',this)" id="navApplications">
+          <span class="nav-icon">🏠</span> Applications
+          <span class="nav-badge hidden" id="badgeApps">0</span>
+        </button>
+        <button class="nav-item" onclick="showTab('reviews',this)" id="navReviews">
+          <span class="nav-icon">⭐</span> Reviews
+          <span class="nav-badge hidden" id="badgeReviews">0</span>
+        </button>
+        <button class="nav-item" onclick="showTab('products',this)">
+          <span class="nav-icon">🛍️</span> Products
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="admin-info">
+          <div class="admin-avatar" id="adminAvatar">A</div>
+          <div>
+            <div class="admin-name" id="adminName">Admin</div>
+            <div class="admin-role">Administrator</div>
+          </div>
+        </div>
+        <button class="btn-signout" onclick="signOut()">Sign Out</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+
+      <!-- ── OVERVIEW ── -->
+      <div class="page active" id="page-overview">
+        <div class="page-header">
+          <div class="page-title">Overview</div>
+          <div class="page-subtitle" id="overviewDate"></div>
+        </div>
+        <div class="revenue-card">
+          <div>
+            <div class="rev-label">Est. Monthly Revenue</div>
+            <div class="rev-num" id="revTotal">$0.00</div>
+            <div class="rev-sub" id="revBreakdown">Loading...</div>
+          </div>
+          <div class="revenue-pills">
+            <div class="rev-pill">
+              <div class="pill-num" id="revPillPlus">0</div>
+              <div class="pill-label">Plus × $3</div>
+            </div>
+            <div class="rev-pill">
+              <div class="pill-num" id="revPillFamily">0</div>
+              <div class="pill-label">Family × $5</div>
+            </div>
+            <div class="rev-pill">
+              <div class="pill-num" id="revPillFree">0</div>
+              <div class="pill-label">Free</div>
+            </div>
+          </div>
+        </div>
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card" style="border-left-color:#4486F4"><div class="stat-icon">👤</div><div class="stat-num" id="statTotal">—</div><div class="stat-label">Total Users</div></div>
+          <div class="stat-card" style="border-left-color:#22C55E"><div class="stat-icon">🐾</div><div class="stat-num" id="statOwners">—</div><div class="stat-label">Pet Owners</div></div>
+          <div class="stat-card" style="border-left-color:#3B82F6"><div class="stat-icon">💼</div><div class="stat-num" id="statProviders">—</div><div class="stat-label">Providers</div></div>
+          <div class="stat-card" style="border-left-color:#F59E0B"><div class="stat-icon">🏠</div><div class="stat-num" id="statShelters">—</div><div class="stat-label">Shelters</div></div>
+          <div class="stat-card" style="border-left-color:#8B5CF6"><div class="stat-icon">⭐</div><div class="stat-num" id="statPlus">—</div><div class="stat-label">Plus Plans</div></div>
+          <div class="stat-card" style="border-left-color:#EC4899"><div class="stat-icon">👨‍👩‍👧</div><div class="stat-num" id="statFamily">—</div><div class="stat-label">Family Plans</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px" id="quickCards">
+          <div class="card" style="cursor:pointer" onclick="showTab('applications',document.querySelectorAll('.nav-item')[2])">
+            <div class="card-header"><h3>⏳ Pending Applications</h3></div>
+            <div style="padding:20px;text-align:center"><span id="overviewApps" style="font-size:32px;font-weight:800;color:#F59E0B">—</span><div style="font-size:12px;color:#94A3B8;margin-top:4px">shelter applications</div></div>
+          </div>
+          <div class="card" style="cursor:pointer" onclick="showTab('reviews',document.querySelectorAll('.nav-item')[3])">
+            <div class="card-header"><h3>⭐ Pending Reviews</h3></div>
+            <div style="padding:20px;text-align:center"><span id="overviewReviews" style="font-size:32px;font-weight:800;color:#4486F4">—</span><div style="font-size:12px;color:#94A3B8;margin-top:4px">awaiting approval</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── USERS ── -->
+      <div class="page" id="page-users">
+        <div class="page-header">
+          <div class="page-title">Users</div>
+          <div class="page-subtitle">Manage all user accounts</div>
+        </div>
+        <div class="card">
+          <div class="toolbar">
+            <input class="search-box" type="text" id="userSearch" placeholder="🔍  Search by name or email..." oninput="renderUsers()" />
+            <div class="filter-pills" id="roleFilters">
+              <span class="filter-pill active" onclick="setRoleFilter('all',this)">All</span>
+              <span class="filter-pill" onclick="setRoleFilter('owner',this)">Owners</span>
+              <span class="filter-pill" onclick="setRoleFilter('provider',this)">Providers</span>
+              <span class="filter-pill" onclick="setRoleFilter('shelter',this)">Shelters</span>
+            </div>
+            <div class="filter-pills" id="planFilters">
+              <span class="filter-pill active" onclick="setPlanFilter('all',this)">All Plans</span>
+              <span class="filter-pill" onclick="setPlanFilter('free',this)">Free</span>
+              <span class="filter-pill" onclick="setPlanFilter('plus',this)">Plus</span>
+              <span class="filter-pill" onclick="setPlanFilter('family',this)">Family</span>
+            </div>
+          </div>
+          <div class="results-count" id="usersCount">Loading...</div>
+          <div id="usersList"><div class="loading-state"><div class="spinner"></div><p style="margin-top:12px">Loading users...</p></div></div>
+        </div>
+      </div>
+
+      <!-- ── APPLICATIONS ── -->
+      <div class="page" id="page-applications">
+        <div class="page-header">
+          <div class="page-title">Shelter Applications</div>
+          <div class="page-subtitle">Review and approve pending shelter registrations</div>
+        </div>
+        <div class="card">
+          <div id="appsList"><div class="loading-state"><div class="spinner"></div><p style="margin-top:12px">Loading applications...</p></div></div>
+        </div>
+      </div>
+
+      <!-- ── REVIEWS ── -->
+      <div class="page" id="page-reviews">
+        <div class="page-header">
+          <div class="page-title">Pending Reviews</div>
+          <div class="page-subtitle">Approve or reject reviews before they go live</div>
+        </div>
+        <div class="card">
+          <div id="reviewsList"><div class="loading-state"><div class="spinner"></div><p style="margin-top:12px">Loading reviews...</p></div></div>
+        </div>
+      </div>
+
+      <!-- ── PRODUCTS ── -->
+      <div class="page" id="page-products">
+        <div class="page-header">
+          <div class="page-title">Featured Products</div>
+          <div class="page-subtitle">Amazon & Chewy product links shown in the app's Shopping tab</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Product Links</h3>
+            <button class="btn-add" onclick="openAddProduct()">+ Add Product</button>
+          </div>
+          <div id="productsList"><div class="loading-state"><div class="spinner"></div><p style="margin-top:12px">Loading products...</p></div></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ── ADD PRODUCT MODAL ── -->
+<div class="modal-overlay hidden" id="productModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="productModalTitle">Add Product Link</div>
+      <button class="modal-close" onclick="closeAddProduct()">×</button>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Product Title *</label>
+      <input class="form-input" id="pTitle" placeholder="e.g. Blue Buffalo Adult Dry Dog Food" />
+    </div>
+    <div class="form-field">
+      <label class="form-label">Product URL *</label>
+      <input class="form-input" id="pUrl" type="url" placeholder="https://amazon.com/..." />
+    </div>
+    <div class="form-field">
+      <label class="form-label">Store</label>
+      <div class="chip-group" id="storeChips">
+        <span class="chip active" onclick="selectChip('store',this,'Amazon')">Amazon</span>
+        <span class="chip" onclick="selectChip('store',this,'Chewy')">Chewy</span>
+        <span class="chip" onclick="selectChip('store',this,'Other')">Other</span>
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Category</label>
+      <div class="chip-group" id="catChips">
+        <span class="chip active" onclick="selectChip('cat',this,'Food')">Food</span>
+        <span class="chip" onclick="selectChip('cat',this,'Treats')">Treats</span>
+        <span class="chip" onclick="selectChip('cat',this,'Toys')">Toys</span>
+        <span class="chip" onclick="selectChip('cat',this,'Health')">Health</span>
+        <span class="chip" onclick="selectChip('cat',this,'Grooming')">Grooming</span>
+        <span class="chip" onclick="selectChip('cat',this,'Accessories')">Accessories</span>
+        <span class="chip" onclick="selectChip('cat',this,'Other')">Other</span>
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Price (optional)</label>
+      <input class="form-input" id="pPrice" placeholder="e.g. $29.99" />
+    </div>
+    <div class="form-field">
+      <label class="form-label">Description (optional)</label>
+      <textarea class="form-input" id="pDesc" rows="3" placeholder="Brief product description..." style="resize:vertical"></textarea>
+    </div>
+    <button class="modal-submit" id="submitProduct" onclick="addProduct()">Add Product</button>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════════ -->
+<script>
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBdAkYiA3HJe5a0uvdbeRK_iD-GOljg38U",
+  authDomain: "auth.mypetdex.app",
+  projectId: "mypetdex-c4315",
+  storageBucket: "mypetdex-c4315.firebasestorage.app",
+  messagingSenderId: "209772699227",
+  appId: "1:209772699227:web:68d547574d8d068f6da97e",
+};
+const ADMIN_EMAIL = "mypetdexapp@gmail.com";
+const PLAN_PRICES = { plus: 3, family: 5 };
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ── State ──
+let allUsers = [];
+let allProducts = [];
+let allApplications = [];
+let allReviews = [];
+let currentRoleFilter = 'all';
+let currentPlanFilter = 'all';
+let productStore = 'Amazon';
+let productCat = 'Food';
+
+// ── Auth ──
+auth.onAuthStateChanged(user => {
+  if (user && user.email === ADMIN_EMAIL) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('adminName').textContent = user.displayName || user.email.split('@')[0];
+    document.getElementById('adminAvatar').textContent = (user.displayName || user.email).charAt(0).toUpperCase();
+    document.getElementById('overviewDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    loadAll();
+  } else if (user) {
+    auth.signOut();
+    showLoginError("Access restricted to administrators only.");
+  } else {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('dashboard').style.display = 'none';
+  }
+});
+
+function signInGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(e => showLoginError(e.message));
+}
+
+function signInEmail() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  if (!email || !pass) { showLoginError("Please enter email and password."); return; }
+  auth.signInWithEmailAndPassword(email, pass).catch(e => showLoginError(e.message));
+}
+
+function signOut() {
+  auth.signOut();
+}
+
+function showLoginError(msg) {
+  document.getElementById('loginError').textContent = msg;
+}
+
+// ── Load All Data ──
+async function loadAll() {
+  await Promise.all([loadUsers(), loadApplications(), loadReviews(), loadProducts()]);
+  updateOverview();
+}
+
+async function loadUsers() {
+  try {
+    const snap = await db.collection('users').get();
+    allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allUsers.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    renderUsers();
+  } catch(e) { console.error('loadUsers', e); }
+}
+
+async function loadApplications() {
+  try {
+    const snap = await db.collection('users').where('role', '==', 'shelter').get();
+    allApplications = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(u => u.status !== 'approved');
+    allApplications.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    renderApplications();
+    const count = allApplications.length;
+    const badge = document.getElementById('badgeApps');
+    badge.textContent = count;
+    badge.classList.toggle('hidden', count === 0);
+    document.getElementById('overviewApps').textContent = count;
+  } catch(e) { console.error('loadApplications', e); }
+}
+
+async function loadReviews() {
+  try {
+    const snap = await db.collection('reviews').where('published', '==', false).get();
+    allReviews = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allReviews.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    renderReviews();
+    const count = allReviews.length;
+    const badge = document.getElementById('badgeReviews');
+    badge.textContent = count;
+    badge.classList.toggle('hidden', count === 0);
+    document.getElementById('overviewReviews').textContent = count;
+  } catch(e) { console.error('loadReviews', e); }
+}
+
+async function loadProducts() {
+  try {
+    const snap = await db.collection('featured_products').get();
+    allProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allProducts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    renderProducts();
+  } catch(e) { console.error('loadProducts', e); }
+}
+
+// ── Overview ──
+function updateOverview() {
+  const owners = allUsers.filter(u => u.role === 'owner').length;
+  const providers = allUsers.filter(u => u.role === 'provider').length;
+  const shelters = allUsers.filter(u => u.role === 'shelter').length;
+  const plus = allUsers.filter(u => u.plan === 'plus').length;
+  const family = allUsers.filter(u => u.plan === 'family').length;
+  const free = allUsers.filter(u => !u.plan || u.plan === 'free').length;
+  const revenue = plus * PLAN_PRICES.plus + family * PLAN_PRICES.family;
+
+  document.getElementById('statTotal').textContent = allUsers.length;
+  document.getElementById('statOwners').textContent = owners;
+  document.getElementById('statProviders').textContent = providers;
+  document.getElementById('statShelters').textContent = shelters;
+  document.getElementById('statPlus').textContent = plus;
+  document.getElementById('statFamily').textContent = family;
+  document.getElementById('revTotal').textContent = '$' + revenue.toFixed(2);
+  document.getElementById('revBreakdown').textContent = `${plus} Plus × $3 + ${family} Family × $5`;
+  document.getElementById('revPillPlus').textContent = plus;
+  document.getElementById('revPillFamily').textContent = family;
+  document.getElementById('revPillFree').textContent = free;
+}
+
+// ── Users ──
+function setRoleFilter(val, el) {
+  currentRoleFilter = val;
+  document.querySelectorAll('#roleFilters .filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderUsers();
+}
+function setPlanFilter(val, el) {
+  currentPlanFilter = val;
+  document.querySelectorAll('#planFilters .filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderUsers();
+}
+
+function renderUsers() {
+  const q = (document.getElementById('userSearch').value || '').toLowerCase().trim();
+  let list = allUsers;
+  if (currentRoleFilter !== 'all') list = list.filter(u => u.role === currentRoleFilter);
+  if (currentPlanFilter !== 'all') {
+    if (currentPlanFilter === 'free') list = list.filter(u => !u.plan || u.plan === 'free');
+    else list = list.filter(u => u.plan === currentPlanFilter);
+  }
+  if (q) list = list.filter(u =>
+    (u.email || '').toLowerCase().includes(q) ||
+    (u.displayName || '').toLowerCase().includes(q) ||
+    (u.businessName || '').toLowerCase().includes(q) ||
+    (u.shelterName || '').toLowerCase().includes(q)
+  );
+
+  document.getElementById('usersCount').textContent = `${list.length} user${list.length !== 1 ? 's' : ''}`;
+  if (!list.length) {
+    document.getElementById('usersList').innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>No users match your search</p></div>';
+    return;
+  }
+  document.getElementById('usersList').innerHTML = list.map(u => userRowHTML(u)).join('');
+}
+
+function userRowHTML(u) {
+  const name = u.businessName || u.shelterName || u.displayName || '—';
+  const initials = (name !== '—' ? name : u.email || '?').charAt(0).toUpperCase();
+  const colors = { owner: '#4486F4', provider: '#3B82F6', shelter: '#F59E0B' };
+  const color = colors[u.role] || '#94A3B8';
+  const planColor = u.plan === 'plus' || u.plan === 'family' ? '#8B5CF6' : '#CBD5E1';
+  const planTextColor = u.plan === 'plus' || u.plan === 'family' ? '#fff' : '#64748B';
+  const created = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString() : '';
+  return `
+    <div class="user-row${u.disabled ? ' disabled-row' : ''}" id="user-${u.id}">
+      <div class="avatar" style="background:${color}">${initials}</div>
+      <div class="user-info">
+        <div class="user-name">${escHtml(name)}</div>
+        <div class="user-email">${escHtml(u.email || '—')}${created ? ' · ' + created : ''}</div>
+        <div class="tag-row">
+          <span class="tag" style="background:${color}">${u.role || 'owner'}</span>
+          <span class="tag" style="background:${planColor};color:${planTextColor}">${u.plan || 'free'}</span>
+          ${u.verified ? '<span class="tag" style="background:#4486F4">✓ verified</span>' : ''}
+          ${u.disabled ? '<span class="tag" style="background:#EF4444">disabled</span>' : ''}
+        </div>
+      </div>
+      <div class="user-actions">
+        ${(u.role === 'provider' || u.role === 'shelter') ? `
+          <button class="action-btn ${u.verified ? 'btn-unverify' : 'btn-verify'}"
+            onclick="toggleVerified('${u.id}', ${!!u.verified})">
+            ${u.verified ? 'Unverify' : 'Verify'}
+          </button>` : ''}
+        <button class="action-btn ${u.disabled ? 'btn-enable' : 'btn-disable'}"
+          onclick="toggleDisabled('${u.id}', ${!!u.disabled})">
+          ${u.disabled ? 'Enable' : 'Disable'}
+        </button>
+      </div>
+    </div>`;
+}
+
+async function toggleVerified(uid, current) {
+  try {
+    await db.collection('users').doc(uid).update({ verified: !current });
+    const u = allUsers.find(x => x.id === uid);
+    if (u) u.verified = !current;
+    renderUsers();
+    showToast(current ? 'User unverified' : 'User verified ✓', 'success');
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function toggleDisabled(uid, current) {
+  try {
+    await db.collection('users').doc(uid).update({ disabled: !current });
+    const u = allUsers.find(x => x.id === uid);
+    if (u) u.disabled = !current;
+    renderUsers();
+    showToast(current ? 'User enabled' : 'User disabled', 'success');
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ── Applications ──
+function renderApplications() {
+  if (!allApplications.length) {
+    document.getElementById('appsList').innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>No pending applications</p></div>';
+    return;
+  }
+  document.getElementById('appsList').innerHTML = allApplications.map(app => `
+    <div class="app-card" id="app-${app.id}">
+      <div class="avatar" style="background:#F59E0B">${(app.shelterName || app.email || '?').charAt(0).toUpperCase()}</div>
+      <div class="app-info">
+        <div class="app-name">${escHtml(app.shelterName || app.displayName || '—')}</div>
+        <div class="app-email">${escHtml(app.email || '—')}</div>
+        <div class="app-meta">
+          ${app.address ? '📍 ' + escHtml(app.address) + '<br>' : ''}
+          ${app.zip ? '📮 ZIP: ' + escHtml(app.zip) + '<br>' : ''}
+          ${app.phone ? '📞 ' + escHtml(app.phone) + '<br>' : ''}
+          ${app.createdAt?.toDate ? '📅 Applied ' + app.createdAt.toDate().toLocaleDateString() : ''}
+          ${app.status ? ' · Status: <strong>' + escHtml(app.status) + '</strong>' : ''}
+        </div>
+      </div>
+      <div class="app-actions">
+        <button class="btn-approve" onclick="approveApplication('${app.id}')">Approve</button>
+        <button class="btn-reject" onclick="rejectApplication('${app.id}')">Reject</button>
+      </div>
+    </div>`).join('');
+}
+
+async function approveApplication(uid) {
+  try {
+    await db.collection('users').doc(uid).update({ status: 'approved', verified: true });
+    allApplications = allApplications.filter(a => a.id !== uid);
+    const u = allUsers.find(x => x.id === uid);
+    if (u) { u.status = 'approved'; u.verified = true; }
+    renderApplications();
+    updateOverview();
+    const count = allApplications.length;
+    const badge = document.getElementById('badgeApps');
+    badge.textContent = count;
+    badge.classList.toggle('hidden', count === 0);
+    document.getElementById('overviewApps').textContent = count;
+    showToast('Shelter approved ✓', 'success');
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function rejectApplication(uid) {
+  if (!confirm('Reject this shelter application? This will delete the account.')) return;
+  try {
+    await db.collection('users').doc(uid).update({ status: 'rejected' });
+    allApplications = allApplications.filter(a => a.id !== uid);
+    renderApplications();
+    const count = allApplications.length;
+    const badge = document.getElementById('badgeApps');
+    badge.textContent = count;
+    badge.classList.toggle('hidden', count === 0);
+    document.getElementById('overviewApps').textContent = count;
+    showToast('Application rejected', 'success');
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ── Reviews ──
+function starsHTML(n) {
+  return '★'.repeat(Math.max(0, Math.min(5, n || 0))) + '☆'.repeat(Math.max(0, 5 - (n || 0)));
+}
+
+function renderReviews() {
+  if (!allReviews.length) {
+    document.getElementById('reviewsList').innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>No reviews pending approval</p></div>';
+    return;
+  }
+  document.getElementById('reviewsList').innerHTML = allReviews.map(r => `
+    <div class="review-card" id="review-${r.id}">
+      <div class="review-top">
+        <div class="avatar" style="background:#4486F4;width:38px;height:38px;font-size:15px">${(r.clientName || '?').charAt(0).toUpperCase()}</div>
+        <div class="review-meta">
+          <div class="review-client">${escHtml(r.clientName || 'Pet Owner')}</div>
+          <div class="review-provider">For: ${escHtml(r.providerName || r.providerId || '—')}</div>
+        </div>
+        <div class="stars">${starsHTML(r.rating)}</div>
+      </div>
+      <div class="review-text">${escHtml(r.text || r.comment || '(No text provided)')}</div>
+      <div class="review-actions">
+        <button class="btn-approve" onclick="approveReview('${r.id}')">✓ Approve</button>
+        <button class="btn-reject" onclick="rejectReview('${r.id}')">✕ Reject</button>
+      </div>
+    </div>`).join('');
+}
+
+async function approveReview(id) {
+  try {
+    await db.collection('reviews').doc(id).update({ published: true });
+    allReviews = allReviews.filter(r => r.id !== id);
+    renderReviews();
+    const count = allReviews.length;
+    const badge = document.getElementById('badgeReviews');
+    badge.textContent = count;
+    badge.classList.toggle('hidden', count === 0);
+    document.getElementById('overviewReviews').textContent = count;
+    showToast('Review approved ✓', 'success');
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function rejectReview(id) {
+  try {
+    await db.collection('reviews').doc(id).delete();
+    allReviews = allReviews.filter(r => r.id !== id);
+    renderReviews();
+    const count = allReviews.length;
+    const badge = document.getElementById('badgeReviews');
+    badge.textContent = count;
+    badge.classList.toggle('hidden', count === 0);
+    document.getElementById('overviewReviews').textContent = count;
+    showToast('Review rejected', 'success');
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ── Products ──
+function renderProducts() {
+  if (!allProducts.length) {
+    document.getElementById('productsList').innerHTML = '<div class="empty-state"><div class="empty-icon">🛍️</div><p>No products yet. Add your first Amazon or Chewy link.</p></div>';
+    return;
+  }
+  const storeColors = { Amazon: '#FF9900', Chewy: '#0073CF', Other: '#64748B' };
+  document.getElementById('productsList').innerHTML = allProducts.map(p => `
+    <div class="product-card" id="prod-${p.id}">
+      <span class="store-badge" style="background:${storeColors[p.store] || '#64748B'}">${escHtml(p.store || 'Other')}</span>
+      <div class="product-info">
+        <div class="product-title">${escHtml(p.title)}</div>
+        <div class="product-meta">${escHtml(p.category || '')}${p.price ? ' · ' + escHtml(p.price) : ''}${p.description ? ' · ' + escHtml(p.description) : ''}</div>
+        <div class="product-url">${escHtml(p.url)}</div>
+      </div>
+      <div class="product-actions">
+        <button class="btn-edit" onclick="openEditProduct('${p.id}')">Edit</button>
+        <button class="btn-delete" onclick="deleteProduct('${p.id}', '${escAttr(p.title)}')">Remove</button>
+      </div>
+    </div>`).join('');
+}
+
+let editingProductId = null;
+
+function openAddProduct() {
+  editingProductId = null;
+  document.getElementById('pTitle').value = '';
+  document.getElementById('pUrl').value = '';
+  document.getElementById('pPrice').value = '';
+  document.getElementById('pDesc').value = '';
+  productStore = 'Amazon';
+  productCat = 'Food';
+  document.querySelectorAll('#storeChips .chip').forEach((c, i) => c.classList.toggle('active', i === 0));
+  document.querySelectorAll('#catChips .chip').forEach((c, i) => c.classList.toggle('active', i === 0));
+  document.getElementById('productModalTitle').textContent = 'Add Product Link';
+  document.getElementById('submitProduct').disabled = false;
+  document.getElementById('submitProduct').textContent = 'Add Product';
+  document.getElementById('productModal').classList.remove('hidden');
+}
+
+function openEditProduct(id) {
+  const p = allProducts.find(x => x.id === id);
+  if (!p) return;
+  editingProductId = id;
+  document.getElementById('pTitle').value = p.title || '';
+  document.getElementById('pUrl').value = p.url || '';
+  document.getElementById('pPrice').value = p.price || '';
+  document.getElementById('pDesc').value = p.description || '';
+  // Set store chip
+  productStore = p.store || 'Amazon';
+  document.querySelectorAll('#storeChips .chip').forEach(c => {
+    c.classList.toggle('active', c.textContent === productStore);
+  });
+  // Set category chip
+  productCat = p.category || 'Food';
+  document.querySelectorAll('#catChips .chip').forEach(c => {
+    c.classList.toggle('active', c.textContent === productCat);
+  });
+  document.getElementById('productModalTitle').textContent = 'Edit Product';
+  document.getElementById('submitProduct').disabled = false;
+  document.getElementById('submitProduct').textContent = 'Save Changes';
+  document.getElementById('productModal').classList.remove('hidden');
+}
+
+function closeAddProduct() {
+  document.getElementById('productModal').classList.add('hidden');
+}
+
+function selectChip(type, el, val) {
+  const group = type === 'store' ? 'storeChips' : 'catChips';
+  document.querySelectorAll('#' + group + ' .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  if (type === 'store') productStore = val;
+  else productCat = val;
+}
+
+async function addProduct() {
+  const title = document.getElementById('pTitle').value.trim();
+  const url = document.getElementById('pUrl').value.trim();
+  if (!title || !url) { showToast('Title and URL are required', 'error'); return; }
+  const btn = document.getElementById('submitProduct');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const data = {
+      title, url, store: productStore, category: productCat,
+      price: document.getElementById('pPrice').value.trim(),
+      description: document.getElementById('pDesc').value.trim(),
+    };
+    if (editingProductId) {
+      await db.collection('featured_products').doc(editingProductId).update(data);
+      const idx = allProducts.findIndex(p => p.id === editingProductId);
+      if (idx !== -1) allProducts[idx] = { ...allProducts[idx], ...data };
+      renderProducts();
+      closeAddProduct();
+      showToast('Product updated ✓', 'success');
+    } else {
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      const ref = await db.collection('featured_products').add(data);
+      allProducts.unshift({ id: ref.id, ...data });
+      renderProducts();
+      closeAddProduct();
+      showToast('Product added ✓', 'success');
+    }
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = editingProductId ? 'Save Changes' : 'Add Product';
+  }
+}
+
+async function deleteProduct(id, title) {
+  if (!confirm(`Remove "${title}"?`)) return;
+  try {
+    await db.collection('featured_products').doc(id).delete();
+    allProducts = allProducts.filter(p => p.id !== id);
+    renderProducts();
+    showToast('Product removed', 'success');
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ── Navigation ──
+function showTab(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+// ── Helpers ──
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(str) {
+  return String(str || '').replace(/'/g, "\\'");
+}
+
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + type + ' show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// Close modal on overlay click
+document.getElementById('productModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAddProduct();
+});
+</script>
+</body>
+</html>

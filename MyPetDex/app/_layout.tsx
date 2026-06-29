@@ -68,6 +68,13 @@ function ModalCloseButton() {
   );
 }
 
+function tabsHomeHref(profile: { role?: string } | null | undefined, pendingRole: string) {
+  const role = profile?.role || pendingRole;
+  if (role === "shelter") return "/(tabs)/shelter-home" as const;
+  if (role === "provider") return "/(tabs)/provider-home" as const;
+  return "/(tabs)" as const;
+}
+
 function AuthGuard() {
   const { user, loading: authLoading, emailVerified, getPendingRole } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
@@ -117,6 +124,7 @@ function AuthGuard() {
       }
       return "/onboarding" as const;
     })();
+    const homeHref = tabsHomeHref(profile, getPendingRole());
 
     if (!user && !inAuthGroup && !inExplore) {
       router.replace("/(auth)/sign-in");
@@ -126,15 +134,15 @@ function AuthGuard() {
       } else if (needsEmailVerification) {
         router.replace("/check-email");
       } else {
-        router.replace("/(tabs)");
+        router.replace(homeHref);
       }
     } else if (user && inOnboarding && hasCompletedOnboarding) {
       // Already completed onboarding — race condition guard: redirect away
-      router.replace(needsEmailVerification ? "/check-email" : "/(tabs)");
+      router.replace(needsEmailVerification ? "/check-email" : homeHref);
     } else if (user && inCheckEmail) {
       // Verified (or just became verified, e.g. on app foreground) — let them in
       if (!needsEmailVerification) {
-        router.replace("/(tabs)");
+        router.replace(homeHref);
       }
     } else if (user && !inAuthGroup && !inOnboarding && !inCheckEmail) {
       if (!hasCompletedOnboarding) {
@@ -143,7 +151,7 @@ function AuthGuard() {
         router.replace("/check-email");
       }
     }
-  }, [user, authLoading, profile?.onboardingComplete, profile?.city, profile?.businessName, profile?.shelterName, profileLoading, segments, emailVerified, getPendingRole]);
+  }, [user, authLoading, profile?.onboardingComplete, profile?.role, profile?.city, profile?.businessName, profile?.shelterName, profileLoading, segments, emailVerified, getPendingRole]);
 
   return null;
 }

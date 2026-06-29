@@ -71,8 +71,9 @@ function isOnboardingRole(value: string | undefined): value is OnboardingRole {
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
-  const { user, signOut, triggerWelcomeEmail } = useAuth();
+  const { role: roleParamRaw } = useLocalSearchParams<{ role?: string | string[] }>();
+  const roleParam = Array.isArray(roleParamRaw) ? roleParamRaw[0] : roleParamRaw;
+  const { user, signOut, triggerWelcomeEmail, getPendingRole } = useAuth();
 
   async function handleSignOut() {
     try {
@@ -86,11 +87,15 @@ export default function OnboardingScreen() {
   const [state, setState] = useState("NJ");
 
   useEffect(() => {
-    if (isOnboardingRole(roleParam)) {
-      setRole(roleParam);
+    const pending = getPendingRole();
+    const resolved =
+      (isOnboardingRole(roleParam) ? roleParam : undefined) ??
+      (isOnboardingRole(pending) ? pending : undefined);
+    if (resolved) {
+      setRole(resolved);
       setRoleLocked(true);
     }
-  }, [roleParam]);
+  }, [roleParam, getPendingRole]);
   const [city, setCity] = useState("");
   const [zip, setZip] = useState("");
 
@@ -108,19 +113,25 @@ export default function OnboardingScreen() {
 
   // Shelter fields
   const [shelterName, setShelterName] = useState("");
-  const [ein, setEin] = useState("");
-  const [license, setLicense] = useState("");
+  const [contactName, setContactName] = useState("");
   const [shelterPhone, setShelterPhone] = useState("");
+  const [shelterZip, setShelterZip] = useState("");
   const [shelterWebsite, setShelterWebsite] = useState("");
-  const [shelterAddress, setShelterAddress] = useState("");
+  const [shelterBio, setShelterBio] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   async function handleFinish() {
-    if (!city.trim()) { setError("Please enter your city."); return; }
+    if (role !== "shelter" && !city.trim()) { setError("Please enter your city."); return; }
     if (role === "provider" && !businessName.trim()) { setError("Please enter your business name."); return; }
-    if (role === "shelter" && !shelterName.trim()) { setError("Please enter your shelter name."); return; }
+    if (role === "shelter") {
+      if (!shelterName.trim()) { setError("Please enter your shelter name."); return; }
+      if (!contactName.trim()) { setError("Please enter a contact person name."); return; }
+      if (!shelterPhone.trim()) { setError("Please enter a phone number."); return; }
+      if (!city.trim()) { setError("Please enter your city."); return; }
+      if (!shelterZip.trim() || shelterZip.trim().length !== 5) { setError("Please enter a valid 5-digit zip code."); return; }
+    }
 
     setLoading(true);
     setError("");
@@ -156,11 +167,11 @@ export default function OnboardingScreen() {
       if (role === "shelter") {
         Object.assign(userDoc, {
           shelterName: shelterName.trim(),
-          ein: ein.trim(),
-          license: license.trim(),
+          contactName: contactName.trim(),
           phone: shelterPhone.trim(),
+          zip: shelterZip.trim(),
           website: shelterWebsite.trim(),
-          address: shelterAddress.trim(),
+          bio: shelterBio.trim(),
           approved: false,
         });
       }
@@ -195,7 +206,11 @@ export default function OnboardingScreen() {
       // Email/password users need to verify — send them to check-email.
       if (u.emailVerified) {
         await triggerWelcomeEmail();
-        router.replace("/(tabs)");
+        if (role === "shelter") {
+          router.replace("/(tabs)/shelter-home");
+        } else {
+          router.replace("/(tabs)");
+        }
       } else {
         router.replace("/check-email");
       }
@@ -286,7 +301,8 @@ export default function OnboardingScreen() {
           </View>
         )}
 
-        {/* Location */}
+        {/* Location — owners and providers only; shelter has its own location fields */}
+        {role !== "shelter" ? (
         <View style={styles.section}>
           <Text style={styles.label}>YOUR LOCATION</Text>
           <Text style={styles.sublabel}>Used to show nearby services and providers</Text>
@@ -317,6 +333,7 @@ export default function OnboardingScreen() {
             </>
           ) : null}
         </View>
+        ) : null}
 
         {/* Owner: first pet */}
         {role === "owner" && (
@@ -429,7 +446,7 @@ export default function OnboardingScreen() {
             <Text style={styles.label}>YOUR SHELTER</Text>
             <Text style={styles.sublabel}>Help pets find forever homes in your area</Text>
 
-            <Text style={styles.fieldLabel}>Shelter / Rescue Name *</Text>
+            <Text style={styles.fieldLabel}>Shelter Name *</Text>
             <TextInput
               style={styles.input}
               placeholder="e.g. Second Chance Animal Shelter"
@@ -437,29 +454,44 @@ export default function OnboardingScreen() {
               onChangeText={setShelterName}
             />
 
-            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>EIN Number</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Contact Person Name *</Text>
             <TextInput
               style={styles.input}
-              placeholder="xx-xxxxxxx"
-              value={ein}
-              onChangeText={setEin}
+              placeholder="e.g. Jane Smith"
+              value={contactName}
+              onChangeText={setContactName}
+              autoCapitalize="words"
             />
 
-            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>State License #</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. NJ-2024-xxxxx"
-              value={license}
-              onChangeText={setLicense}
-            />
-
-            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Phone Number</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Phone Number *</Text>
             <TextInput
               style={styles.input}
               placeholder="+1 (555) 000-0000"
               value={shelterPhone}
               onChangeText={setShelterPhone}
               keyboardType="phone-pad"
+            />
+
+            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>State *</Text>
+            <StateDropdown value={state} onSelect={setState} />
+
+            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>City *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. Camden"
+              value={city}
+              onChangeText={setCity}
+              autoCapitalize="words"
+            />
+
+            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Zip Code *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 08102"
+              value={shelterZip}
+              onChangeText={(text) => setShelterZip(text.replace(/\D/g, "").slice(0, 5))}
+              keyboardType="numeric"
+              maxLength={5}
             />
 
             <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Website (optional)</Text>
@@ -472,12 +504,13 @@ export default function OnboardingScreen() {
               autoCapitalize="none"
             />
 
-            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Address (optional)</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Mission / Description (optional)</Text>
             <TextInput
-              style={styles.input}
-              placeholder="123 Main St, Newark, NJ"
-              value={shelterAddress}
-              onChangeText={setShelterAddress}
+              style={[styles.input, { height: 90, textAlignVertical: "top" }]}
+              placeholder="Tell adopters about your shelter's mission…"
+              value={shelterBio}
+              onChangeText={setShelterBio}
+              multiline
             />
 
             <View style={[styles.trialBadge, { backgroundColor: BRAND + "15", borderColor: BRAND + "44" }]}>

@@ -1,8 +1,12 @@
-import { isWeb } from "@/lib/platform";
-import { useRef, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, Image, Platform } from "react-native";
-import { webDb } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useState } from "react";
+import {
+  View, Text, ScrollView, StyleSheet, TouchableOpacity,
+  TextInput, ActivityIndicator, Alert, Image, Platform,
+} from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { webDb, storage } from "@/lib/firebase";
+import { collection, addDoc, doc, getDoc, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -15,7 +19,6 @@ export default function ShelterAddPet() {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const fileInputRef = useRef<any>(null);
   const [form, setForm] = useState({
     name: "", species: "Dog", breed: "", age: "", weight: "",
     gender: "Male", color: "", description: "", contactPhone: "",
@@ -24,49 +27,85 @@ export default function ShelterAddPet() {
 
   function set(key: string, val: string) { setForm(f => ({ ...f, [key]: val })); }
 
-  function pickPhoto() {
-    if (isWeb && fileInputRef.current) {
-      fileInputRef.current.click();
+  async function pickPhoto() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Please allow photo access to add a pet photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "images",
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      setPhotoUri(result.assets[0].uri);
     }
   }
 
-  function onFileChange(e: any) {
-    const file = e.target?.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setPhotoUri(ev.target?.result as string);
-    reader.readAsDataURL(file);
+  async function uploadPhoto(uid: string, localUri: string): Promise<string> {
+    const storageRef = ref(storage, `shelters/${uid}/pets/${Date.now()}/photo.jpg`);
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.onload = () => resolve(xhr.response);
+      xhr.onerror = () => reject(new Error("Failed to fetch image blob"));
+      xhr.responseType = "blob";
+      xhr.open("GET", localUri);
+      xhr.send();
+    });
+    await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
+    return getDownloadURL(storageRef);
   }
 
   async function handleSubmit() {
     if (!form.name.trim()) { Alert.alert("Required", "Please enter the pet's name."); return; }
     if (!form.breed.trim()) { Alert.alert("Required", "Please enter the breed."); return; }
-    if (!user || !isWeb) return;
+    if (!user) return;
     setSaving(true);
     try {
-      await addDoc(collection(webDb, "shelter_pets"), {
-        ...form,
-        shelterId: user.uid,
-        photoUri: photoUri || null,
-        status: form.status.toLowerCase(),
-        createdAt: serverTimestamp(),
-      });
-      Alert.alert("✅ Pet Added", `${form.name} has been added to your listings!`);
-      setForm({ name: "", species: "Dog", breed: "", age: "", weight: "", gender: "Male", color: "", description: "", contactPhone: "", contactEmail: "", status: "Available" });
-      setPhotoUri(null);
-    } catch (e) {
-      Alert.alert("Error", "Failed to add pet. Please try again.");
+      let photoURL: string | null = null;
+      if (photoUri) {
+        try {
+          photoURL = await uploadPhoto(user.uid, photoUri);
+        } catch (e: any) {
+          console.error("Shelter add pet photo upload error:", e?.code, e?.message, e);
+          Alert.alert("Error", e?.message || "Failed to upload photo. Please try again.");
+          return;
+        }
+      }
+      try {
+        const profileSnap = await getDoc(doc(webDb, "users", user.uid));
+        const profile = profileSnap.exists() ? profileSnap.data() : {};
+        const shelterName = String(profile.shelterName || profile.displayName || "Shelter");
+        const shelterZip = String(profile.zip || "").trim();
+
+        await addDoc(collection(webDb, "shelter_pets"), {
+          ...form,
+          shelterId: user.uid,
+          shelterName,
+          shelterZip,
+          photoURL: photoURL || null,
+          status: form.status.toLowerCase(),
+          createdAt: serverTimestamp(),
+        });
+        Alert.alert("✅ Pet Added", `${form.name} has been added to your listings!`);
+        setForm({
+          name: "", species: "Dog", breed: "", age: "", weight: "",
+          gender: "Male", color: "", description: "", contactPhone: "",
+          contactEmail: "", status: "Available",
+        });
+        setPhotoUri(null);
+      } catch (e: any) {
+        console.error("Shelter add pet Firestore error:", e?.code, e?.message, e);
+        Alert.alert("Error", e?.message || "Failed to add pet. Please try again.");
+      }
     } finally { setSaving(false); }
   }
 
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
       <Text style={s.title}>Add a Pet</Text>
-
-      {/* Hidden file input for web */}
-      {isWeb && (
-        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={onFileChange} />
-      )}
 
       {/* Photo */}
       <TouchableOpacity style={s.photoBox} onPress={pickPhoto}>
@@ -120,7 +159,13 @@ export default function ShelterAddPet() {
       <TextInput style={s.input} value={form.color} onChangeText={v => set("color", v)} placeholder="e.g. Brown and white" />
 
       <Text style={s.label}>Description</Text>
-      <TextInput style={[s.input, { height: 90 }]} value={form.description} onChangeText={v => set("description", v)} placeholder="Personality, health notes, special needs..." multiline />
+      <TextInput
+        style={[s.input, { height: 90, textAlignVertical: "top" }]}
+        value={form.description}
+        onChangeText={v => set("description", v)}
+        placeholder="Personality, health notes, special needs..."
+        multiline
+      />
 
       <Text style={s.label}>Adoption Status</Text>
       <View style={s.chipRowInline}>
@@ -133,7 +178,7 @@ export default function ShelterAddPet() {
 
       <Text style={s.sectionDivider}>Contact Information</Text>
 
-      <Text style={s.label}>Contact Phone *</Text>
+      <Text style={s.label}>Contact Phone</Text>
       <TextInput style={s.input} value={form.contactPhone} onChangeText={v => set("contactPhone", v)} placeholder="+1 (555) 000-0000" keyboardType="phone-pad" />
 
       <Text style={s.label}>Contact Email</Text>

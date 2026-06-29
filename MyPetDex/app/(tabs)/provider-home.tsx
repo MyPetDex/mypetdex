@@ -4,11 +4,13 @@ import { webDb } from "@/lib/firebase";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "expo-router";
 
 const BRAND = "#4486F4";
 
 export default function ProviderHome() {
   const { user } = useAuth();
+  const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({ bookings: 0, reviews: 0, rating: 0 });
   const [loading, setLoading] = useState(true);
@@ -91,12 +93,12 @@ export default function ProviderHome() {
       {/* Quick links */}
       <Text style={s.sectionTitle}>Quick Actions</Text>
       {[
-        { icon: "briefcase-outline", label: "Manage Services", tab: "provider-services" },
-        { icon: "calendar-outline", label: "View Bookings", tab: "provider-bookings" },
-        { icon: "star-outline", label: "Customer Reviews", tab: "provider-reviews" },
-        { icon: "person-outline", label: "Edit Profile", tab: "provider-profile" },
+        { icon: "briefcase-outline", label: "Manage Services", route: "/(tabs)/provider-services" },
+        { icon: "calendar-outline", label: "View Bookings", route: "/(tabs)/provider-bookings" },
+        { icon: "star-outline", label: "Customer Reviews", route: "/(tabs)/provider-reviews" },
+        { icon: "person-outline", label: "Edit Profile", route: "/(tabs)/provider-profile" },
       ].map((item) => (
-        <TouchableOpacity key={item.tab} style={s.actionRow}>
+        <TouchableOpacity key={item.route} style={s.actionRow} onPress={() => router.push(item.route as any)}>
           <View style={s.actionIcon}>
             <Ionicons name={item.icon as any} size={20} color={BRAND} />
           </View>

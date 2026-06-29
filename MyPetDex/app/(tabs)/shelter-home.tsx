@@ -4,12 +4,13 @@ import { webDb } from "@/lib/firebase";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 
 const BRAND = "#4486F4";
 
 export default function ShelterHome() {
   const { user } = useAuth();
+  const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({ total: 0, available: 0, adopted: 0 });
   const [loading, setLoading] = useState(true);
@@ -76,11 +77,11 @@ export default function ShelterHome() {
 
       <Text style={s.sectionTitle}>Quick Actions</Text>
       {[
-        { icon: "add-circle-outline", label: "Add New Pet", tab: "shelter-add-pet" },
-        { icon: "paw-outline", label: "Manage Pets", tab: "shelter-pets" },
-        { icon: "business-outline", label: "Shelter Profile", tab: "shelter-profile" },
+        { icon: "add-circle-outline", label: "Add New Pet", route: "/(tabs)/shelter-add-pet" },
+        { icon: "paw-outline", label: "Manage Pets", route: "/(tabs)/shelter-pets" },
+        { icon: "business-outline", label: "Shelter Profile", route: "/(tabs)/shelter-profile" },
       ].map(item => (
-        <TouchableOpacity key={item.tab} style={s.actionRow}>
+        <TouchableOpacity key={item.route} style={s.actionRow} onPress={() => router.push(item.route as any)}>
           <View style={s.actionIcon}>
             <Ionicons name={item.icon as any} size={20} color={BRAND} />
           </View>

@@ -77,6 +77,17 @@ interface AdoptPet {
   city: string;
 }
 
+interface LocalShelterPet {
+  id: string;
+  name: string;
+  breed: string;
+  age: string;
+  gender: string;
+  photo: string;
+  shelterName: string;
+  contactPhone: string;
+}
+
 function mapUserToListing(data: Record<string, unknown>, uid: string) {
   const role = String(data.role || "provider");
   const city = String(data.city || "");
@@ -153,10 +164,6 @@ function ProviderCard({
               <View style={styles.mypetdexVerifiedBadge}>
                 <Text style={styles.mypetdexVerifiedText}>🏅 MyPetDex Verified</Text>
               </View>
-            ) : p.verified === true ? (
-              <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedText}>✅ Verified</Text>
-              </View>
             ) : null}
           </View>
           <Text style={styles.providerType}>{p.serviceType || p.service}</Text>
@@ -170,7 +177,11 @@ function ProviderCard({
           </View>
         ) : null}
       </View>
-      {p.phone ? <Text style={styles.providerPhone}>📞 {p.phone}</Text> : null}
+      {p.phone ? (
+        <Pressable onPress={() => Linking.openURL(`tel:${p.phone.replace(/\D/g, "")}`)}>
+          <Text style={[styles.providerPhone, { color: "#4486F4" }]}>📞 {p.phone}</Text>
+        </Pressable>
+      ) : null}
     </Pressable>
   );
 }
@@ -236,7 +247,7 @@ export default function ExploreScreen() {
         );
         const usersQ = query(
           collection(webDb, "users"),
-          where("role", "in", ["provider", "shelter"]),
+          where("role", "==", "provider"),
           where("state", "==", stateFilter),
           limit(200),
         );
@@ -250,10 +261,10 @@ export default function ExploreScreen() {
           localResults = localResults.filter((p) => matchesZipForUser(p, zipTrim));
         }
 
-        // When zip is entered, hide seed providers — show only real local signups
-        let seedResults = zipTrim
-          ? []
-          : seedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        // Show seed providers always — filter by zip if entered
+        let seedResults = seedSnap.docs
+          .map((d) => ({ id: d.id, ...d.data() } as any))
+          .filter((p) => !zipTrim || String(p.zip || "").trim() === zipTrim);
 
         seedResults = filterByService(seedResults, activeSvc);
         localResults = filterByService(localResults, activeSvc);
@@ -283,6 +294,7 @@ export default function ExploreScreen() {
   const [petType, setPetType] = useState<"Dog" | "Cat">("Dog");
   const [zipCode, setZipCode] = useState("");
   const [adoptPets, setAdoptPets] = useState<AdoptPet[]>([]);
+  const [localShelterPets, setLocalShelterPets] = useState<LocalShelterPet[]>([]);
   const [adoptLoading, setAdoptLoading] = useState(false);
   const [adoptError, setAdoptError] = useState("");
 
@@ -314,15 +326,49 @@ export default function ExploreScreen() {
     return "NJ";
   };
 
+  async function fetchLocalShelterPets(zip: string, species: string): Promise<LocalShelterPet[]> {
+    const snap = await getDocs(query(
+      collection(webDb, "shelter_pets"),
+      where("status", "==", "available"),
+      limit(50),
+    ));
+    const pets = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
+
+    return pets
+      .filter((p) => String(p.species || "").toLowerCase() === species.toLowerCase())
+      .filter((p) => String(p.shelterZip || "").trim() === zip)
+      .map((p) => ({
+        id: p.id,
+        name: String(p.name || "Pet"),
+        breed: String(p.breed || ""),
+        age: String(p.age || ""),
+        gender: String(p.gender || ""),
+        photo: String(p.photoURL || p.photoUri || ""),
+        shelterName: String(p.shelterName || "Local Shelter"),
+        contactPhone: String(p.contactPhone || ""),
+      }));
+  }
+
   const searchAdopt = async () => {
     if (!zipCode || zipCode.length < 5) return;
     setAdoptLoading(true);
     setAdoptError("");
     setAdoptPets([]);
+    setLocalShelterPets([]);
     const state = getStateFromZip(zipCode);
+
+    let localPets: LocalShelterPet[] = [];
+    let rescuePets: AdoptPet[] = [];
+
     try {
-      // Call our secure Firebase Function proxy — key never exposed to client
-      const res = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/rescueProxy", {
+      localPets = await fetchLocalShelterPets(zipCode, petType);
+      setLocalShelterPets(localPets);
+    } catch (e) {
+      console.error("Local shelter pets fetch error:", e);
+    }
+
+    try {
+      const rescueRes = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/rescueProxy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -337,8 +383,8 @@ export default function ExploreScreen() {
           },
         }),
       });
-      const data = await res.json();
-      const animals: AdoptPet[] = (data.data || [])
+      const data = await rescueRes.json();
+      rescuePets = (data.data || [])
         .map((a: any) => {
           const attr = a.attributes;
           const locId = a.relationships?.locations?.data?.[0]?.id;
@@ -346,10 +392,6 @@ export default function ExploreScreen() {
           const loc = data.included?.find((i: any) => i.type === "locations" && i.id === locId);
           const org = data.included?.find((i: any) => i.type === "orgs" && i.id === orgId);
 
-          // Build the best possible direct-to-pet URL:
-          // 1. attr.url — direct pet page (most reliable, works for dogs)
-          // 2. RescueGroups hosted page — always links to exact pet
-          // 3. org website — fallback
           const petDirectUrl = attr.url && attr.url.startsWith("http") && !attr.url.includes("rescuegroups.org/org/")
             ? attr.url
             : `https://www.rescuegroups.org/animals/detail/${a.id}/`;
@@ -366,11 +408,18 @@ export default function ExploreScreen() {
           };
         })
         .filter((a: AdoptPet) => a.name && a.name !== "Unknown");
-      setAdoptPets(animals);
-      if (animals.length === 0) setAdoptError("No pets found near that zip code. Try another!");
-    } catch {
-      setAdoptError("Could not load pets. Please try again.");
+      setAdoptPets(rescuePets);
+    } catch (e) {
+      console.error("RescueGroups fetch error:", e);
+      if (localPets.length === 0) {
+        setAdoptError("Could not load pets. Please try again.");
+      }
     }
+
+    if (localPets.length === 0 && rescuePets.length === 0) {
+      setAdoptError("No pets found near that zip code. Try another!");
+    }
+
     setAdoptLoading(false);
   };
 
@@ -463,18 +512,18 @@ export default function ExploreScreen() {
               </View>
             ) : seedProviders.length > 0 || localProviders.length > 0 ? (
               <View>
-                {seedProviders.length > 0 ? (
+                {localProviders.length > 0 ? (
                   <View style={styles.resultsSection}>
                     <Text style={styles.sectionHeader}>MyPetDex Verified Providers</Text>
-                    {seedProviders.map((p: any) => (
+                    {localProviders.map((p: any) => (
                       <ProviderCard key={p.id} p={p} badge="mypetdex" />
                     ))}
                   </View>
                 ) : null}
-                {localProviders.length > 0 ? (
+                {seedProviders.length > 0 ? (
                   <View style={styles.resultsSection}>
                     <Text style={styles.sectionHeader}>Local Providers Near You</Text>
-                    {localProviders.map((p: any) => (
+                    {seedProviders.map((p: any) => (
                       <ProviderCard key={p.id} p={p} badge="user" />
                     ))}
                   </View>
@@ -503,7 +552,7 @@ export default function ExploreScreen() {
               <Pressable
                 key={t}
                 style={[styles.typeBtn, petType === t && styles.typeBtnActive]}
-                onPress={() => { setPetType(t); setAdoptPets([]); setAdoptError(""); }}
+                onPress={() => { setPetType(t); setAdoptPets([]); setLocalShelterPets([]); setAdoptError(""); }}
               >
                 <Text style={[styles.typeText, petType === t && styles.typeTextActive]}>
                   {t === "Dog" ? "🐶 Dogs" : "🐱 Cats"}
@@ -554,11 +603,45 @@ export default function ExploreScreen() {
             </View>
           ) : null}
 
-          {/* Results grid */}
+          {localShelterPets.length > 0 ? (
+            <>
+              <Text style={styles.resultsLabel}>Available at Local Shelters</Text>
+              <View style={styles.petGrid}>
+                {localShelterPets.map((pet) => (
+                  <View key={pet.id} style={styles.petCard}>
+                    {pet.photo ? (
+                      <Image source={{ uri: pet.photo }} style={styles.petPhoto} resizeMode="cover" />
+                    ) : (
+                      <View style={styles.petPhotoPlaceholder}>
+                        <Text style={{ fontSize: 32 }}>{petType === "Dog" ? "🐶" : "🐱"}</Text>
+                      </View>
+                    )}
+                    <View style={styles.petInfo}>
+                      <Text style={styles.petName} numberOfLines={1}>{pet.name}</Text>
+                      <Text style={styles.petBreed} numberOfLines={1}>{pet.breed}</Text>
+                      <Text style={styles.petMeta}>
+                        {[pet.age, pet.gender].filter(Boolean).join(" · ")}
+                      </Text>
+                      <Text style={styles.petCity} numberOfLines={1}>🏠 {pet.shelterName}</Text>
+                      {pet.contactPhone ? (
+                        <Pressable
+                          onPress={() => Linking.openURL(`tel:${pet.contactPhone.replace(/\D/g, "")}`)}
+                        >
+                          <Text style={styles.shelterPhone}>📞 {pet.contactPhone}</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : null}
+
+          {/* RescueGroups results grid */}
           {adoptPets.length > 0 && (
             <>
               <Text style={styles.resultsLabel}>
-                🐾 {adoptPets.length} available near you
+                🐾 {adoptPets.length} more available near you
               </Text>
               <View style={styles.petGrid}>
                 {adoptPets.map((pet) => (
@@ -595,7 +678,7 @@ export default function ExploreScreen() {
             </>
           )}
 
-          {!adoptLoading && adoptPets.length === 0 && !adoptError && (
+          {!adoptLoading && adoptPets.length === 0 && localShelterPets.length === 0 && !adoptError && (
             <View style={styles.emptyBox}>
               <Text style={styles.emptyEmoji}>❤️</Text>
               <Text style={styles.emptyTitle}>Find your next best friend</Text>
@@ -761,6 +844,7 @@ const styles = StyleSheet.create({
   petBreed: { fontSize: 11, color: "#888" },
   petMeta: { fontSize: 11, color: "#888" },
   petCity: { fontSize: 11, color: "#888" },
+  shelterPhone: { fontSize: 12, color: BRAND, fontWeight: "600", marginTop: 4 },
   meetBtn: {
     backgroundColor: BRAND,
     borderRadius: 8,

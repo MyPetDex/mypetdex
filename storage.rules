@@ -21,6 +21,11 @@ service firebase.storage {
       allow read, write: if isOwner(uid) || isAdmin();
     }
 
+    // Shelter pet photos at shelters/{uid}/pets/** — only the owning shelter may write
+    match /shelters/{uid}/{allPaths=**} {
+      allow read, write: if isOwner(uid) || isAdmin();
+    }
+
     // Deny everything else by default
     match /{allPaths=**} {
       allow read, write: if false;
