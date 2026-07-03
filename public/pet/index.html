@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pet Profile — MyPetDex</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #F4F6FB; color: #0F172A; min-height: 100vh; }
+    .header { background: linear-gradient(135deg, #4486F4 0%, #2563EB 100%); padding: 24px 20px 32px; text-align: center; }
+    .logo { color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
+    .pet-photo { width: 96px; height: 96px; border-radius: 48px; border: 3px solid rgba(255,255,255,0.6); object-fit: cover; margin: 0 auto 12px; display: block; background: rgba(255,255,255,0.2); }
+    .pet-photo-placeholder { width: 96px; height: 96px; border-radius: 48px; border: 3px solid rgba(255,255,255,0.6); margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 40px; background: rgba(255,255,255,0.15); }
+    .pet-name { color: #fff; font-size: 26px; font-weight: 800; margin-bottom: 4px; }
+    .pet-sub { color: rgba(255,255,255,0.8); font-size: 15px; }
+    .container { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+    .card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .card-title { font-size: 13px; font-weight: 700; color: #4486F4; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid #F1F5F9; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-size: 14px; color: #64748B; }
+    .info-value { font-size: 14px; font-weight: 600; color: #0F172A; text-align: right; max-width: 60%; }
+    .vaccine-item { padding: 10px 0; border-bottom: 1px solid #F1F5F9; display: flex; align-items: flex-start; gap: 10px; }
+    .vaccine-item:last-child { border-bottom: none; }
+    .vaccine-dot { width: 8px; height: 8px; border-radius: 4px; background: #22C55E; margin-top: 5px; flex-shrink: 0; }
+    .vaccine-name { font-size: 14px; font-weight: 600; color: #0F172A; }
+    .vaccine-meta { font-size: 13px; color: #64748B; margin-top: 2px; }
+    .notes-text { font-size: 14px; color: #334155; line-height: 1.6; }
+    .footer { text-align: center; padding: 24px 16px 40px; }
+    .footer-logo { font-size: 15px; font-weight: 800; color: #4486F4; margin-bottom: 4px; }
+    .footer-sub { font-size: 12px; color: #94A3B8; }
+    .download-btn { display: inline-block; background: linear-gradient(135deg, #4486F4, #2563EB); color: #fff; font-weight: 700; font-size: 14px; padding: 12px 28px; border-radius: 12px; text-decoration: none; margin-top: 12px; }
+    .loading { text-align: center; padding: 80px 20px; color: #64748B; font-size: 16px; }
+    .error { text-align: center; padding: 80px 20px; color: #EF4444; font-size: 15px; }
+    .empty { color: #94A3B8; font-size: 14px; font-style: italic; }
+  </style>
+</head>
+<body>
+<div id="root"><div class="loading">🐾 Loading pet profile...</div></div>
+<script>
+const FUNCTION_URL = "https://us-central1-mypetdex-c4315.cloudfunctions.net/getPetProfile";
+
+function getParams() {
+  const parts = window.location.pathname.split("/").filter(Boolean);
+  if (parts.length >= 3) return { uid: parts[1], petId: parts[2] };
+  return null;
+}
+
+function cap(str) {
+  if (!str) return null;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function render(p) {
+  const emojiMap = { dog: "🐕", cat: "🐈", rabbit: "🐇", bird: "🐦" };
+  const speciesEmoji = emojiMap[(p.species || "").toLowerCase()] || "🐾";
+
+  const photoHTML = p.photoURL
+    ? `<img class="pet-photo" src="${p.photoURL}" alt="${p.name}" onerror="this.style.display='none'" />`
+    : `<div class="pet-photo-placeholder">${speciesEmoji}</div>`;
+
+  const fields = [
+    ["Species", cap(p.species)],
+    ["Breed", p.breed],
+    ["Age", p.age ? `${p.age} ${Number(p.age) === 1 ? "year" : "years"} old` : null],
+    ["Weight", p.weight ? `${p.weight} ${p.weightUnit || "lbs"}` : null],
+    ["Sex", cap(p.sex)],
+    ["Neutered / Spayed", p.neutered === true ? "Yes" : p.neutered === false ? "No" : null],
+    ["Activity Level", cap(p.activityLevel)],
+    ["License #", p.licenseNumber],
+  ].filter(([, v]) => v);
+
+  const detailsHTML = fields.length
+    ? fields.map(([l, v]) => `<div class="info-row"><span class="info-label">${l}</span><span class="info-value">${v}</span></div>`).join("")
+    : `<p class="empty">No details on file.</p>`;
+
+  const vaccinesHTML = (p.vaccines || []).length
+    ? p.vaccines.map(v => `
+        <div class="vaccine-item">
+          <div class="vaccine-dot"></div>
+          <div>
+            <div class="vaccine-name">${v.title || v.name || "Vaccine"}</div>
+            <div class="vaccine-meta">${[v.type, v.date].filter(Boolean).join(" · ")}</div>
+            ${v.note ? `<div class="vaccine-meta">${v.note}</div>` : ""}
+          </div>
+        </div>`).join("")
+    : `<p class="empty">No vaccine records on file.</p>`;
+
+  const careHTML = (p.feeding || p.notes || p.nextVet) ? `
+    <div class="card">
+      <div class="card-title">📋 Care Notes</div>
+      ${p.feeding ? `<div class="info-row"><span class="info-label">Feeding</span><span class="info-value">${p.feeding}</span></div>` : ""}
+      ${p.nextVet ? `<div class="info-row"><span class="info-label">Next Vet Visit</span><span class="info-value">${p.nextVet}</span></div>` : ""}
+      ${p.notes ? `<div style="padding-top:10px"><p class="notes-text">${p.notes}</p></div>` : ""}
+    </div>` : "";
+
+  document.getElementById("root").innerHTML = `
+    <div class="header">
+      <div class="logo">🐾 MyPetDex</div>
+      ${photoHTML}
+      <div class="pet-name">${p.name}</div>
+      <div class="pet-sub">${[p.breed, cap(p.species)].filter(Boolean).join(" · ")}</div>
+    </div>
+    <div class="container">
+      <div class="card">
+        <div class="card-title">🐾 Pet Details</div>
+        ${detailsHTML}
+      </div>
+      <div class="card">
+        <div class="card-title">💉 Vaccine Records</div>
+        ${vaccinesHTML}
+      </div>
+      ${careHTML}
+    </div>
+    <div class="footer">
+      <div class="footer-logo">MyPetDex</div>
+      <div class="footer-sub">Digital pet health records</div>
+      <a class="download-btn" href="https://apps.apple.com/app/mypetdex/id6772248051">📱 Download MyPetDex</a>
+    </div>`;
+}
+
+async function load() {
+  const params = getParams();
+  if (!params) {
+    document.getElementById("root").innerHTML = `<div class="error">❌ Invalid QR code link.</div>`;
+    return;
+  }
+  try {
+    const res = await fetch(`${FUNCTION_URL}?uid=${params.uid}&petId=${params.petId}`);
+    if (!res.ok) throw new Error("Not found");
+    const data = await res.json();
+    render(data);
+  } catch {
+    document.getElementById("root").innerHTML = `<div class="error">❌ Could not load pet profile. Please try again.</div>`;
+  }
+}
+
+load();
+</script>
+</body>
+</html>

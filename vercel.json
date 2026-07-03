@@ -1,9 +1,15 @@
 {
   "redirects": [
     {
-      "source": "/(.*)",
+      "source": "/((?!pet/).*)",
       "destination": "https://apps.apple.com/app/mypetdex/id6772248051",
       "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/pet/:uid/:petId",
+      "destination": "/pet/index.html"
     }
   ]
 }
