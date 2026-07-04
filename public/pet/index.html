@@ -34,6 +34,24 @@
     .error { text-align: center; padding: 80px 20px; color: #EF4444; font-size: 15px; }
     .empty { color: #94A3B8; font-size: 14px; font-style: italic; }
     .share-btn { background: #fff; color: #4486F4; border: 2px solid #4486F4; font-weight: 700; font-size: 14px; padding: 12px 28px; border-radius: 12px; cursor: pointer; margin-top: 12px; margin-bottom: 8px; width: 100%; max-width: 240px; }
+    .med-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #F1F5F9; align-items: flex-start; }
+    .med-item:last-child { border-bottom: none; }
+    .med-bar { width: 4px; min-height: 48px; border-radius: 4px; flex-shrink: 0; margin-top: 2px; }
+    .med-bar-active { background: #22C55E; }
+    .med-bar-stopped { background: #94A3B8; }
+    .med-body { flex: 1; }
+    .med-top { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+    .med-name { font-size: 15px; font-weight: 700; color: #0F172A; }
+    .med-refill { font-size: 12px; color: #94A3B8; margin-left: 8px; }
+    .med-dosage { font-size: 13px; color: #555; margin-top: 3px; }
+    .med-freq { font-size: 13px; color: #64748B; margin-top: 3px; }
+    .med-note { font-size: 12px; color: #94A3B8; font-style: italic; margin-top: 3px; }
+    .med-section-label { font-size: 11px; font-weight: 700; color: #94A3B8; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+    .med-section-label-spaced { margin-top: 12px; }
+    .vet-name { font-size: 15px; font-weight: 700; color: #0F172A; }
+    .vet-detail { font-size: 13px; color: #555; margin-top: 4px; }
+    .vet-link { display: block; font-size: 14px; color: #4486F4; font-weight: 600; text-decoration: none; margin-top: 6px; }
+    .vet-notes { font-size: 12px; color: #94A3B8; font-style: italic; margin-top: 6px; }
   </style>
 </head>
 <body>
@@ -50,6 +68,30 @@ function getParams() {
 function cap(str) {
   if (!str) return null;
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function buildMedRows(meds) {
+  return meds.map(m => {
+    const refillHtml = m.refillDate
+      ? `<span class="med-refill">Refill: ${m.refillDate}</span>`
+      : "";
+    const dosageHtml = m.dosage ? `<div class="med-dosage">💊 ${m.dosage}</div>` : "";
+    const noteHtml = m.note ? `<div class="med-note">${m.note}</div>` : "";
+    const barClass = m.active !== false ? "med-bar-active" : "med-bar-stopped";
+    return `
+      <div class="med-item">
+        <div class="med-bar ${barClass}"></div>
+        <div class="med-body">
+          <div class="med-top">
+            <span class="med-name">${m.name}</span>
+            ${refillHtml}
+          </div>
+          ${dosageHtml}
+          <div class="med-freq">🔁 ${m.frequency || "Daily"}</div>
+          ${noteHtml}
+        </div>
+      </div>`;
+  }).join("");
 }
 
 function render(p) {
@@ -87,6 +129,39 @@ function render(p) {
         </div>`).join("")
     : `<p class="empty">No vaccine records on file.</p>`;
 
+  let medsHTML = "";
+  if (p.medications && p.medications.length > 0) {
+    const activeMeds = p.medications.filter(m => m.active !== false);
+    const stoppedMeds = p.medications.filter(m => m.active === false);
+    let inner = "";
+    if (activeMeds.length > 0) {
+      inner += `<div class="med-section-label">Active</div>${buildMedRows(activeMeds)}`;
+    }
+    if (stoppedMeds.length > 0) {
+      inner += `<div class="med-section-label med-section-label-spaced">Stopped</div>${buildMedRows(stoppedMeds)}`;
+    }
+    medsHTML = `
+    <div class="card">
+      <div class="card-title">💊 Medications</div>
+      ${inner}
+    </div>`;
+  }
+
+  let vetHTML = "";
+  if (p.vet && p.vet.name) {
+    const v = p.vet;
+    vetHTML = `
+    <div class="card">
+      <div class="card-title">🏥 Vet Contact</div>
+      <div class="vet-name">${v.name}</div>
+      ${v.clinic ? `<div class="vet-detail">🏥 ${v.clinic}</div>` : ""}
+      ${v.phone ? `<a class="vet-link" href="tel:${v.phone.replace(/\D/g, "")}">📞 ${v.phone}</a>` : ""}
+      ${v.address ? `<div class="vet-detail">📍 ${v.address}</div>` : ""}
+      ${v.email ? `<a class="vet-link" href="mailto:${v.email}">✉️ ${v.email}</a>` : ""}
+      ${v.notes ? `<div class="vet-notes">${v.notes}</div>` : ""}
+    </div>`;
+  }
+
   const careHTML = (p.feeding || p.notes || p.nextVet) ? `
     <div class="card">
       <div class="card-title">📋 Care Notes</div>
@@ -111,6 +186,8 @@ function render(p) {
         <div class="card-title">💉 Vaccine Records</div>
         ${vaccinesHTML}
       </div>
+      ${medsHTML}
+      ${vetHTML}
       ${careHTML}
     </div>
     <div class="footer">
