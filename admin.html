@@ -230,6 +230,8 @@
       border-bottom: 1px solid var(--border);
     }
     .product-card:last-child { border-bottom: none; }
+    .product-thumb { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; background: #f1f5f9; flex-shrink: 0; border: 1px solid var(--border); }
+    .product-thumb-placeholder { width: 52px; height: 52px; border-radius: 10px; background: #f1f5f9; flex-shrink: 0; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; }
     .store-badge { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; color: var(--white); flex-shrink: 0; }
     .product-info { flex: 1; min-width: 0; }
     .product-title { font-size: 14px; font-weight: 700; color: var(--dark); }
@@ -536,6 +538,10 @@
         <span class="chip" onclick="selectChip('cat',this,'Accessories')">Accessories</span>
         <span class="chip" onclick="selectChip('cat',this,'Other')">Other</span>
       </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Image URL (optional)</label>
+      <input class="form-input" id="pImage" type="url" placeholder="Right-click product image → Copy Image Address" />
     </div>
     <div class="form-field">
       <label class="form-label">Price (optional)</label>
@@ -910,6 +916,10 @@ function renderProducts() {
   const storeColors = { Amazon: '#FF9900', Chewy: '#0073CF', Other: '#64748B' };
   document.getElementById('productsList').innerHTML = allProducts.map(p => `
     <div class="product-card" id="prod-${p.id}">
+      ${p.imageUrl
+        ? `<img class="product-thumb" src="${escAttr(p.imageUrl)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><div class="product-thumb-placeholder" style="display:none">${p.store === 'Chewy' ? '🛒' : '📦'}</div>`
+        : `<div class="product-thumb-placeholder">${p.store === 'Chewy' ? '🛒' : '📦'}</div>`
+      }
       <span class="store-badge" style="background:${storeColors[p.store] || '#64748B'}">${escHtml(p.store || 'Other')}</span>
       <div class="product-info">
         <div class="product-title">${escHtml(p.title)}</div>
@@ -929,6 +939,7 @@ function openAddProduct() {
   editingProductId = null;
   document.getElementById('pTitle').value = '';
   document.getElementById('pUrl').value = '';
+  document.getElementById('pImage').value = '';
   document.getElementById('pPrice').value = '';
   document.getElementById('pDesc').value = '';
   productStore = 'Amazon';
@@ -947,6 +958,7 @@ function openEditProduct(id) {
   editingProductId = id;
   document.getElementById('pTitle').value = p.title || '';
   document.getElementById('pUrl').value = p.url || '';
+  document.getElementById('pImage').value = p.imageUrl || '';
   document.getElementById('pPrice').value = p.price || '';
   document.getElementById('pDesc').value = p.description || '';
   // Set store chip
@@ -986,6 +998,7 @@ async function addProduct() {
   try {
     const data = {
       title, url, store: productStore, category: productCat,
+      imageUrl: document.getElementById('pImage').value.trim(),
       price: document.getElementById('pPrice').value.trim(),
       description: document.getElementById('pDesc').value.trim(),
     };

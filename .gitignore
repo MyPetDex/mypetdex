@@ -20,3 +20,4 @@ serviceAccount.json
 *.json.key
 *-key.json
 *serviceAccount*
+service-account.json

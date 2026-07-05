@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { registerForPushNotifications } from "@/lib/notifications";
+import Purchases from "react-native-purchases";
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -152,6 +153,20 @@ function AuthGuard() {
       }
     }
   }, [user, authLoading, profile?.onboardingComplete, profile?.role, profile?.city, profile?.businessName, profile?.shelterName, profileLoading, segments, emailVerified, getPendingRole]);
+
+  useEffect(() => {
+    try {
+      Purchases.configure({ apiKey: "appl_pEdUnYfNGuoftcDZxKvVuyYzYUb" });
+    } catch (e) {
+      console.log("RevenueCat unavailable in this environment");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user?.uid) {
+      Purchases.logIn(user.uid).catch(() => {});
+    }
+  }, [user?.uid]);
 
   return null;
 }

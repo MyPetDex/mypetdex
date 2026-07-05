@@ -3,13 +3,14 @@ import {
   TextInput, ActivityIndicator, Switch, Modal,
   Share, Linking, Platform, Alert, Image,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { db, webAuth, webDb, callFunction } from "@/lib/firebase";
-import { collection, onSnapshot, doc, deleteDoc, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, doc, deleteDoc, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import * as WebBrowser from "expo-web-browser";
 
 const BRAND = "#4C6EF5";
@@ -136,8 +137,24 @@ export default function MeScreen() {
     }
     setFeedbackSending(true);
     try {
-      const fn = callFunction("sendFeedback");
-      await fn({ subject: feedbackSubject, message: feedbackMessage.trim() });
+      // Always write to Firestore first — guaranteed capture
+      await addDoc(collection(db, "feedback"), {
+        userId: user?.uid || "anonymous",
+        userEmail: user?.email || "",
+        subject: feedbackSubject,
+        message: feedbackMessage.trim(),
+        read: false,
+        createdAt: serverTimestamp(),
+      });
+
+      // Also try Cloud Function (sends email) — failure is silent, Firestore already saved it
+      try {
+        const fn = callFunction("sendFeedback");
+        await fn({ subject: feedbackSubject, message: feedbackMessage.trim() });
+      } catch {
+        // Cloud Function optional — Firestore write already succeeded
+      }
+
       setFeedbackSent(true);
       setTimeout(() => {
         setShowFeedback(false);
@@ -170,16 +187,18 @@ export default function MeScreen() {
           style={[styles.toggleBtn, activeTab === "pets" && styles.toggleBtnActive]}
           onPress={() => setActiveTab("pets")}
         >
+          <Ionicons name="paw-outline" size={15} color={activeTab === "pets" ? "#fff" : TEXT2} />
           <Text style={[styles.toggleText, activeTab === "pets" && styles.toggleTextActive]}>
-            🐾 My Pets
+            My Pets
           </Text>
         </Pressable>
         <Pressable
           style={[styles.toggleBtn, activeTab === "settings" && styles.toggleBtnActive]}
           onPress={() => setActiveTab("settings")}
         >
+          <Ionicons name="settings-outline" size={15} color={activeTab === "settings" ? "#fff" : TEXT2} />
           <Text style={[styles.toggleText, activeTab === "settings" && styles.toggleTextActive]}>
-            ⚙️ Settings
+            Settings
           </Text>
         </Pressable>
       </View>
@@ -187,7 +206,7 @@ export default function MeScreen() {
       {activeTab === "pets" && (
         <View style={{ flex: 1 }}>
           <View style={styles.searchBar}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Ionicons name="search-outline" size={16} color="#aaa" style={{ marginRight: 8 }} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search pets..."
@@ -202,7 +221,7 @@ export default function MeScreen() {
             <ScrollView contentContainerStyle={styles.list}>
               {filtered.length === 0 ? (
                 <View style={styles.emptyCard}>
-                  <Text style={styles.emptyEmoji}>🐾</Text>
+                  <Ionicons name="paw-outline" size={52} color={BRAND + "60"} />
                   <Text style={styles.emptyTitle}>No pets yet</Text>
                   <Text style={styles.emptySub}>Add your first pet to get started</Text>
                 </View>
@@ -217,9 +236,7 @@ export default function MeScreen() {
                       {pet.photoURL ? (
                         <Image source={{ uri: pet.photoURL }} style={styles.avatarImage} />
                       ) : (
-                        <Text style={styles.avatarEmoji}>
-                          {pet.species === "cat" ? "🐱" : "🐶"}
-                        </Text>
+                        <Ionicons name="paw-outline" size={34} color="#7C3AED" />
                       )}
                     </View>
                     <View style={styles.info}>
@@ -272,8 +289,9 @@ export default function MeScreen() {
               style={styles.upgradeCard}
               onPress={() => router.push("/settings/subscription")}
             >
-              <View>
-                <Text style={styles.upgradeCardTitle}>⬆️ Upgrade Your Plan</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Ionicons name="arrow-up-circle-outline" size={18} color="#fff" />
+                <Text style={styles.upgradeCardTitle}>Upgrade Your Plan</Text>
                 <Text style={styles.upgradeCardSub}>Plus $2.99/mo · Family $4.99/mo</Text>
               </View>
               <Text style={styles.upgradeCardArrow}>›</Text>
@@ -281,9 +299,12 @@ export default function MeScreen() {
           ) : (
             <View style={styles.manageCard}>
               <View style={styles.manageCardLeft}>
-                <Text style={styles.manageCardTitle}>
-                  {plan === "family" ? "👨‍👩‍👧 Family Plan" : "⭐ Plus Plan"}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Ionicons name={plan === "family" ? "people-outline" : "star-outline"} size={16} color={TEXT} />
+                  <Text style={styles.manageCardTitle}>
+                    {plan === "family" ? "Family Plan" : "Plus Plan"}
+                  </Text>
+                </View>
                 <Text style={styles.manageCardSub}>
                   {plan === "family" ? "Unlimited pets · All features" : "3 pets · AI · Recipes"}
                 </Text>
@@ -303,22 +324,25 @@ export default function MeScreen() {
 
           <Text style={styles.settingsSectionTitle}>Share MyPetDex</Text>
           <View style={styles.shareCard}>
-            <Text style={styles.shareTitle}>❤️ Love MyPetDex?</Text>
+            <Text style={styles.shareTitle}>Love MyPetDex?</Text>
             <Text style={styles.shareSub}>Share it with friends and family who have pets!</Text>
             <Pressable style={styles.shareMainBtn} onPress={handleShareApp}>
-              <Text style={styles.shareMainBtnText}>📤 Share App</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Ionicons name="share-social-outline" size={18} color="#fff" />
+                <Text style={styles.shareMainBtnText}>Share App</Text>
+              </View>
             </Pressable>
             <View style={styles.shareRow}>
               <Pressable style={styles.shareBtn} onPress={handleShareWhatsApp}>
-                <Text style={styles.shareBtnEmoji}>💬</Text>
+                <Ionicons name="logo-whatsapp" size={18} color="#fff" />
                 <Text style={styles.shareBtnText}>WhatsApp</Text>
               </Pressable>
               <Pressable style={[styles.shareBtn, styles.shareBtnFacebook]} onPress={handleShareFacebook}>
-                <Text style={styles.shareBtnEmoji}>📘</Text>
+                <Ionicons name="logo-facebook" size={18} color="#fff" />
                 <Text style={styles.shareBtnText}>Facebook</Text>
               </Pressable>
               <Pressable style={[styles.shareBtn, styles.shareBtnSMS]} onPress={handleShareSMS}>
-                <Text style={styles.shareBtnEmoji}>💬</Text>
+                <Ionicons name="chatbubble-outline" size={18} color="#fff" />
                 <Text style={styles.shareBtnText}>SMS</Text>
               </Pressable>
             </View>
@@ -339,16 +363,16 @@ export default function MeScreen() {
           <Text style={styles.settingsSectionTitle}>Account</Text>
           <View style={styles.settingsCard}>
             {[
-              { label: "Privacy Policy", icon: "🔒", onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/privacy.html") },
-              { label: "Terms of Service", icon: "📄", onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/terms.html") },
-              { label: "Rate MyPetDex", icon: "⭐", onPress: () => Linking.openURL("https://apps.apple.com/app/mypetdex/id6772248051?action=write-review") },
+              { label: "Privacy Policy", icon: "lock-closed-outline", onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/privacy.html") },
+              { label: "Terms of Service", icon: "document-text-outline", onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/terms.html") },
+              { label: "Rate MyPetDex", icon: "star-outline", onPress: () => Linking.openURL("https://apps.apple.com/app/mypetdex/id6772248051?action=write-review") },
             ].map((item, i, arr) => (
               <Pressable
                 key={item.label}
                 style={[styles.settingsRow, i === arr.length - 1 && styles.settingsRowLast]}
                 onPress={item.onPress}
               >
-                <Text style={styles.settingsRowIcon}>{item.icon}</Text>
+                <Ionicons name={item.icon as any} size={18} color={TEXT2} />
                 <Text style={styles.settingsRowLabel}>{item.label}</Text>
                 <Text style={styles.settingsChevron}>›</Text>
               </Pressable>
@@ -357,7 +381,7 @@ export default function MeScreen() {
 
           <Text style={styles.settingsSectionTitle}>Support</Text>
           <Pressable style={styles.feedbackBtn} onPress={() => setShowFeedback(true)}>
-            <Text style={styles.feedbackBtnEmoji}>💬</Text>
+            <Ionicons name="chatbubble-outline" size={24} color={BRAND} />
             <View style={styles.feedbackBtnInfo}>
               <Text style={styles.feedbackBtnTitle}>Send Feedback</Text>
               <Text style={styles.feedbackBtnSub}>Bug reports, suggestions or questions</Text>
@@ -397,7 +421,7 @@ export default function MeScreen() {
           <ScrollView contentContainerStyle={styles.modalScroll}>
             {feedbackSent ? (
               <View style={styles.sentBox}>
-                <Text style={styles.sentEmoji}>✅</Text>
+                <Ionicons name="checkmark-circle" size={56} color="#22C55E" />
                 <Text style={styles.sentTitle}>Thank you!</Text>
                 <Text style={styles.sentSub}>We'll get back to you at {user?.email}</Text>
               </View>
@@ -453,7 +477,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
   // ── Tab toggle ───────────────────────────────────────────────────────
   toggleRow: { flexDirection: "row", margin: 16, marginBottom: 8, backgroundColor: "#E8EAF2", borderRadius: 16, padding: 4 },
-  toggleBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: "center" },
+  toggleBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 },
   toggleBtnActive: { backgroundColor: BRAND, shadowColor: BRAND, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 3 },
   toggleText: { fontSize: 14, fontWeight: "600", color: TEXT2 },
   toggleTextActive: { color: "#fff", fontWeight: "700" },

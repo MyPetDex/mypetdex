@@ -7,17 +7,23 @@ import { useState, useEffect } from "react";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
-import { db, uploadPetPhoto } from "@/lib/firebase";
+import { db, uploadPetPhoto, auth } from "@/lib/firebase";
 import {
   doc, onSnapshot, updateDoc, deleteDoc, arrayUnion, arrayRemove,
+  addDoc, collection, serverTimestamp, query, where, orderBy, getDocs, limit,
 } from "firebase/firestore";
 import * as ImagePicker from "expo-image-picker";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
+import { Image as ExpoImage } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import DatePicker from "@/components/DatePicker";
 import QRCode from "react-native-qrcode-svg";
+import Svg, { Polyline, Circle, Line, Text as SvgText } from "react-native-svg";
 
 const BRAND = "#4486F4";
 const BLUE = "#4486F4";
-const TABS = ["Records", "Reminders", "Calories", "Recipes"];
+const TABS = ["Records", "Reminders", "Meds", "Calories", "Recipes"];
 
 const BREEDS_DOG = ['Affenpinscher','Afghan Hound','Airedale Terrier','Akita','Alaskan Malamute','American Bulldog','American Eskimo','American Pit Bull Terrier','American Staffordshire Terrier','Australian Shepherd','Basenji','Basset Hound','Beagle','Belgian Malinois','Bernese Mountain Dog','Bichon Frise','Border Collie','Border Terrier','Boston Terrier','Boxer','Boykin Spaniel','Brittany','Bulldog','Bullmastiff','Cairn Terrier','Cane Corso','Cavalier King Charles Spaniel','Chihuahua','Chinese Shar-Pei','Chow Chow','Cocker Spaniel','Collie','Dachshund','Dalmatian','Doberman Pinscher','English Setter','English Springer Spaniel','French Bulldog','German Shepherd','German Shorthaired Pointer','Golden Retriever','Great Dane','Great Pyrenees','Greyhound','Havanese','Irish Setter','Irish Wolfhound','Italian Greyhound','Jack Russell Terrier','Labrador Retriever','Lhasa Apso','Maltese','Mastiff','Miniature Pinscher','Miniature Schnauzer','Newfoundland','Norwegian Elkhound','Old English Sheepdog','Papillon','Pekingese','Pembroke Welsh Corgi','Pit Bull','Pointer','Pomeranian','Poodle','Portuguese Water Dog','Pug','Rhodesian Ridgeback','Rottweiler','Saint Bernard','Samoyed','Schipperke','Scottish Terrier','Shetland Sheepdog','Shiba Inu','Shih Tzu','Siberian Husky','Soft Coated Wheaten Terrier','Staffordshire Bull Terrier','Standard Schnauzer','Toy Fox Terrier','Vizsla','Weimaraner','West Highland White Terrier','Whippet','Wire Fox Terrier','Yorkshire Terrier','Mixed/Other'];
 const BREEDS_CAT = ['Abyssinian','American Bobtail','American Curl','American Shorthair','Balinese','Bengal','Birman','Bombay','British Longhair','British Shorthair','Burmese','Burmilla','Chartreux','Chausie','Cornish Rex','Devon Rex','Egyptian Mau','Exotic Shorthair','Havana Brown','Himalayan','Japanese Bobtail','Khao Manee','Korat','LaPerm','Maine Coon','Manx','Munchkin','Nebelung','Norwegian Forest Cat','Ocicat','Oriental Shorthair','Persian','Peterbald','Pixiebob','Ragamuffin','Ragdoll','Russian Blue','Savannah','Scottish Fold','Selkirk Rex','Siamese','Siberian','Singapura','Snowshoe','Somali','Sphynx','Thai','Tonkinese','Toyger','Turkish Angora','Turkish Van','Mixed/Other'];
@@ -93,7 +99,9 @@ export default function PetProfileScreen() {
       doc(db, "users", user.uid, "pets", id as string),
       (snap) => {
         if (snap.exists()) {
-          setPet({ id: snap.id, ...snap.data() });
+          const data = { id: snap.id, ...snap.data() } as any;
+          if (data.photoURL) ExpoImage.prefetch(data.photoURL);
+          setPet(data);
         } else {
           Alert.alert("Not found", "This pet could not be found.");
           router.back();
@@ -242,6 +250,86 @@ export default function PetProfileScreen() {
     );
   }
 
+  async function generatePetResume() {
+    if (!pet) return;
+    const activeMeds = (pet.medications || []).filter((m: any) => m.active !== false);
+    const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    const vetAddress = pet.vet?.street
+      ? `${pet.vet.street}${pet.vet.city ? `, ${pet.vet.city}` : ""}${pet.vet.state ? `, ${pet.vet.state}` : ""}${pet.vet.zip ? ` ${pet.vet.zip}` : ""}${pet.vet.country && pet.vet.country !== "USA" ? `, ${pet.vet.country}` : ""}`
+      : pet.vet?.address || "";
+
+    const html = `
+<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, Helvetica, sans-serif; color:#0F172A; }
+.header { background:#4486F4; padding:32px 24px; color:white; }
+.header h1 { font-size:26px; font-weight:900; }
+.header p { font-size:13px; opacity:0.75; margin-top:4px; }
+.hero { display:flex; align-items:center; gap:20px; padding:24px; border-bottom:1px solid #E2E8F0; }
+.avatar { width:80px; height:80px; border-radius:40px; background:#E2E8F0; display:flex; align-items:center; justify-content:center; font-size:40px; border:3px solid #4486F4; overflow:hidden; }
+.avatar img { width:80px; height:80px; object-fit:cover; }
+.pet-name { font-size:24px; font-weight:800; }
+.pet-meta { font-size:13px; color:#64748B; margin-top:3px; }
+.section { padding:20px 24px; border-bottom:1px solid #E2E8F0; }
+.label { font-size:11px; font-weight:700; color:#4486F4; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px; }
+.row { display:flex; gap:8px; margin-bottom:7px; font-size:14px; }
+.key { color:#64748B; min-width:90px; }
+.val { color:#0F172A; font-weight:500; }
+.med { background:#F8FAFC; border-radius:8px; padding:12px; margin-bottom:8px; }
+.med-name { font-weight:700; font-size:14px; }
+.med-sub { font-size:12px; color:#64748B; margin-top:2px; }
+.empty { color:#94A3B8; font-size:13px; font-style:italic; }
+.footer { padding:24px; text-align:center; background:#F8FAFC; }
+.footer-brand { font-size:15px; font-weight:800; color:#4486F4; }
+.footer-sub { font-size:12px; color:#94A3B8; margin-top:4px; }
+</style></head><body>
+<div class="header"><h1>${pet.name}'s Care Resume</h1><p>Generated by MyPetDex · ${today}</p></div>
+<div class="hero">
+  <div class="avatar">${pet.photoURL ? `<img src="${pet.photoURL}" />` : "🐾"}</div>
+  <div>
+    <div class="pet-name">${pet.name}</div>
+    <div class="pet-meta">${pet.species || "Dog"} · ${pet.breed || "Mixed"}</div>
+    <div class="pet-meta">${pet.age ? `${pet.age} yrs` : ""}${pet.age && pet.weight ? " · " : ""}${pet.weight ? `${pet.weight} ${pet.weightUnit || "lbs"}` : ""}</div>
+  </div>
+</div>
+<div class="section">
+  <div class="label">Basic Info</div>
+  ${pet.activityLevel ? `<div class="row"><span class="key">Activity</span><span class="val">${pet.activityLevel}</span></div>` : ""}
+  ${pet.neutered !== undefined ? `<div class="row"><span class="key">Neutered</span><span class="val">${pet.neutered ? "Yes" : "No"}</span></div>` : ""}
+  ${pet.licenseNumber ? `<div class="row"><span class="key">License #</span><span class="val">${pet.licenseNumber}</span></div>` : ""}
+</div>
+${pet.vet?.name ? `<div class="section">
+  <div class="label">Veterinarian</div>
+  <div class="row"><span class="key">Doctor</span><span class="val">${pet.vet.name}</span></div>
+  ${pet.vet.clinic ? `<div class="row"><span class="key">Clinic</span><span class="val">${pet.vet.clinic}</span></div>` : ""}
+  ${pet.vet.phone ? `<div class="row"><span class="key">Phone</span><span class="val">${pet.vet.phone}</span></div>` : ""}
+  ${pet.vet.email ? `<div class="row"><span class="key">Email</span><span class="val">${pet.vet.email}</span></div>` : ""}
+  ${vetAddress ? `<div class="row"><span class="key">Address</span><span class="val">${vetAddress}</span></div>` : ""}
+</div>` : ""}
+<div class="section">
+  <div class="label">Active Medications</div>
+  ${activeMeds.length === 0
+    ? `<p class="empty">No active medications</p>`
+    : activeMeds.map((m: any) => `<div class="med"><div class="med-name">${m.name}</div><div class="med-sub">${[m.dosage, m.frequency].filter(Boolean).join(" · ")}${m.note ? ` · ${m.note}` : ""}</div></div>`).join("")}
+</div>
+<div class="footer">
+  <div class="footer-brand">MyPetDex</div>
+  <div class="footer-sub">The complete home for pet owners · home.mypetdex.app</div>
+</div>
+</body></html>`;
+
+    try {
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      await Sharing.shareAsync(uri, {
+        mimeType: "application/pdf",
+        dialogTitle: `${pet.name}'s Care Resume`,
+        UTI: "com.adobe.pdf",
+      });
+    } catch {
+      Alert.alert("Could not generate resume", "Please try again.");
+    }
+  }
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -260,7 +348,13 @@ export default function PetProfileScreen() {
       <View style={styles.header}>
         <View style={styles.avatar}>
           {pet.photoURL ? (
-            <Image source={{ uri: pet.photoURL }} style={styles.avatarImage} />
+            <ExpoImage
+              source={{ uri: pet.photoURL }}
+              style={styles.avatarImage}
+              cachePolicy="memory-disk"
+              contentFit="cover"
+              transition={0}
+            />
           ) : (
             <Text style={styles.avatarEmoji}>{pet.species === "cat" ? "🐱" : "🐶"}</Text>
           )}
@@ -271,6 +365,10 @@ export default function PetProfileScreen() {
             <Text style={styles.qrBtnText}>📱 QR</Text>
           </Pressable>
         </View>
+        <Pressable style={styles.resumeBtn} onPress={generatePetResume}>
+          <Ionicons name="document-text-outline" size={18} color={BRAND} />
+          <Text style={styles.resumeBtnText}>Generate Care Resume PDF</Text>
+        </Pressable>
         <Text style={styles.petBreed}>{pet.breed}</Text>
         <View style={styles.petTags}>
           {pet.age ? <View style={styles.tag}><Text style={styles.tagText}>Age {pet.age}</Text></View> : null}
@@ -302,7 +400,7 @@ export default function PetProfileScreen() {
           <ScrollView contentContainerStyle={styles.qrModalScroll}>
             <Text style={styles.qrModalSub}>Anyone can scan this to see {pet.name}'s emergency info — no app needed.</Text>
             <View style={styles.qrCodeBox}>
-              <QRCode value={`https://app.mypetdex.app/pet/${pet.id}`} size={220} color="#1a1a1a" backgroundColor="#fff" />
+              <QRCode value={`https://app.mypetdex.app/pet/${user?.uid}/${pet.id}`} size={220} color="#1a1a1a" backgroundColor="#fff" />
             </View>
             <View style={styles.qrInfoCard}>
               <Text style={styles.qrInfoTitle}>🚨 Emergency Info</Text>
@@ -338,10 +436,10 @@ export default function PetProfileScreen() {
               </View>
             )}
             <View style={styles.qrBtnRow}>
-              <Pressable style={[styles.qrActionBtn, styles.qrActionBtnBlue]} onPress={() => Linking.openURL(`https://app.mypetdex.app/pet/${pet.id}`)}>
+              <Pressable style={[styles.qrActionBtn, styles.qrActionBtnBlue]} onPress={() => Linking.openURL(`https://app.mypetdex.app/pet/${user?.uid}/${pet.id}`)}>
                 <Text style={styles.qrActionBtnText}>🔗 Open Link</Text>
               </Pressable>
-              <Pressable style={[styles.qrActionBtn, styles.qrActionBtnGreen]} onPress={() => Share.share({ message: `🐾 ${pet.name}'s emergency info: https://app.mypetdex.app/pet/${pet.id}`, url: `https://app.mypetdex.app/pet/${pet.id}` })}>
+              <Pressable style={[styles.qrActionBtn, styles.qrActionBtnGreen]} onPress={() => Share.share({ message: `🐾 ${pet.name}'s emergency info: https://app.mypetdex.app/pet/${user?.uid}/${pet.id}`, url: `https://app.mypetdex.app/pet/${user?.uid}/${pet.id}` })}>
                 <Text style={styles.qrActionBtnText}>📤 Share</Text>
               </Pressable>
             </View>
@@ -455,7 +553,8 @@ export default function PetProfileScreen() {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
         {activeTab === "Records" && <RecordsTab pet={pet} user={user} />}
         {activeTab === "Reminders" && <RemindersTab pet={pet} user={user} />}
-        {activeTab === "Calories" && <CaloriesTab pet={pet} />}
+        {activeTab === "Meds" && <MedsTab pet={pet} user={user} />}
+        {activeTab === "Calories" && <CaloriesTab pet={pet} user={user} />}
         {activeTab === "Recipes" && <RecipesTab pet={pet} canUseAI={canUseAI} />}
       </ScrollView>
     </View>
@@ -467,6 +566,13 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ title: "", type: "Vet Visit", date: "", note: "" });
+  const [showVetModal, setShowVetModal] = useState(false);
+  const [savingVet, setSavingVet] = useState(false);
+  const [vetForm, setVetForm] = useState({
+    name: "", clinic: "", phone: "",
+    street: "", city: "", state: "", zip: "", country: "USA",
+    email: "", notes: ""
+  });
 
   const vaccines = pet.vaccines || [];
   const RECORD_TYPES = ["Vet Visit", "Vaccination", "Medication", "Surgery", "Other"];
@@ -496,8 +602,86 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
     ]);
   }
 
+  function openVetEdit() {
+    setVetForm({
+      name: pet.vet?.name || "",
+      clinic: pet.vet?.clinic || "",
+      phone: pet.vet?.phone || "",
+      street: pet.vet?.street || "",
+      city: pet.vet?.city || "",
+      state: pet.vet?.state || "",
+      zip: pet.vet?.zip || "",
+      country: pet.vet?.country || "USA",
+      email: pet.vet?.email || "",
+      notes: pet.vet?.notes || "",
+    });
+    setShowVetModal(true);
+  }
+
+  async function saveVet() {
+    setSavingVet(true);
+    try {
+      await updateDoc(doc(db, "users", user.uid, "pets", pet.id), { vet: vetForm });
+      setShowVetModal(false);
+    } catch { Alert.alert("Error", "Could not save vet info."); }
+    setSavingVet(false);
+  }
+
   return (
     <View style={styles.tabContent}>
+      {/* Vet Contact Card */}
+      <View style={styles.vetCard}>
+        <View style={styles.vetCardHeader}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Ionicons name="business-outline" size={16} color="#1a1a1a" />
+            <Text style={styles.vetCardTitle}>My Vet</Text>
+          </View>
+          <Pressable onPress={openVetEdit} style={styles.vetAddBtn}>
+            <Text style={styles.vetAddBtnText}>{pet.vet?.name ? "Edit" : "+ Add Vet"}</Text>
+          </Pressable>
+        </View>
+        {pet.vet?.name ? (
+          <View style={styles.vetCardBody}>
+            <Text style={styles.vetName}>{pet.vet.name}</Text>
+            {pet.vet.clinic ? (
+              <View style={styles.vetDetailRow}>
+                <Ionicons name="business-outline" size={13} color="#64748B" />
+                <Text style={styles.vetDetail}>{pet.vet.clinic}</Text>
+              </View>
+            ) : null}
+            {pet.vet.phone ? (
+              <Pressable onPress={() => Linking.openURL(`tel:${pet.vet.phone.replace(/\D/g, "")}`)}>
+                <View style={styles.vetDetailRow}>
+                  <Ionicons name="call-outline" size={13} color={BRAND} />
+                  <Text style={[styles.vetDetail, styles.vetPhone]}>{pet.vet.phone}</Text>
+                </View>
+              </Pressable>
+            ) : null}
+            {(pet.vet.street || pet.vet.address) ? (
+              <View style={styles.vetDetailRow}>
+                <Ionicons name="location-outline" size={13} color="#64748B" />
+                <Text style={styles.vetDetail}>
+                  {pet.vet.street
+                    ? `${pet.vet.street}${pet.vet.city ? `, ${pet.vet.city}` : ""}${pet.vet.state ? `, ${pet.vet.state}` : ""}${pet.vet.zip ? ` ${pet.vet.zip}` : ""}${pet.vet.country && pet.vet.country !== "USA" ? `, ${pet.vet.country}` : ""}`
+                    : pet.vet.address}
+                </Text>
+              </View>
+            ) : null}
+            {pet.vet.email ? (
+              <Pressable onPress={() => Linking.openURL(`mailto:${pet.vet.email}`)}>
+                <View style={styles.vetDetailRow}>
+                  <Ionicons name="mail-outline" size={13} color={BRAND} />
+                  <Text style={[styles.vetDetail, styles.vetPhone]}>{pet.vet.email}</Text>
+                </View>
+              </Pressable>
+            ) : null}
+            {pet.vet.notes ? <Text style={styles.vetNotes}>{pet.vet.notes}</Text> : null}
+          </View>
+        ) : (
+          <Text style={styles.vetEmptyText}>Tap "+ Add Vet" to save your vet's contact info</Text>
+        )}
+      </View>
+
       {vaccines.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyEmoji}>📋</Text>
@@ -526,12 +710,17 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
         <Text style={styles.addBtnText}>+ Add Record</Text>
       </Pressable>
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+        >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Add Record</Text>
             <Pressable onPress={() => setShowModal(false)}><Text style={styles.modalClose}>Cancel</Text></Pressable>
           </View>
-          <ScrollView contentContainerStyle={styles.modalScroll}>
+          <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
             <Text style={styles.modalLabel}>Type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.typeRow}>
               {RECORD_TYPES.map((t) => (
@@ -550,8 +739,385 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
             </Pressable>
           </ScrollView>
         </View>
+        </KeyboardAvoidingView>
+      </Modal>
+      <Modal
+        visible={showVetModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowVetModal(false)}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+        >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Vet Contact</Text>
+            <Pressable onPress={() => setShowVetModal(false)}>
+              <Text style={styles.modalClose}>Cancel</Text>
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
+            <Text style={styles.modalLabel}>Vet / Doctor Name</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={vetForm.name}
+              onChangeText={(v) => setVetForm(f => ({ ...f, name: v }))}
+              placeholder="e.g. Dr. Sarah Lee"
+              placeholderTextColor="#aaa"
+            />
+            <Text style={styles.modalLabel}>Clinic Name</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={vetForm.clinic}
+              onChangeText={(v) => setVetForm(f => ({ ...f, clinic: v }))}
+              placeholder="e.g. Happy Paws Veterinary"
+              placeholderTextColor="#aaa"
+            />
+            <Text style={styles.modalLabel}>Phone Number</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={vetForm.phone}
+              onChangeText={(v) => setVetForm(f => ({ ...f, phone: v }))}
+              placeholder="e.g. 555-123-4567"
+              placeholderTextColor="#aaa"
+              keyboardType="phone-pad"
+            />
+            <Text style={styles.modalLabel}>Street Address (optional)</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={vetForm.street}
+              onChangeText={(v) => setVetForm(f => ({ ...f, street: v }))}
+              placeholder="e.g. 123 Main St"
+              placeholderTextColor="#aaa"
+            />
+            <View style={styles.editRow}>
+              <View style={{ flex: 2 }}>
+                <Text style={styles.modalLabel}>City</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={vetForm.city}
+                  onChangeText={(v) => setVetForm(f => ({ ...f, city: v }))}
+                  placeholder="City"
+                  placeholderTextColor="#aaa"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalLabel}>State</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={vetForm.state}
+                  onChangeText={(v) => setVetForm(f => ({ ...f, state: v.toUpperCase() }))}
+                  placeholder="NJ"
+                  placeholderTextColor="#aaa"
+                  maxLength={2}
+                  autoCapitalize="characters"
+                />
+              </View>
+            </View>
+            <View style={styles.editRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalLabel}>Zip Code</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={vetForm.zip}
+                  onChangeText={(v) => setVetForm(f => ({ ...f, zip: v }))}
+                  placeholder="08816"
+                  placeholderTextColor="#aaa"
+                  keyboardType="number-pad"
+                  maxLength={10}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalLabel}>Country</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={vetForm.country}
+                  onChangeText={(v) => setVetForm(f => ({ ...f, country: v }))}
+                  placeholder="USA"
+                  placeholderTextColor="#aaa"
+                />
+              </View>
+            </View>
+            <Text style={styles.modalLabel}>Email (optional)</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={vetForm.email}
+              onChangeText={(v) => setVetForm(f => ({ ...f, email: v }))}
+              placeholder="e.g. clinic@happypaws.com"
+              placeholderTextColor="#aaa"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <Text style={styles.modalLabel}>Notes (optional)</Text>
+            <TextInput
+              style={[styles.modalInput, styles.modalTextarea]}
+              value={vetForm.notes}
+              onChangeText={(v) => setVetForm(f => ({ ...f, notes: v }))}
+              placeholder="Emergency hours, parking notes, etc."
+              placeholderTextColor="#aaa"
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+            <Pressable
+              style={[styles.saveBtn, savingVet && { opacity: 0.6 }]}
+              onPress={saveVet}
+              disabled={savingVet}
+            >
+              {savingVet
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.saveBtnText}>Save Vet Info</Text>
+              }
+            </Pressable>
+          </ScrollView>
+        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
+  );
+}
+
+// ── Meds Tab ──────────────────────────────────────────────────────────────────
+function MedsTab({ pet, user }: { pet: any; user: any }) {
+  const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    name: "", dosage: "", frequency: "Daily", refillDate: "", note: ""
+  });
+
+  const FREQ = ["Daily", "Twice Daily", "Weekly", "Monthly", "As Needed", "Other"];
+  const medications = pet.medications || [];
+  const active = medications.filter((m: any) => m.active !== false);
+  const inactive = medications.filter((m: any) => m.active === false);
+
+  function isRefillSoon(refillDate: string): boolean {
+    if (!refillDate) return false;
+    const [y, m, d] = refillDate.split("-").map(Number);
+    const refill = new Date(y, m - 1, d);
+    const diff = (refill.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+    return diff >= 0 && diff <= 7;
+  }
+
+  function openAdd() {
+    setEditingId(null);
+    setForm({ name: "", dosage: "", frequency: "Daily", refillDate: "", note: "" });
+    setShowModal(true);
+  }
+
+  function openEdit(m: any) {
+    setEditingId(m.id);
+    setForm({ name: m.name, dosage: m.dosage || "", frequency: m.frequency || "Daily", refillDate: m.refillDate || "", note: m.note || "" });
+    setShowModal(true);
+  }
+
+  async function saveMed() {
+    if (!form.name.trim()) { Alert.alert("Missing info", "Please enter a medication name."); return; }
+    setSaving(true);
+    try {
+      let updated;
+      if (editingId) {
+        updated = medications.map((m: any) =>
+          m.id === editingId ? { ...m, ...form } : m
+        );
+      } else {
+        updated = [...medications, { ...form, id: Date.now().toString(), active: true }];
+      }
+      await updateDoc(doc(db, "users", user.uid, "pets", pet.id), { medications: updated });
+      setShowModal(false);
+    } catch { Alert.alert("Error", "Could not save medication."); }
+    setSaving(false);
+  }
+
+  async function toggleActive(medId: string) {
+    const updated = medications.map((m: any) =>
+      m.id === medId ? { ...m, active: !m.active } : m
+    );
+    await updateDoc(doc(db, "users", user.uid, "pets", pet.id), { medications: updated });
+  }
+
+  async function deleteMed(medId: string) {
+    Alert.alert("Delete Medication", "This cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: async () => {
+        const updated = medications.filter((m: any) => m.id !== medId);
+        await updateDoc(doc(db, "users", user.uid, "pets", pet.id), { medications: updated });
+      }},
+    ]);
+  }
+
+  function renderMedCard(m: any) {
+    const isActive = m.active !== false;
+    return (
+      <View key={m.id} style={styles.medCard}>
+        <View style={[styles.medBar, { backgroundColor: isActive ? "#22C55E" : "#94A3B8" }]} />
+        <View style={{ flex: 1 }}>
+          <View style={styles.medContent}>
+            <View style={styles.medTopRow}>
+              <Text style={styles.medName}>{m.name}</Text>
+              {m.refillDate ? (
+                isRefillSoon(m.refillDate) ? (
+                  <Text style={styles.medRefillWarn}>⚠️ Refill soon</Text>
+                ) : (
+                  <Text style={styles.medRefill}>{m.refillDate}</Text>
+                )
+              ) : null}
+            </View>
+            {m.dosage ? <Text style={styles.medDosage}>💊 {m.dosage}</Text> : null}
+            <Text style={styles.medFreq}>🔁 {m.frequency || "Daily"}</Text>
+            {m.note ? <Text style={styles.medNote}>{m.note}</Text> : null}
+          </View>
+          {/* Action bar */}
+          <View style={styles.medActionBar}>
+            <Pressable style={styles.medActionBtn} onPress={() => openEdit(m)}>
+              <Text style={styles.medActionEdit}>Edit</Text>
+            </Pressable>
+            <View style={styles.medActionDivider} />
+            <Pressable style={[styles.medActionBtn, { flex: 2 }]} onPress={() => toggleActive(m.id)}>
+              <Text style={styles.medActionToggle}>
+                {isActive ? "▼ Mark as stopped" : "▲ Mark as active"}
+              </Text>
+            </Pressable>
+            <View style={styles.medActionDivider} />
+            <Pressable style={styles.medActionBtn} onPress={() => deleteMed(m.id)}>
+              <Text style={styles.medActionDelete}>Delete</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.tabContent}>
+      {medications.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyEmoji}>💊</Text>
+          <Text style={styles.emptyTitle}>No medications yet</Text>
+          <Text style={styles.emptySub}>Track your pet's medications, dosages & refills</Text>
+        </View>
+      ) : (
+        <>
+          {active.length > 0 && (
+            <>
+              <Text style={styles.sectionLabel}>Active</Text>
+              {active.map(renderMedCard)}
+            </>
+          )}
+          {inactive.length > 0 && (
+            <>
+              <Text style={styles.sectionLabel}>Stopped</Text>
+              {inactive.map(renderMedCard)}
+            </>
+          )}
+        </>
+      )}
+      <Pressable style={styles.addBtn} onPress={openAdd}>
+        <Text style={styles.addBtnText}>+ Add Medication</Text>
+      </Pressable>
+      <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+        >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{editingId ? "Edit Medication" : "Add Medication"}</Text>
+            <Pressable onPress={() => setShowModal(false)}><Text style={styles.modalClose}>Cancel</Text></Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
+            <Text style={styles.modalLabel}>Medication Name *</Text>
+            <TextInput style={styles.modalInput} value={form.name} onChangeText={(v) => setForm(f => ({ ...f, name: v }))} placeholder="e.g. Heartgard Plus" placeholderTextColor="#aaa" />
+            <Text style={styles.modalLabel}>Dosage</Text>
+            <TextInput style={styles.modalInput} value={form.dosage} onChangeText={(v) => setForm(f => ({ ...f, dosage: v }))} placeholder="e.g. 1 tablet, 5mg" placeholderTextColor="#aaa" />
+            <Text style={styles.modalLabel}>Frequency</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.typeRow}>
+              {FREQ.map((f) => (
+                <Pressable key={f} style={[styles.typeChip, form.frequency === f && styles.typeChipActive]} onPress={() => setForm(prev => ({ ...prev, frequency: f }))}>
+                  <Text style={[styles.typeChipText, form.frequency === f && styles.typeChipTextActive]}>{f}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <DatePicker label="Refill Date (optional)" value={form.refillDate} onChange={(v) => setForm(f => ({ ...f, refillDate: v }))} future={true} showTime={false} />
+            <Text style={styles.modalLabel}>Notes (optional)</Text>
+            <TextInput style={[styles.modalInput, styles.modalTextarea]} value={form.note} onChangeText={(v) => setForm(f => ({ ...f, note: v }))} placeholder="Any instructions or notes..." placeholderTextColor="#aaa" multiline numberOfLines={3} textAlignVertical="top" />
+            <Pressable style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={saveMed} disabled={saving}>
+              {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{editingId ? "Update Medication" : "Save Medication"}</Text>}
+            </Pressable>
+          </ScrollView>
+        </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </View>
+  );
+}
+
+// ── Weight Chart helper ───────────────────────────────────────────────────────
+function WeightChart({ data }: { data: any[] }) {
+  if (data.length < 2) return null;
+
+  const W = 320, H = 120, PAD = { top: 12, bottom: 28, left: 36, right: 12 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const weights = data.map((d: any) => d.weight);
+  const minW = Math.min(...weights);
+  const maxW = Math.max(...weights);
+  const range = maxW - minW || 1;
+
+  const xStep = chartW / (data.length - 1);
+  const points = data.map((d: any, i: number) => {
+    const x = PAD.left + i * xStep;
+    const y = PAD.top + chartH - ((d.weight - minW) / range) * chartH;
+    return { x, y, d };
+  });
+
+  const polylinePoints = points.map(p => `${p.x},${p.y}`).join(" ");
+  const labelStep = Math.ceil(data.length / 5);
+
+  return (
+    <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <Line
+        x1={PAD.left} y1={PAD.top + chartH}
+        x2={PAD.left + chartW} y2={PAD.top + chartH}
+        stroke="#E5E7EB" strokeWidth={1}
+      />
+      <Polyline
+        points={polylinePoints}
+        fill="none"
+        stroke="#4486F4"
+        strokeWidth={2}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      {points.map((p, i) => (
+        <Circle key={i} cx={p.x} cy={p.y} r={3} fill="#4486F4" />
+      ))}
+      {points.map((p, i) =>
+        i % labelStep === 0 ? (
+          <SvgText
+            key={i}
+            x={p.x}
+            y={H - 4}
+            fontSize={9}
+            fill="#94A3B8"
+            textAnchor="middle"
+          >
+            {p.d.date.slice(5)}
+          </SvgText>
+        ) : null
+      )}
+      <SvgText x={PAD.left - 4} y={PAD.top + chartH} fontSize={9} fill="#94A3B8" textAnchor="end">
+        {minW}
+      </SvgText>
+      <SvgText x={PAD.left - 4} y={PAD.top + 8} fontSize={9} fill="#94A3B8" textAnchor="end">
+        {maxW}
+      </SvgText>
+    </Svg>
   );
 }
 
@@ -683,12 +1249,17 @@ function RemindersTab({ pet, user }: { pet: any; user: any }) {
         <Text style={styles.addBtnText}>+ Add Reminder</Text>
       </Pressable>
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+        >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{editingId ? "Edit Reminder" : "Add Reminder"}</Text>
             <Pressable onPress={() => setShowModal(false)}><Text style={styles.modalClose}>Cancel</Text></Pressable>
           </View>
-          <ScrollView contentContainerStyle={styles.modalScroll}>
+          <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
             <Text style={styles.modalLabel}>Title *</Text>
             <TextInput style={styles.modalInput} value={form.title} onChangeText={(v) => setForm((f) => ({ ...f, title: v }))} placeholder="e.g. Heartworm pill" placeholderTextColor="#aaa" />
             <DatePicker label="Due Date & Time *" value={form.due} onChange={(v) => { setForm((f) => ({ ...f, due: v })); const dt = v ? (() => { const p = v.split(" "); const [y,m,d] = p[0].split("-").map(Number); if(p.length>=3){let[h,min]=p[1].split(":").map(Number);const ap=p[2];if(ap==="PM"&&h!==12)h+=12;if(ap==="AM"&&h===12)h=0;return new Date(y,m-1,d,h,min);}return new Date(y,m-1,d,23,59,59); })() : null; setDateError(dt && dt < new Date() ? "⚠️ Please select a future date and time." : ""); }} future={true} showTime={true} />
@@ -708,13 +1279,52 @@ function RemindersTab({ pet, user }: { pet: any; user: any }) {
             </Pressable>
           </ScrollView>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
 }
 
 // ── Calories Tab ──────────────────────────────────────────────────────────────
-function CaloriesTab({ pet }: { pet: any }) {
+function CaloriesTab({ pet, user }: { pet: any; user: any }) {
+  const [weightLog, setWeightLog] = useState<any[]>([]);
+  const [showWeightModal, setShowWeightModal] = useState(false);
+  const [weightEntry, setWeightEntry] = useState({
+    weight: pet.weight?.toString() || "",
+    weightUnit: pet.weightUnit || "lbs",
+    date: new Date().toISOString().slice(0, 10),
+  });
+  const [savingWeight, setSavingWeight] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, "users", user.uid, "pets", pet.id, "weightLog"),
+      orderBy("date", "asc"),
+      limit(20)
+    );
+    const unsub = onSnapshot(q, snap => {
+      setWeightLog(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [user, pet.id]);
+
+  async function saveWeightEntry() {
+    const w = parseFloat(weightEntry.weight);
+    if (!w || w <= 0) { Alert.alert("Invalid", "Please enter a valid weight."); return; }
+    setSavingWeight(true);
+    try {
+      await addDoc(collection(db, "users", user.uid, "pets", pet.id, "weightLog"), {
+        weight: w,
+        weightUnit: weightEntry.weightUnit,
+        date: weightEntry.date,
+        createdAt: serverTimestamp(),
+      });
+      setShowWeightModal(false);
+    } catch { Alert.alert("Error", "Could not save weight entry."); }
+    setSavingWeight(false);
+  }
+
   const weight = parseFloat(pet.weight) || 0;
   const weightKg = (pet.weightUnit === "lbs" || !pet.weightUnit) ? weight * 0.453592 : weight;
   const rer = weightKg > 0 ? Math.round(70 * Math.pow(weightKg, 0.75)) : 0;
@@ -754,28 +1364,167 @@ function CaloriesTab({ pet }: { pet: any }) {
         <Text style={styles.infoText}>• Neutered adjustment: {pet.neutered ? "−10%" : "none"}</Text>
         <Text style={styles.infoText}>• Source: AAFCO 2023, WSAVA, USDA FoodData</Text>
       </View>
+
+      {/* Weight History */}
+      <View style={styles.infoCard}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <Text style={styles.infoTitle}>⚖️ Weight History</Text>
+          <Pressable
+            style={{ backgroundColor: BRAND, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
+            onPress={() => setShowWeightModal(true)}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>+ Log</Text>
+          </Pressable>
+        </View>
+
+        {weightLog.length === 0 ? (
+          <Text style={{ color: "#aaa", fontSize: 13, textAlign: "center", paddingVertical: 16 }}>
+            No weight entries yet. Tap + Log to start tracking.
+          </Text>
+        ) : weightLog.length === 1 ? (
+          <View style={{ alignItems: "center", paddingVertical: 8 }}>
+            <Text style={{ fontSize: 22, fontWeight: "700", color: "#1a1a1a" }}>
+              {weightLog[0].weight} {weightLog[0].weightUnit}
+            </Text>
+            <Text style={{ color: "#aaa", fontSize: 12, marginTop: 4 }}>{weightLog[0].date}</Text>
+            <Text style={{ color: "#aaa", fontSize: 12, marginTop: 8 }}>Log one more entry to see the chart.</Text>
+          </View>
+        ) : (
+          <>
+            {(() => {
+              const last = weightLog[weightLog.length - 1].weight;
+              const prev = weightLog[weightLog.length - 2].weight;
+              const diff = (last - prev).toFixed(1);
+              const unit = weightLog[weightLog.length - 1].weightUnit;
+              const up = last > prev;
+              const same = last === prev;
+              return (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <Text style={{ fontSize: 20 }}>{same ? "➡️" : up ? "📈" : "📉"}</Text>
+                  <Text style={{ fontSize: 14, color: "#555" }}>
+                    {same ? "No change" : `${up ? "+" : ""}${diff} ${unit} since last entry`}
+                  </Text>
+                </View>
+              );
+            })()}
+            <View style={{ alignItems: "center" }}>
+              <WeightChart data={weightLog} />
+            </View>
+            <View style={{ marginTop: 12, gap: 6 }}>
+              {[...weightLog].reverse().slice(0, 5).map((entry: any) => (
+                <View key={entry.id} style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ fontSize: 13, color: "#888" }}>{entry.date}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: "#1a1a1a" }}>
+                    {entry.weight} {entry.weightUnit}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+      </View>
+
+      <Modal
+        visible={showWeightModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowWeightModal(false)}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+        >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Log Weight</Text>
+            <Pressable onPress={() => setShowWeightModal(false)}>
+              <Text style={styles.modalClose}>Cancel</Text>
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
+            <Text style={styles.modalLabel}>Weight *</Text>
+            <View style={styles.weightRow}>
+              <TextInput
+                style={[styles.modalInput, { flex: 1 }]}
+                value={weightEntry.weight}
+                onChangeText={(t) => setWeightEntry(e => ({ ...e, weight: t.replace(/[^0-9.]/g, "") }))}
+                keyboardType="decimal-pad"
+                placeholder="e.g. 65"
+                placeholderTextColor="#aaa"
+              />
+              <Pressable
+                style={styles.unitToggle}
+                onPress={() => setWeightEntry(e => ({ ...e, weightUnit: e.weightUnit === "lbs" ? "kg" : "lbs" }))}
+              >
+                <Text style={styles.unitText}>{weightEntry.weightUnit}</Text>
+              </Pressable>
+            </View>
+            <DatePicker
+              label="Date *"
+              value={weightEntry.date}
+              onChange={(v) => setWeightEntry(e => ({ ...e, date: v }))}
+              future={false}
+            />
+            <Pressable
+              style={[styles.saveBtn, savingWeight && { opacity: 0.6 }]}
+              onPress={saveWeightEntry}
+              disabled={savingWeight}
+            >
+              {savingWeight
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.saveBtnText}>Save Entry</Text>
+              }
+            </Pressable>
+          </ScrollView>
+        </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
 
 // ── Recipes Tab ───────────────────────────────────────────────────────────────
+const RECIPE_URL = "https://us-central1-mypetdex-c4315.cloudfunctions.net/getRecipe";
+
 function RecipesTab({ pet, canUseAI }: { pet: any; canUseAI: boolean }) {
+  const { user } = useAuth();
   const [step, setStep] = useState<"select" | "result">("select");
   const [selected, setSelected] = useState<Record<string, string[]>>({});
-  const [recipe, setRecipe] = useState("");
+  const [recipe, setRecipe] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [progressStep, setProgressStep] = useState(0);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [savedRecipes, setSavedRecipes] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, "savedRecipes"),
+      where("uid", "==", user.uid),
+      where("petId", "==", pet.id),
+      orderBy("createdAt", "desc")
+    );
+    const unsub = onSnapshot(q, snap => {
+      setSavedRecipes(snap.docs.map(d => ({ docId: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [user, pet.id]);
 
   const weight = parseFloat(pet.weight) || 0;
   const weightKg = (pet.weightUnit === "lbs" || !pet.weightUnit) ? weight * 0.453592 : weight;
   const rer = weightKg > 0 ? Math.round(70 * Math.pow(weightKg, 0.75)) : 0;
-  const der = Math.round(rer * ({ sedentary: 1.2, indoor: 1.2, low: 1.2, moderate: 1.4, active: 1.4, "very active": 1.6, high: 1.6 }[pet.activityLevel?.toLowerCase()] || 1.4) * (pet.neutered ? 0.9 : 1.0));
+  const actMult: Record<string, number> = { sedentary: 1.2, indoor: 1.2, low: 1.2, moderate: 1.4, active: 1.4, "very active": 1.6, high: 1.6 };
+  const der = Math.round(rer * (actMult[pet.activityLevel?.toLowerCase()] || 1.4) * (pet.neutered ? 0.9 : 1.0));
 
   const INGREDIENTS: Record<string, string[]> = {
-    "Protein": ["Chicken", "Turkey", "Beef", "Salmon", "Sardines", "Eggs", "Lamb", "Venison"],
-    "Carbs": ["White Rice", "Sweet Potato", "Oats", "Quinoa", "Pumpkin", "Barley"],
-    "Vegetables": ["Carrots", "Broccoli", "Spinach", "Peas", "Zucchini", "Green Beans"],
-    "Healthy Fats": ["Olive Oil", "Fish Oil", "Coconut Oil", "Flaxseed"],
-    "Fruits": ["Blueberries", "Apple", "Watermelon", "Banana"],
+    "🥩 Protein": ["Chicken", "Turkey", "Beef", "Salmon", "Sardines", "Eggs", "Lamb", "Venison", "Duck", "Tuna", "Shrimp"],
+    "🍚 Carbs": ["White Rice", "Sweet Potato", "Oats", "Quinoa", "Pumpkin", "Barley", "Brown Rice", "Lentils"],
+    "🥦 Vegetables": ["Carrots", "Broccoli", "Spinach", "Peas", "Zucchini", "Green Beans", "Kale", "Celery", "Cucumber", "Bell Pepper"],
+    "🫐 Fruits": ["Blueberries", "Apple", "Watermelon", "Banana", "Mango", "Strawberries"],
+    "🫒 Healthy Fats": ["Olive Oil", "Fish Oil", "Coconut Oil", "Flaxseed", "Sunflower Oil"],
+    "💊 Supplements": ["Fish Oil Capsule", "Calcium Powder", "Vitamin E", "Probiotic", "Glucosamine"],
   };
 
   function toggleIngredient(category: string, item: string) {
@@ -790,17 +1539,87 @@ function RecipesTab({ pet, canUseAI }: { pet: any; canUseAI: boolean }) {
   async function generateRecipe() {
     if (allSelected.length < 2 || !canUseAI) return;
     setLoading(true);
+    setProgressStep(0);
+    setError("");
     setStep("result");
-    const prompt = `You are a veterinary nutritionist for MyPetDex. Generate a personalized homemade meal recipe for:\n\nPet: ${pet.name}\nSpecies: ${pet.species || pet.type}\nBreed: ${pet.breed}\nAge: ${pet.age} years\nWeight: ${pet.weight} ${pet.weightUnit || "lbs"} (${weightKg.toFixed(1)} kg)\nNeutered: ${pet.neutered ? "Yes" : "No"}\nActivity: ${pet.activityLevel || "moderate"}\nDaily calorie need (AAFCO/WSAVA): ${der} kcal/day\nAvailable ingredients: ${allSelected.join(", ")}\n\nProvide:\n1. RECIPE NAME\n2. INGREDIENTS with exact gram amounts for ${der} kcal daily need split into 2 meals\n3. PREPARATION STEPS\n4. NUTRITIONAL BREAKDOWN\n5. REQUIRED SUPPLEMENTS\n6. BREED-SPECIFIC NOTES for ${pet.breed}\n7. TOXIC FOODS WARNING for ${pet.species || pet.type}s\n\nKeep it practical and science-based.`;
+
+    let stepIndex = 0;
+    const interval = setInterval(() => {
+      stepIndex = Math.min(stepIndex + 1, 3);
+      setProgressStep(stepIndex);
+    }, 2200);
+
     try {
-      const apiUrl = Platform.OS === "web" ? "/api/chat" : "https://app.mypetdex.app/api/chat";
-      const response = await fetch(apiUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1200, messages: [{ role: "user", content: prompt }] }) });
-      if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(err?.error?.message || `API error ${response.status}`); }
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("Not authenticated");
+      const response = await fetch(RECIPE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          petName: pet.name,
+          species: pet.species || pet.type || "dog",
+          breed: pet.breed,
+          age: pet.age,
+          weight: pet.weight,
+          weightUnit: pet.weightUnit || "lbs",
+          activityLevel: pet.activityLevel || "moderate",
+          neutered: pet.neutered || false,
+          dailyCalories: der,
+          ingredients: allSelected,
+        }),
+      });
       const data = await response.json();
-      setRecipe(data.content?.[0]?.text || "Could not generate recipe. Please try again.");
+      if (!response.ok) throw new Error(data.error || `Error ${response.status}`);
+      if (!data.name || !data.ingredients) {
+        throw new Error("Recipe generation failed. Please try again.");
+      }
+      setRecipe(data);
+      try {
+        const existingSnap = await getDocs(query(
+          collection(db, "savedRecipes"),
+          where("uid", "==", user?.uid),
+          where("petId", "==", pet.id)
+        ));
+        if (existingSnap.size >= 3) {
+          setSaved(false);
+        } else {
+          await addDoc(collection(db, "savedRecipes"), {
+            uid: user?.uid,
+            petId: pet.id,
+            petName: pet.name,
+            recipeName: data.name,
+            recipe: data,
+            createdAt: serverTimestamp(),
+          });
+          setSaved(true);
+        }
+      } catch (e) {
+        // silent fail — recipe still shows even if save fails
+      }
     } catch (e: any) {
-      setRecipe(`Could not generate recipe: ${e?.message || "Please check your connection and try again."}`);
-    } finally { setLoading(false); }
+      setError(e?.message || "Could not generate recipe. Please try again.");
+    } finally {
+      clearInterval(interval);
+      setLoading(false);
+    }
+  }
+
+  function shareRecipe() {
+    if (!recipe) return;
+    const text = [
+      `🐾 ${recipe.name} — Recipe for ${pet.name}`,
+      `\n${recipe.description}`,
+      `\n📋 Serving: ${recipe.servingInfo}`,
+      `\n🥗 INGREDIENTS\n${(recipe.ingredients || []).map((i: string) => `• ${i}`).join("\n")}`,
+      `\n👨‍🍳 INSTRUCTIONS\n${(recipe.instructions || []).map((s: string, i: number) => `${i + 1}. ${s}`).join("\n")}`,
+      `\n💊 SUPPLEMENTS\n${(recipe.supplements || []).map((s: string) => `• ${s}`).join("\n")}`,
+      `\n🌿 MULTIVITAMIN\n${recipe.multivitamin}`,
+      `\n📊 NUTRITION\n${recipe.nutritionBreakdown}`,
+      `\n🐕 BREED NOTE\n${recipe.breedNote}`,
+      `\n⚠️ ${recipe.warning}`,
+      `\nGenerated by MyPetDex — home.mypetdex.app`,
+    ].join("\n");
+    Share.share({ message: text, title: `${pet.name}'s Recipe` });
   }
 
   if (!canUseAI) return (
@@ -815,26 +1634,169 @@ function RecipesTab({ pet, canUseAI }: { pet: any; canUseAI: boolean }) {
 
   if (step === "result") return (
     <View style={styles.tabContent}>
-      <Pressable style={styles.backBtn} onPress={() => { setStep("select"); setRecipe(""); }}>
-        <Text style={styles.backBtnText}>← Choose different ingredients</Text>
+      <Pressable style={styles.backBtn} onPress={() => { setStep("select"); setRecipe(null); setError(""); setSaved(false); }}>
+        <Text style={styles.backBtnText}>← Make New Recipe</Text>
       </Pressable>
       {loading ? (
         <View style={styles.loadingCard}>
-          <Text style={styles.loadingEmoji}>🧬</Text>
-          <Text style={styles.loadingTitle}>Generating {pet.name}'s recipe...</Text>
-          <Text style={styles.loadingDesc}>Using AAFCO 2023, USDA FoodData and WSAVA guidelines</Text>
+          <ActivityIndicator color={BRAND} size="large" style={{ marginBottom: 20 }} />
+          <Text style={styles.loadingTitle}>
+            {[
+              `Looking up ${pet.name}'s nutrition needs...`,
+              "Calculating calories & portions...",
+              "Crafting your recipe with AI...",
+              "Almost ready...",
+            ][progressStep]}
+          </Text>
+          <View style={styles.progressDots}>
+            {[0, 1, 2, 3].map(i => (
+              <View key={i} style={[styles.progressDot, i <= progressStep && styles.progressDotActive]} />
+            ))}
+          </View>
+          <Text style={styles.loadingDesc}>Using AAFCO 2023 · USDA FoodData · WSAVA guidelines</Text>
         </View>
-      ) : (
-        <View style={styles.recipeResultCard}><Text style={styles.recipeResultText}>{recipe}</Text></View>
-      )}
+      ) : error ? (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorEmoji}>⚠️</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <Pressable style={styles.retryBtn} onPress={() => { setStep("select"); setError(""); }}>
+            <Text style={styles.retryBtnText}>Try Again</Text>
+          </Pressable>
+        </View>
+      ) : recipe ? (
+        <View style={{ gap: 12 }}>
+          {/* Header */}
+          <View style={styles.recipeHeader}>
+            <Text style={styles.recipeHeaderEmoji}>🍽️</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.recipeHeaderTitle}>{recipe.name}</Text>
+              <Text style={styles.recipeHeaderDesc}>{recipe.description}</Text>
+            </View>
+          </View>
+          {/* Serving */}
+          <View style={styles.recipeSection}>
+            <Text style={styles.recipeSectionLabel}>📋 Serving Info</Text>
+            <Text style={styles.recipeSectionText}>{recipe.servingInfo}</Text>
+          </View>
+          {/* Ingredients */}
+          <View style={styles.recipeSection}>
+            <Text style={styles.recipeSectionLabel}>🥗 Ingredients</Text>
+            {(recipe.ingredients || []).map((item: string, i: number) => (
+              <Text key={i} style={styles.recipeListItem}>• {item}</Text>
+            ))}
+          </View>
+          {/* Instructions */}
+          <View style={styles.recipeSection}>
+            <Text style={styles.recipeSectionLabel}>👨‍🍳 Preparation</Text>
+            {(recipe.instructions || []).map((step: string, i: number) => (
+              <Text key={i} style={styles.recipeListItem}>{i + 1}. {step}</Text>
+            ))}
+          </View>
+          {/* Nutrition */}
+          <View style={styles.recipeSection}>
+            <Text style={styles.recipeSectionLabel}>📊 Nutrition Breakdown</Text>
+            <Text style={styles.recipeSectionText}>{recipe.nutritionBreakdown}</Text>
+          </View>
+          {/* 2-Week Shopping List */}
+          <View style={styles.recipeSection}>
+            <Text style={styles.recipeSectionLabel}>🛒 2-Week Shopping List</Text>
+            <Text style={styles.recipeSectionText}>Multiply each ingredient × 14 days:</Text>
+            {(recipe.shoppingList14Days || []).map((item: string, i: number) => (
+              <Text key={i} style={styles.recipeListItem}>• {item}</Text>
+            ))}
+          </View>
+          {/* Supplements */}
+          <View style={styles.recipeSection}>
+            <Text style={styles.recipeSectionLabel}>💊 Required Supplements</Text>
+            {(recipe.supplements || []).map((item: string, i: number) => (
+              <Text key={i} style={styles.recipeListItem}>• {item}</Text>
+            ))}
+          </View>
+          {/* Shop Supplements on Amazon */}
+          <View style={styles.recipeSection}>
+            <Text style={styles.recipeSectionLabel}>🛒 Shop Supplements on Amazon</Text>
+            <Text style={[styles.recipeSectionText, { marginBottom: 10 }]}>
+              These supplements are required for every homemade diet. Tap to shop:
+            </Text>
+            {[
+              { label: "Fish Oil for Dogs", url: "https://www.amazon.com/s?k=fish+oil+for+dogs&tag=mypetdex20-20" },
+              { label: "Calcium Carbonate Powder", url: "https://www.amazon.com/s?k=calcium+carbonate+powder+supplement&tag=mypetdex20-20" },
+              { label: "Glucosamine 500mg for Dogs", url: "https://www.amazon.com/s?k=glucosamine+500mg+for+dogs&tag=mypetdex20-20" },
+              { label: "Vitamin E 400 IU", url: "https://www.amazon.com/s?k=vitamin+e+400+iu&tag=mypetdex20-20" },
+              { label: "Balance IT Canine Multivitamin", url: "https://www.amazon.com/s?k=balance+it+canine+supplement&tag=mypetdex20-20" },
+            ].map((item, i) => (
+              <Pressable
+                key={i}
+                style={styles.amazonBtn}
+                onPress={() => Linking.openURL(item.url)}
+              >
+                <Text style={styles.amazonBtnText}>🛒 {item.label}</Text>
+              </Pressable>
+            ))}
+            <Text style={styles.amazonDisclaimer}>
+              As an Amazon Associate, MyPetDex earns from qualifying purchases.
+            </Text>
+          </View>
+          {/* Multivitamin */}
+          <View style={styles.recipeSection}>
+            <Text style={styles.recipeSectionLabel}>🌿 Multivitamin</Text>
+            <Text style={styles.recipeSectionText}>{recipe.multivitamin}</Text>
+          </View>
+          {/* Breed note */}
+          {recipe.breedNote ? (
+            <View style={styles.recipeSection}>
+              <Text style={styles.recipeSectionLabel}>🐕 Breed Note</Text>
+              <Text style={styles.recipeSectionText}>{recipe.breedNote}</Text>
+            </View>
+          ) : null}
+          {/* Disclaimer */}
+          <View style={styles.recipeDisclaimer}>
+            <Text style={styles.recipeDisclaimerText}>
+              ⚠️ Some human foods can be harmful to pets. Always check with your veterinarian before introducing new ingredients to your pet's diet.
+            </Text>
+          </View>
+          {/* Warning */}
+          <View style={styles.recipeWarning}>
+            <Text style={styles.recipeWarningText}>{recipe.warning}</Text>
+          </View>
+          {/* Auto-saved indicator */}
+          {saved && (
+            <View style={styles.savedBadge}>
+              <Text style={styles.savedBadgeText}>✅ Recipe saved to your profile</Text>
+            </View>
+          )}
+          {/* Share */}
+          <Pressable style={styles.shareBtn} onPress={shareRecipe}>
+            <Text style={styles.shareBtnText}>📤 Share Recipe</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 
   return (
     <View style={styles.tabContent}>
+      {savedRecipes.length > 0 && (
+        <View style={styles.savedSection}>
+          <Text style={styles.savedSectionTitle}>💾 Saved Recipes ({savedRecipes.length}/3)</Text>
+          {savedRecipes.map((r) => (
+            <View key={r.docId} style={styles.savedRecipeRow}>
+              <Pressable style={{ flex: 1 }} onPress={() => { setRecipe(r.recipe); setStep("result"); setSaved(true); }}>
+                <Text style={styles.savedRecipeName}>{r.recipeName}</Text>
+                <Text style={styles.savedRecipeMeta}>{r.petName} · {r.recipe?.servingInfo?.split(" in ")[0]}</Text>
+              </Pressable>
+              <Pressable onPress={() => deleteDoc(doc(db, "savedRecipes", r.docId))}>
+                <Text style={styles.savedRecipeDelete}>🗑️</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
       <View style={styles.recipeIntro}>
         <Text style={styles.recipeIntroTitle}>Build {pet.name}'s Recipe</Text>
-        <Text style={styles.recipeIntroDesc}>Select ingredients you have at home. We'll generate a personalized recipe based on {pet.name}'s breed, age, weight and {der} kcal/day need.</Text>
+        <Text style={styles.recipeIntroDesc}>
+          Select ingredients you have at home. We'll generate a personalized recipe based on {pet.name}'s breed, age, weight and {der} kcal/day calorie need.
+        </Text>
       </View>
       {Object.entries(INGREDIENTS).map(([category, items]) => (
         <View key={category} style={styles.ingredientGroup}>
@@ -852,11 +1814,11 @@ function RecipesTab({ pet, canUseAI }: { pet: any; canUseAI: boolean }) {
         </View>
       ))}
       <View style={styles.disclaimerCard}>
-        <Text style={styles.disclaimerTitle}>Important Disclaimer</Text>
-        <Text style={styles.disclaimerText}>Homemade diets may lack essential nutrients. Always consult your veterinarian before switching to homemade food.</Text>
+        <Text style={styles.disclaimerTitle}>⚠️ Important</Text>
+        <Text style={styles.disclaimerText}>Homemade diets may lack essential nutrients. Always consult your veterinarian before switching from commercial food.</Text>
       </View>
       <Pressable style={[styles.generateBtn, allSelected.length < 2 && styles.generateBtnDisabled]} onPress={generateRecipe} disabled={allSelected.length < 2}>
-        <Text style={styles.generateBtnText}>{allSelected.length < 2 ? "Select at least 2 ingredients" : `Generate ${pet.name}'s Recipe`}</Text>
+        <Text style={styles.generateBtnText}>{allSelected.length < 2 ? "Select at least 2 ingredients" : `🍽️ Generate ${pet.name}'s Recipe`}</Text>
       </Pressable>
     </View>
   );
@@ -877,7 +1839,7 @@ const styles = StyleSheet.create({
   tabBar: { flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#f0f0f0" },
   tab: { flex: 1, paddingVertical: 12, alignItems: "center" },
   tabActive: { borderBottomWidth: 2, borderBottomColor: BRAND },
-  tabText: { fontSize: 13, color: "#888", fontWeight: "500" },
+  tabText: { fontSize: 11, color: "#888", fontWeight: "500" },
   tabTextActive: { color: BRAND, fontWeight: "600" },
   content: { flex: 1 },
   contentPadding: { padding: 16, gap: 12, paddingBottom: 40 },
@@ -942,8 +1904,37 @@ const styles = StyleSheet.create({
   loadingEmoji: { fontSize: 48 },
   loadingTitle: { fontSize: 17, fontWeight: "600", color: "#1a1a1a", textAlign: "center" },
   loadingDesc: { fontSize: 13, color: "#888", textAlign: "center" },
-  recipeResultCard: { backgroundColor: "#fff", borderRadius: 12, padding: 16 },
-  recipeResultText: { fontSize: 14, color: "#1a1a1a", lineHeight: 22 },
+  progressDots: { flexDirection: "row", gap: 8, marginTop: 16, marginBottom: 10 },
+  progressDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#E2E8F0" },
+  progressDotActive: { backgroundColor: BRAND },
+  // Recipe result — document style
+  recipeHeader: { backgroundColor: "#fff", borderRadius: 14, padding: 16, flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  recipeHeaderEmoji: { fontSize: 36 },
+  recipeHeaderTitle: { fontSize: 17, fontWeight: "800", color: "#1a1a1a" },
+  recipeHeaderDesc: { fontSize: 13, color: "#666", marginTop: 4, lineHeight: 18 },
+  recipeSection: { backgroundColor: "#fff", borderRadius: 14, padding: 16, gap: 8 },
+  recipeSectionLabel: { fontSize: 13, fontWeight: "700", color: BRAND, textTransform: "uppercase", letterSpacing: 0.5 },
+  recipeSectionText: { fontSize: 14, color: "#333", lineHeight: 20 },
+  recipeListItem: { fontSize: 14, color: "#333", lineHeight: 22 },
+  savedSection: { backgroundColor: "#fff", borderRadius: 14, padding: 16, gap: 10, marginBottom: 12 },
+  savedSectionTitle: { fontSize: 13, fontWeight: "700", color: "#333" },
+  savedRecipeRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderTopWidth: 1, borderTopColor: "#f0f0f0" },
+  savedRecipeName: { fontSize: 14, fontWeight: "600", color: "#1a1a1a" },
+  savedRecipeMeta: { fontSize: 12, color: "#888", marginTop: 2 },
+  savedRecipeDelete: { fontSize: 20, paddingHorizontal: 8 },
+  recipeDisclaimer: { backgroundColor: "#FFFBEB", borderRadius: 10, padding: 12, borderLeftWidth: 3, borderLeftColor: "#F59E0B" },
+  recipeDisclaimerText: { fontSize: 12, color: "#92400E", lineHeight: 18 },
+  recipeWarning: { backgroundColor: "#FFFBEB", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#FDE68A" },
+  recipeWarningText: { fontSize: 12, color: "#92400E", lineHeight: 18 },
+  savedBadge: { backgroundColor: "#F0FDF4", borderRadius: 10, padding: 14, alignItems: "center" },
+  savedBadgeText: { color: "#166534", fontWeight: "700" },
+  shareBtn: { backgroundColor: BRAND, borderRadius: 14, padding: 16, alignItems: "center", marginBottom: 8 },
+  shareBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  errorCard: { backgroundColor: "#fff", borderRadius: 14, padding: 24, alignItems: "center", gap: 12 },
+  errorEmoji: { fontSize: 36 },
+  errorText: { fontSize: 14, color: "#666", textAlign: "center", lineHeight: 20 },
+  retryBtn: { backgroundColor: BRAND, borderRadius: 10, paddingHorizontal: 24, paddingVertical: 12 },
+  retryBtnText: { color: "#fff", fontWeight: "700" },
   addBtn: { backgroundColor: BRAND, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   addBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   modalContainer: { flex: 1, backgroundColor: "#f8f8f8" },
@@ -963,6 +1954,8 @@ const styles = StyleSheet.create({
   saveBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 2 },
   qrBtn: { backgroundColor: BRAND + "20", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: BRAND + "44" },
+  resumeBtn: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1.5, borderColor: BRAND, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, marginTop: 10, justifyContent: "center" },
+  resumeBtnText: { color: BRAND, fontWeight: "700", fontSize: 14 },
   qrBtnText: { fontSize: 12, fontWeight: "700", color: BRAND },
   qrModalContainer: { flex: 1, backgroundColor: "#f8f8f8" },
   qrModalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, paddingTop: 24, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#f0f0f0" },
@@ -1025,4 +2018,52 @@ const styles = StyleSheet.create({
   pickerItemText: { fontSize: 15, color: "#1a1a1a" },
   pickerItemTextActive: { color: BRAND, fontWeight: "600" },
   pickerCheck: { fontSize: 16, color: BRAND, fontWeight: "700" },
+  amazonBtn: {
+    backgroundColor: "#4486F4",
+    borderRadius: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  amazonBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  amazonDisclaimer: {
+    fontSize: 11,
+    color: "#94a3b8",
+    marginTop: 6,
+    fontStyle: "italic",
+  },
+  medCard: { backgroundColor: "#fff", borderRadius: 12, flexDirection: "row", overflow: "hidden", alignItems: "stretch" },
+  medBar: { width: 4 },
+  medContent: { flex: 1, padding: 14, gap: 3 },
+  medName: { fontSize: 15, fontWeight: "700", color: "#1a1a1a" },
+  medDosage: { fontSize: 13, color: "#555" },
+  medFreq: { fontSize: 13, color: "#888" },
+  medNote: { fontSize: 12, color: "#aaa", fontStyle: "italic", marginTop: 2 },
+  medRefill: { fontSize: 12, color: "#888" },
+  medRefillWarn: { fontSize: 12, color: "#F97316", fontWeight: "600" },
+  medTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  medActions: { flexDirection: "column", justifyContent: "center", gap: 4, paddingRight: 12, paddingVertical: 12 },
+  medActionBar: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#F0F0F0", alignItems: "center" },
+  medActionBtn: { flex: 1, paddingVertical: 10, alignItems: "center" },
+  medActionDivider: { width: 1, height: 20, backgroundColor: "#F0F0F0" },
+  medActionEdit: { fontSize: 13, fontWeight: "600", color: "#4486F4" },
+  medActionToggle: { fontSize: 13, fontWeight: "600", color: "#0F172A" },
+  medActionDelete: { fontSize: 13, fontWeight: "600", color: "#E53935" },
+  vetCard: { backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 4 },
+  vetCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  vetCardTitle: { fontSize: 14, fontWeight: "700", color: "#1a1a1a" },
+  vetCardEdit: { fontSize: 14, color: "#4486F4", fontWeight: "600" },
+  vetCardBody: { gap: 5 },
+  vetName: { fontSize: 15, fontWeight: "700", color: "#1a1a1a" },
+  vetDetailRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  vetDetail: { fontSize: 13, color: "#555", flex: 1 },
+  vetPhone: { color: "#4486F4", fontWeight: "600" },
+  vetNotes: { fontSize: 12, color: "#888", fontStyle: "italic", marginTop: 4 },
+  vetEmptyText: { fontSize: 13, color: "#aaa", textAlign: "center", paddingVertical: 8 },
+  vetAddBtn: { backgroundColor: "#4486F4", borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8 },
+  vetAddBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 });

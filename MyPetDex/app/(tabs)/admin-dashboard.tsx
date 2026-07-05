@@ -84,6 +84,7 @@ export default function AdminDashboard() {
       {[
         { icon: "people-outline", label: "Users & Accounts", sub: "Enable or disable provider/shelter accounts", tab: "admin-users" },
         { icon: "shield-checkmark-outline", label: "Pending Reviews", sub: "Approve or reject service provider reviews", tab: "admin-reviews" },
+        { icon: "chatbubble-ellipses-outline", label: "User Feedback", sub: "Read messages sent from the app", tab: "admin-feedback" },
         { icon: "pricetag-outline", label: "Product Links", sub: "Add Amazon & Chewy product links", tab: "admin-products" },
       ].map(item => (
         <TouchableOpacity

@@ -3,7 +3,8 @@ import {
   TextInput, ActivityIndicator, Image, Linking, Modal, FlatList,
 } from "react-native";
 import { useState, useRef, useEffect } from "react";
-import { useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
@@ -14,12 +15,12 @@ const BLUE = "#4486F4";
 type ExploreTab = "services" | "adopt";
 
 const SERVICE_TYPES = [
-  { label: "Grooming",    emoji: "✂️",  color: "#8b5cf6", desc: "Baths, cuts & styling" },
-  { label: "Dog Walking", emoji: "🐕",  color: "#10b981", desc: "Daily walks & exercise" },
-  { label: "Veterinary",  emoji: "🏥",  color: "#ef4444", desc: "Clinics & animal hospitals" },
-  { label: "Boarding",    emoji: "🏨",  color: "#f59e0b", desc: "Overnight & pet hotels" },
-  { label: "Training",    emoji: "🎓",  color: "#3b82f6", desc: "Obedience & behaviour" },
-  { label: "Daycare",     emoji: "🌞",  color: "#ec4899", desc: "Full & half-day care" },
+  { label: "Grooming",    icon: "cut-outline",        color: "#8b5cf6", desc: "Baths, cuts & styling" },
+  { label: "Dog Walking", icon: "footsteps-outline",  color: "#10b981", desc: "Daily walks & exercise" },
+  { label: "Veterinary",  icon: "medkit-outline",     color: "#ef4444", desc: "Clinics & animal hospitals" },
+  { label: "Boarding",    icon: "home-outline",       color: "#f59e0b", desc: "Overnight & pet hotels" },
+  { label: "Training",    icon: "school-outline",     color: "#3b82f6", desc: "Obedience & behaviour" },
+  { label: "Daycare",     icon: "people-outline",     color: "#ec4899", desc: "Full & half-day care" },
 ];
 
 const US_STATES = [
@@ -145,43 +146,81 @@ function ProviderCard({
   p: any;
   badge: "mypetdex" | "user";
 }) {
+  const router = useRouter();
+  const svcType = SERVICE_TYPES.find((s) => s.label === p.serviceType || s.label === p.service);
+
+  function openDetail() {
+    router.push({
+      pathname: "/provider/[id]",
+      params: {
+        id: p.id,
+        name: p.businessName || p.name || "",
+        serviceType: p.serviceType || p.service || "",
+        city: p.city || "",
+        state: p.state || "",
+        zip: p.zip || extractZipFromAddress(p.address) || "",
+        phone: p.phone || "",
+        website: p.website || "",
+        address: p.address || "",
+        bio: p.bio || "",
+        priceRange: p.priceRange || "",
+        role: p.role || "",
+        color: svcType?.color || BRAND,
+      },
+    });
+  }
+
   return (
-    <Pressable
-      style={styles.providerCard}
-      onPress={() => p.website && Linking.openURL(p.website.startsWith("http") ? p.website : `https://${p.website}`)}
-    >
+    <Pressable style={styles.providerCard} onPress={openDetail}>
       <View style={styles.providerHeader}>
-        <View style={styles.providerIcon}>
-          <Text style={{ fontSize: 22 }}>
-            {SERVICE_TYPES.find((s) => s.label === p.serviceType || s.label === p.service)?.emoji ||
-              (p.role === "shelter" ? "🏠" : "🐾")}
-          </Text>
+        <View style={[styles.providerIcon, { backgroundColor: (svcType?.color || "#888") + "20" }]}>
+          <Ionicons
+            name={(svcType?.icon as any) || (p.role === "shelter" ? "home-outline" : "paw-outline")}
+            size={22}
+            color={svcType?.color || "#888"}
+          />
         </View>
         <View style={{ flex: 1 }}>
           <View style={styles.providerNameRow}>
             <Text style={styles.providerName}>{p.businessName || p.name}</Text>
             {badge === "mypetdex" ? (
               <View style={styles.mypetdexVerifiedBadge}>
-                <Text style={styles.mypetdexVerifiedText}>🏅 MyPetDex Verified</Text>
+                <Text style={styles.mypetdexVerifiedText}>MyPetDex Verified</Text>
               </View>
             ) : null}
           </View>
           <Text style={styles.providerType}>{p.serviceType || p.service}</Text>
-          <Text style={styles.providerLocation}>
-            📍 {[p.city, p.state, p.zip || extractZipFromAddress(p.address)].filter(Boolean).join(", ")}
-          </Text>
+          <View style={styles.providerLocationRow}>
+            <Ionicons name="location-outline" size={12} color="#888" />
+            <Text style={styles.providerLocation}>
+              {[p.city, p.state, p.zip || extractZipFromAddress(p.address)].filter(Boolean).join(", ")}
+            </Text>
+          </View>
         </View>
         {p.rating != null && p.rating !== "" ? (
           <View style={styles.ratingBadge}>
-            <Text style={styles.ratingText}>⭐ {p.rating}</Text>
+            <Ionicons name="star" size={11} color="#92400E" />
+            <Text style={styles.ratingText}>{p.rating}</Text>
           </View>
         ) : null}
       </View>
       {p.phone ? (
-        <Pressable onPress={() => Linking.openURL(`tel:${p.phone.replace(/\D/g, "")}`)}>
-          <Text style={[styles.providerPhone, { color: "#4486F4" }]}>📞 {p.phone}</Text>
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation?.();
+            Linking.openURL(`tel:${p.phone.replace(/\D/g, "")}`);
+          }}
+        >
+          <View style={styles.providerPhoneRow}>
+            <Ionicons name="call-outline" size={13} color="#4486F4" />
+            <Text style={[styles.providerPhone, { color: "#4486F4" }]}>{p.phone}</Text>
+          </View>
         </Pressable>
       ) : null}
+      <View style={styles.viewDetailRow}>
+        <Text style={styles.viewDetailText}>View profile & reviews</Text>
+        <Ionicons name="chevron-forward" size={13} color={BRAND} />
+      </View>
     </Pressable>
   );
 }
@@ -431,16 +470,18 @@ export default function ExploreScreen() {
           style={[styles.toggleBtn, activeTab === "services" && styles.toggleBtnActive]}
           onPress={() => setActiveTab("services")}
         >
+          <Ionicons name="search-outline" size={14} color={activeTab === "services" ? "#fff" : "#666"} />
           <Text style={[styles.toggleText, activeTab === "services" && styles.toggleTextActive]}>
-            🔍 Services
+            Services
           </Text>
         </Pressable>
         <Pressable
           style={[styles.toggleBtn, activeTab === "adopt" && styles.toggleBtnActiveGreen]}
           onPress={() => setActiveTab("adopt")}
         >
+          <Ionicons name="heart-outline" size={14} color={activeTab === "adopt" ? "#fff" : "#666"} />
           <Text style={[styles.toggleText, activeTab === "adopt" && styles.toggleTextActive]}>
-            🏠 Adopt
+            Adopt
           </Text>
         </Pressable>
       </View>
@@ -487,7 +528,7 @@ export default function ExploreScreen() {
                   if (stateFilter) searchProviders(next);
                 }}
               >
-                <Text style={styles.serviceEmoji}>{s.emoji}</Text>
+                <Ionicons name={s.icon as any} size={24} color={s.color} style={{ marginBottom: 4 }} />
                 <Text style={styles.serviceLabel}>{s.label}</Text>
                 <Text style={styles.serviceDesc}>{s.desc}</Text>
               </Pressable>
@@ -709,6 +750,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
   },
   toggleBtnActive: { backgroundColor: BLUE },
   toggleBtnActiveGreen: { backgroundColor: BRAND },
@@ -772,9 +816,13 @@ const styles = StyleSheet.create({
   mypetdexVerifiedBadge: { backgroundColor: "#DCFCE7", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   mypetdexVerifiedText: { fontSize: 11, fontWeight: "700", color: "#166534" },
   providerType: { fontSize: 12, color: BRAND, fontWeight: "600", marginTop: 2 },
-  providerLocation: { fontSize: 12, color: "#888", marginTop: 2 },
-  providerPhone: { fontSize: 13, color: "#555", marginTop: 8 },
-  ratingBadge: { backgroundColor: "#FEF3C7", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  providerLocationRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
+  providerLocation: { fontSize: 12, color: "#888" },
+  providerPhoneRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 },
+  providerPhone: { fontSize: 13, color: "#555" },
+  viewDetailRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 3, marginTop: 10, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: "#eee" },
+  viewDetailText: { fontSize: 12, color: BRAND, fontWeight: "600" },
+  ratingBadge: { backgroundColor: "#FEF3C7", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 },
   ratingText: { fontSize: 12, fontWeight: "700", color: "#92400E" },
   comingSoonBox: {
     backgroundColor: "#fff",

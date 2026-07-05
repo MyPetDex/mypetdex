@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, ScrollView, TextInput, Pressable,
   KeyboardAvoidingView, Platform, ActivityIndicator,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { usePlan } from "@/hooks/usePlan";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -139,7 +140,7 @@ export default function AIVetScreen() {
   if (!planLoading && !aiAssistant) {
     return (
       <View style={styles.upgradeWall}>
-        <Text style={styles.upgradeEmoji}>🤖</Text>
+        <Ionicons name="sparkles-outline" size={64} color={BRAND} style={{ marginBottom: 16 }} />
         <Text style={styles.upgradeTitle}>MyPetDex Assistant</Text>
         <Text style={styles.upgradeDesc}>
           Get instant answers about your pet's health, nutrition, and behavior from MyPetDex Assistant.
@@ -238,13 +239,21 @@ export default function AIVetScreen() {
       <ScrollView ref={scrollRef} style={styles.messages} contentContainerStyle={styles.messagesContent}>
         {messages.map((msg, i) => (
           <View key={i} style={[styles.bubble, msg.role === "user" ? styles.userBubble : styles.aiBubble]}>
-            {msg.role === "assistant" && <Text style={styles.aiLabel}>🐾 MyPetDex Assistant</Text>}
+            {msg.role === "assistant" && (
+              <View style={styles.aiLabelRow}>
+                <Ionicons name="paw-outline" size={11} color={BRAND} />
+                <Text style={styles.aiLabel}>MyPetDex Assistant</Text>
+              </View>
+            )}
             <Text style={[styles.bubbleText, msg.role === "user" && styles.userText]}>{msg.text}</Text>
           </View>
         ))}
         {loading && (
           <View style={styles.aiBubble}>
-            <Text style={styles.aiLabel}>🐾 MyPetDex Assistant</Text>
+            <View style={styles.aiLabelRow}>
+              <Ionicons name="paw-outline" size={11} color={BRAND} />
+              <Text style={styles.aiLabel}>MyPetDex Assistant</Text>
+            </View>
             <Text style={styles.bubbleText}>Thinking...</Text>
           </View>
         )}
@@ -254,7 +263,7 @@ export default function AIVetScreen() {
         <View style={styles.pickerSection}>
           {pets.map((pet) => (
             <Pressable key={pet.id} style={styles.petPickerBtn} onPress={() => selectPet(pet)}>
-              <Text style={styles.petPickerEmoji}>{pet.species === "cat" ? "🐱" : "🐶"}</Text>
+              <Ionicons name="paw-outline" size={28} color={BRAND} />
               <Text style={styles.petPickerName}>{pet.name || "Pet"}</Text>
               <Text style={styles.petPickerMeta}>{petBreedLabel(pet)}</Text>
             </Pressable>
@@ -285,7 +294,7 @@ export default function AIVetScreen() {
             multiline
           />
           <Pressable style={[styles.sendBtn, !input.trim() && styles.sendBtnDisabled]} onPress={() => sendMessage(input)}>
-            <Text style={styles.sendBtnText}>➤</Text>
+            <Ionicons name="send" size={18} color="#fff" />
           </Pressable>
         </View>
       ) : null}
@@ -321,7 +330,8 @@ const styles = StyleSheet.create({
   bubble: { maxWidth: "85%", borderRadius: 16, padding: 14 },
   aiBubble: { backgroundColor: "#fff", alignSelf: "flex-start", borderWidth: 1, borderColor: "#eee" },
   userBubble: { backgroundColor: BRAND, alignSelf: "flex-end" },
-  aiLabel: { fontSize: 11, fontWeight: "600", color: BRAND, marginBottom: 4 },
+  aiLabelRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 },
+  aiLabel: { fontSize: 11, fontWeight: "600", color: BRAND },
   bubbleText: { fontSize: 15, color: "#1a1a1a", lineHeight: 22 },
   userText: { color: "#fff" },
   pickerSection: { flexDirection: "row", flexWrap: "wrap", gap: 10, paddingHorizontal: 16, paddingBottom: 12 },

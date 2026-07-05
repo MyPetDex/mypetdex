@@ -2,6 +2,8 @@ import {
   View, Text, StyleSheet, ScrollView, Pressable,
   ActivityIndicator, Modal, Image,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,7 +22,8 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { maxPets, plan } = usePlan();
 
-  const planLabel = plan === "plus" ? "⭐ Plus Plan" : plan === "family" ? "👑 Family Plan" : null;
+  const planLabel = plan === "plus" ? "Plus Plan" : plan === "family" ? "Family Plan" : null;
+  const planIcon: any = plan === "plus" ? "star" : plan === "family" ? "diamond-outline" : null;
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const router = useRouter();
@@ -55,6 +58,8 @@ export default function HomeScreen() {
       (snap) => {
         const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setPets(docs);
+        // Prefetch all pet photos immediately so they're cached before user navigates
+        docs.forEach((d: any) => { if (d.photoURL) ExpoImage.prefetch(d.photoURL); });
         if (docs.length > 0) {
           setSelectedPet(prev =>
             prev ? (docs.find(d => d.id === prev.id) ?? docs[0]) : docs[0]
@@ -101,11 +106,12 @@ export default function HomeScreen() {
           </View>
           {planLabel ? (
             <View style={styles.planBadge}>
+              <Ionicons name={planIcon} size={12} color="#fff" />
               <Text style={styles.planBadgeText}>{planLabel}</Text>
             </View>
           ) : (
             <View style={styles.headerPawBadge}>
-              <Text style={{ fontSize: 22 }}>🐾</Text>
+              <Ionicons name="paw-outline" size={22} color="rgba(255,255,255,0.8)" />
             </View>
           )}
         </View>
@@ -129,11 +135,21 @@ export default function HomeScreen() {
         <>
           {pets.length > 1 && (
             <Pressable style={styles.pickerBtn} onPress={() => setShowPicker(true)}>
-              <Text style={styles.pickerEmoji}>
-                {selectedPet?.species === "cat" ? "🐱" : "🐶"}
-              </Text>
+              <View style={styles.pickerAvatar}>
+                {selectedPet?.photoURL ? (
+                  <ExpoImage
+                    source={{ uri: selectedPet.photoURL }}
+                    style={styles.pickerAvatarImage}
+                    cachePolicy="memory-disk"
+                    contentFit="cover"
+                    transition={0}
+                  />
+                ) : (
+                  <Ionicons name="paw-outline" size={12} color="#fff" />
+                )}
+              </View>
               <Text style={styles.pickerName}>{selectedPet?.name}</Text>
-              <Text style={styles.pickerChevron}>▾</Text>
+              <Ionicons name="chevron-down" size={14} color="rgba(255,255,255,0.8)" />
             </Pressable>
           )}
 
@@ -145,11 +161,15 @@ export default function HomeScreen() {
               <View style={styles.petDashTop}>
                 <View style={styles.petDashAvatar}>
                   {selectedPet.photoURL ? (
-                    <Image source={{ uri: selectedPet.photoURL }} style={styles.petDashAvatarImage} />
+                    <ExpoImage
+                      source={{ uri: selectedPet.photoURL }}
+                      style={styles.petDashAvatarImage}
+                      cachePolicy="memory-disk"
+                      contentFit="cover"
+                      transition={0}
+                    />
                   ) : (
-                    <Text style={styles.petDashEmoji}>
-                      {selectedPet.species === "cat" ? "🐱" : "🐶"}
-                    </Text>
+                    <Ionicons name="paw-outline" size={38} color={BRAND} />
                   )}
                 </View>
                 <View style={styles.petDashInfo}>
@@ -160,13 +180,15 @@ export default function HomeScreen() {
                   <View style={styles.petDashMeta}>
                     {selectedPet.age ? (
                       <View style={styles.metaChip}>
-                        <Text style={styles.metaChipText}>🎂 {selectedPet.age}</Text>
+                        <Ionicons name="calendar-outline" size={12} color={BRAND} />
+                        <Text style={styles.metaChipText}>{selectedPet.age}</Text>
                       </View>
                     ) : null}
                     {selectedPet.weight ? (
                       <View style={styles.metaChip}>
+                        <Ionicons name="barbell-outline" size={12} color={BRAND} />
                         <Text style={styles.metaChipText}>
-                          ⚖️ {selectedPet.weight} {selectedPet.weightUnit || "lbs"}
+                          {selectedPet.weight} {selectedPet.weightUnit || "lbs"}
                         </Text>
                       </View>
                     ) : null}
@@ -176,19 +198,26 @@ export default function HomeScreen() {
 
               {selectedPet.nextVet ? (
                 <View style={styles.vetRow}>
-                  <Text style={styles.vetText}>🗓️ Next vet: {selectedPet.nextVet}</Text>
+                  <Ionicons name="calendar-outline" size={14} color="#B45309" />
+                  <Text style={styles.vetText}>Next vet: {selectedPet.nextVet}</Text>
                 </View>
               ) : null}
 
               <View style={styles.statsRow}>
                 <View style={styles.statBox}>
                   <Text style={styles.statValue}>{(selectedPet.vaccines || []).length}</Text>
-                  <Text style={styles.statLabel}>💉 Vaccines</Text>
+                  <View style={styles.statLabelRow}>
+                    <Ionicons name="medkit-outline" size={11} color={TEXT2} />
+                    <Text style={styles.statLabel}>Vaccines</Text>
+                  </View>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statBox}>
                   <Text style={styles.statValue}>{(selectedPet.reminders || []).length}</Text>
-                  <Text style={styles.statLabel}>⏰ Reminders</Text>
+                  <View style={styles.statLabelRow}>
+                    <Ionicons name="alarm-outline" size={11} color={TEXT2} />
+                    <Text style={styles.statLabel}>Reminders</Text>
+                  </View>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statBox}>
@@ -206,25 +235,25 @@ export default function HomeScreen() {
       <View style={styles.quickGrid}>
         <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/ai")}>
           <View style={[styles.quickIconBadge, { backgroundColor: "#EDE9FE" }]}>
-            <Text style={styles.quickEmoji}>🤖</Text>
+            <Ionicons name="sparkles-outline" size={24} color="#7C3AED" />
           </View>
-          <Text style={styles.quickLabel}>MyPetDex{"\n"}Assistant</Text>
+          <Text style={styles.quickLabel}>Pet Assistant</Text>
         </Pressable>
         <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/shopping")}>
           <View style={[styles.quickIconBadge, { backgroundColor: "#DCFCE7" }]}>
-            <Text style={styles.quickEmoji}>🛍️</Text>
+            <Ionicons name="cart-outline" size={24} color="#059669" />
           </View>
           <Text style={styles.quickLabel}>Pet Shop</Text>
         </Pressable>
         <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/explore?tab=services")}>
           <View style={[styles.quickIconBadge, { backgroundColor: "#FEF3C7" }]}>
-            <Text style={styles.quickEmoji}>📍</Text>
+            <Ionicons name="location-outline" size={24} color="#D97706" />
           </View>
           <Text style={styles.quickLabel}>Services</Text>
         </Pressable>
         <Pressable style={styles.quickCard} onPress={handleAddPet}>
           <View style={[styles.quickIconBadge, { backgroundColor: "#DBEAFE" }]}>
-            <Text style={styles.quickEmoji}>🐾</Text>
+            <Ionicons name="paw-outline" size={24} color="#4486F4" />
           </View>
           <Text style={styles.quickLabel}>Add Pet</Text>
         </Pressable>
@@ -234,7 +263,7 @@ export default function HomeScreen() {
       <Text style={styles.sectionTitle}>Discover</Text>
       <Pressable style={styles.discoverCard} onPress={() => router.push("/(tabs)/explore?tab=services")}>
         <View style={[styles.discoverIcon, { backgroundColor: "#EDE9FE" }]}>
-          <Text style={styles.discoverEmoji}>🔍</Text>
+          <Ionicons name="search-outline" size={24} color="#7C3AED" />
         </View>
         <View style={styles.discoverInfo}>
           <Text style={styles.discoverTitle}>Find Services Near You</Text>
@@ -248,7 +277,7 @@ export default function HomeScreen() {
         onPress={() => router.push("/(tabs)/explore?tab=adopt")}
       >
         <View style={[styles.discoverIcon, { backgroundColor: "#D1FAE5" }]}>
-          <Text style={styles.discoverEmoji}>🏠</Text>
+          <Ionicons name="home-outline" size={24} color="#059669" />
         </View>
         <View style={styles.discoverInfo}>
           <Text style={styles.discoverTitle}>Adopt a Pet</Text>
@@ -276,9 +305,7 @@ export default function HomeScreen() {
                 ]}
                 onPress={() => { setSelectedPet(pet); setShowPicker(false); }}
               >
-                <Text style={styles.modalPetEmoji}>
-                  {pet.species === "cat" ? "🐱" : "🐶"}
-                </Text>
+                <Ionicons name="paw-outline" size={30} color={BRAND} />
                 <View style={styles.modalPetInfo}>
                   <Text style={styles.modalPetName}>{pet.name}</Text>
                   <Text style={styles.modalPetBreed}>{pet.breed || pet.species}</Text>
@@ -303,11 +330,11 @@ const styles = StyleSheet.create({
   headerInner: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   greeting: { fontSize: 26, fontWeight: "800", color: "#fff", letterSpacing: -0.5 },
   sub: { fontSize: 14, color: "rgba(255,255,255,0.75)", marginTop: 3 },
-  planBadge: { backgroundColor: "rgba(255,255,255,0.22)", borderRadius: 20, paddingHorizontal: 13, paddingVertical: 6, borderWidth: 1, borderColor: "rgba(255,255,255,0.35)" },
+  planBadge: { backgroundColor: "rgba(255,255,255,0.22)", borderRadius: 20, paddingHorizontal: 13, paddingVertical: 6, borderWidth: 1, borderColor: "rgba(255,255,255,0.35)", flexDirection: "row", alignItems: "center", gap: 5 },
   planBadgeText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   headerPawBadge: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
   // ── Section titles ───────────────────────────────────────────────────
-  sectionTitle: { fontSize: 18, fontWeight: "700", color: TEXT, marginBottom: 12, marginTop: 24, letterSpacing: -0.3 },
+  sectionTitle: { fontSize: 11, fontWeight: "700", color: TEXT2, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8, marginTop: 20, paddingHorizontal: 4 },
   // ── Empty state ──────────────────────────────────────────────────────
   emptyCard: { backgroundColor: "#fff", borderRadius: 20, padding: 36, alignItems: "center", gap: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
   emptyEmoji: { fontSize: 52 },
@@ -316,10 +343,10 @@ const styles = StyleSheet.create({
   addBtn: { backgroundColor: BRAND, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 28, marginTop: 6 },
   addBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
   // ── Pet picker ───────────────────────────────────────────────────────
-  pickerBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10, borderWidth: 1.5, borderColor: BRAND + "55", alignSelf: "flex-start", gap: 8 },
-  pickerEmoji: { fontSize: 18 },
-  pickerName: { fontSize: 15, fontWeight: "700", color: TEXT },
-  pickerChevron: { fontSize: 13, color: BRAND, fontWeight: "700" },
+  pickerBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "#4486F4", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10, alignSelf: "flex-start", gap: 8 },
+  pickerAvatar: { width: 24, height: 24, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.25)", overflow: "hidden", alignItems: "center", justifyContent: "center" },
+  pickerAvatarImage: { width: 24, height: 24, borderRadius: 12 },
+  pickerName: { fontSize: 15, fontWeight: "700", color: "#fff" },
   // ── Pet dashboard card ───────────────────────────────────────────────
   petDashCard: { backgroundColor: "#fff", borderRadius: 20, overflow: "hidden", shadowColor: BRAND, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 16, elevation: 5 },
   petDashTop: { flexDirection: "row", alignItems: "center", padding: 20, gap: 16 },
@@ -330,12 +357,13 @@ const styles = StyleSheet.create({
   petDashName: { fontSize: 22, fontWeight: "800", color: TEXT, letterSpacing: -0.3 },
   petDashBreed: { fontSize: 13, color: TEXT2, marginTop: 2 },
   petDashMeta: { flexDirection: "row", gap: 6, marginTop: 10, flexWrap: "wrap" },
-  metaChip: { backgroundColor: "#F0F4FF", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  metaChip: { backgroundColor: "#F0F4FF", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, flexDirection: "row", alignItems: "center", gap: 4 },
   metaChipText: { fontSize: 12, color: BRAND, fontWeight: "600" },
-  vetRow: { backgroundColor: "#FFFBEB", paddingHorizontal: 20, paddingVertical: 11, borderTopWidth: 1, borderTopColor: "#FDE68A" },
+  vetRow: { backgroundColor: "#FFFBEB", paddingHorizontal: 20, paddingVertical: 11, borderTopWidth: 1, borderTopColor: "#FDE68A", flexDirection: "row", alignItems: "center", gap: 6 },
   vetText: { fontSize: 13, color: "#B45309", fontWeight: "600" },
   statsRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#F0F0F0" },
   statBox: { flex: 1, alignItems: "center", paddingVertical: 16, gap: 4 },
+  statLabelRow: { flexDirection: "row", alignItems: "center", gap: 3 },
   statDivider: { width: 1, backgroundColor: "#F0F0F0", marginVertical: 10 },
   statValue: { fontSize: 20, fontWeight: "800", color: BRAND },
   statLabel: { fontSize: 11, color: TEXT2, fontWeight: "500" },

@@ -9,6 +9,7 @@ const db = admin.firestore();
 
 const resendKey = defineSecret("RESEND_API_KEY");
 const anthropicKey = defineSecret("ANTHROPIC_API_KEY");
+const usdaKey = defineSecret("USDA_API_KEY");
 
 const FROM_EMAIL = "help@mypetdex.app";
 const FROM_NAME = "MyPetDex";
@@ -236,36 +237,366 @@ exports.aiProxy = onRequest(
 );
 
 // ─── Get Pet Recipe — generates healthy meal recipe for a pet ─────────────────
+
+const PROTEIN_KEYWORDS = ["chicken", "lamb", "beef", "turkey", "salmon", "tuna", "sardines", "eggs", "duck", "venison", "shrimp"];
+const CARB_KEYWORDS = ["rice", "quinoa", "oats", "sweet potato", "pumpkin", "barley", "lentils"];
+
+function wsavaCalories(weightLbs, activityLevel) {
+  const weightKg = weightLbs * 0.453592;
+  const rer = 70 * Math.pow(weightKg, 0.75);
+  const factors = { sedentary: 1.2, low: 1.4, moderate: 1.6, active: 1.8, "very active": 2.0, indoor: 1.2, high: 2.0 };
+  const factor = factors[activityLevel?.toLowerCase()] || 1.6;
+  return Math.round(rer * factor);
+}
+
+function getFallbackNutrition(ingredientName) {
+  const n = ingredientName.toLowerCase();
+  if (n.includes("fish oil")) return { kcalPer100g: 880, proteinPer100g: 0, fatPer100g: 100, carbsPer100g: 0, calciumMgPer100g: 0, phosphorusMgPer100g: 0 };
+  if (n.includes("lamb") || n.includes("beef") || n.includes("venison")) return { kcalPer100g: 200, proteinPer100g: 26, fatPer100g: 10, carbsPer100g: 0, calciumMgPer100g: 18, phosphorusMgPer100g: 210 };
+  if (n.includes("chicken") || n.includes("turkey")) return { kcalPer100g: 165, proteinPer100g: 31, fatPer100g: 3.6, carbsPer100g: 0, calciumMgPer100g: 15, phosphorusMgPer100g: 220 };
+  if (n.includes("fish") || n.includes("salmon") || n.includes("tuna") || n.includes("sardines") || n.includes("shrimp")) return { kcalPer100g: 140, proteinPer100g: 20, fatPer100g: 5, carbsPer100g: 0, calciumMgPer100g: 250, phosphorusMgPer100g: 200 };
+  if (n.includes("egg")) return { kcalPer100g: 155, proteinPer100g: 13, fatPer100g: 11, carbsPer100g: 1, calciumMgPer100g: 50, phosphorusMgPer100g: 170 };
+  if (n.includes("rice") || n.includes("quinoa")) return { kcalPer100g: 130, proteinPer100g: 3, fatPer100g: 1, carbsPer100g: 28, calciumMgPer100g: 17, phosphorusMgPer100g: 120 };
+  if (n.includes("sweet potato") || n.includes("potato")) return { kcalPer100g: 86, proteinPer100g: 1.6, fatPer100g: 0.1, carbsPer100g: 20, calciumMgPer100g: 30, phosphorusMgPer100g: 47 };
+  if (n.includes("oats")) return { kcalPer100g: 150, proteinPer100g: 5, fatPer100g: 3, carbsPer100g: 27, calciumMgPer100g: 52, phosphorusMgPer100g: 180 };
+  if (n.includes("carrot")) return { kcalPer100g: 30, proteinPer100g: 0.7, fatPer100g: 0.2, carbsPer100g: 7, calciumMgPer100g: 33, phosphorusMgPer100g: 35 };
+  if (n.includes("pea")) return { kcalPer100g: 80, proteinPer100g: 5, fatPer100g: 0.4, carbsPer100g: 14, calciumMgPer100g: 25, phosphorusMgPer100g: 99 };
+  if (n.includes("broccoli")) return { kcalPer100g: 35, proteinPer100g: 2.4, fatPer100g: 0.4, carbsPer100g: 7, calciumMgPer100g: 47, phosphorusMgPer100g: 66 };
+  return { kcalPer100g: 50, proteinPer100g: 2, fatPer100g: 0.5, carbsPer100g: 10, calciumMgPer100g: 20, phosphorusMgPer100g: 50 };
+}
+
+async function fetchNutrition(ingredientName, apiKey) {
+  const fallback = getFallbackNutrition(ingredientName);
+  try {
+    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(ingredientName)}&api_key=${apiKey}&dataType=SR%20Legacy,Foundation&pageSize=3`;
+    const res = await fetch(url);
+    if (!res.ok) return fallback;
+    const data = await res.json();
+    const food = data.foods?.[0];
+    if (!food?.foodNutrients) return fallback;
+
+    const getNutrient = (id) => {
+      const nutrient = food.foodNutrients.find((item) => item.nutrientId === id || item.nutrient?.id === id);
+      return nutrient?.value ?? nutrient?.amount ?? null;
+    };
+
+    const result = {
+      kcalPer100g: getNutrient(1008) ?? fallback.kcalPer100g,
+      proteinPer100g: getNutrient(1003) ?? fallback.proteinPer100g,
+      fatPer100g: getNutrient(1004) ?? fallback.fatPer100g,
+      carbsPer100g: getNutrient(1005) ?? fallback.carbsPer100g,
+      calciumMgPer100g: getNutrient(1087) ?? fallback.calciumMgPer100g ?? 20,
+      phosphorusMgPer100g: getNutrient(1091) ?? fallback.phosphorusMgPer100g ?? 150,
+    };
+
+    const isFat = ingredientName.toLowerCase().includes("oil") || ingredientName.toLowerCase().includes("fat");
+    const isProtein = PROTEIN_KEYWORDS.some((p) => ingredientName.toLowerCase().includes(p));
+    const maxKcal = isFat ? 9000 : isProtein ? 350 : 150;
+    if (result.kcalPer100g > maxKcal) return fallback;
+    if (!isFat && result.kcalPer100g < fallback.kcalPer100g * 0.60) return fallback;
+
+    return result;
+  } catch (err) {
+    console.error("fetchNutrition error for", ingredientName, err.message);
+    return fallback;
+  }
+}
+
+function categorizeIngredients(ingredients) {
+  const proteinIngredients = ingredients.filter((i) => PROTEIN_KEYWORDS.some((p) => i.toLowerCase().includes(p)));
+  const carbIngredients = ingredients.filter((i) => CARB_KEYWORDS.some((c) => i.toLowerCase().includes(c)));
+  const vegIngredients = ingredients.filter((i) => !proteinIngredients.includes(i) && !carbIngredients.includes(i));
+  return { proteinIngredients, carbIngredients, vegIngredients };
+}
+
+function calculateRecipeNutrition(dailyCalories, ingredients, nutritionData) {
+  const { proteinIngredients, carbIngredients, vegIngredients } = categorizeIngredients(ingredients || []);
+  const targetProteinKcal = dailyCalories * 0.50;
+  const targetCarbKcal = dailyCalories * 0.30;
+
+  let proteinBonus = 0;
+
+  for (let iter = 0; iter < 3; iter++) {
+    const calculatedIngredients = [];
+    let totalProteinG = 0;
+    let totalFatG = 0;
+    let totalCarbG = 0;
+    let totalKcal = 0;
+    let totalCalciumMg = 0;
+    let totalPhosphorusMg = 0;
+
+    const addGroup = (list, targetKcal) => {
+      const items = list.slice(0, 2);
+      if (!items.length) return;
+      const share = targetKcal / items.length;
+      items.forEach((ing, idx) => {
+        const n = nutritionData[ing];
+        let grams = Math.round((share / n.kcalPer100g) * 100);
+        if (list === proteinIngredients && idx === 0) grams += proteinBonus;
+        if (list === proteinIngredients) grams = Math.min(grams, 400);
+        if (list !== proteinIngredients) grams = Math.min(grams, 400);
+        const kcal = Math.round((grams * n.kcalPer100g) / 100);
+        totalProteinG += (grams * n.proteinPer100g) / 100;
+        totalFatG += (grams * n.fatPer100g) / 100;
+        totalCarbG += (grams * n.carbsPer100g) / 100;
+        totalCalciumMg += (grams * n.calciumMgPer100g) / 100;
+        totalPhosphorusMg += (grams * n.phosphorusMgPer100g) / 100;
+        totalKcal += kcal;
+        calculatedIngredients.push(`${grams}g ${ing} cooked (${kcal} kcal)`);
+      });
+    };
+
+    addGroup(proteinIngredients, targetProteinKcal);
+    addGroup(carbIngredients, targetCarbKcal);
+
+    const vegItems = vegIngredients.slice(0, 2);
+    vegItems.forEach((ing) => {
+      const n = nutritionData[ing];
+      const grams = 150;
+      const kcal = Math.round((grams * n.kcalPer100g) / 100);
+      totalProteinG += (grams * n.proteinPer100g) / 100;
+      totalFatG += (grams * n.fatPer100g) / 100;
+      totalCarbG += (grams * n.carbsPer100g) / 100;
+      totalCalciumMg += (grams * n.calciumMgPer100g) / 100;
+      totalPhosphorusMg += (grams * n.phosphorusMgPer100g) / 100;
+      totalKcal += kcal;
+      calculatedIngredients.push(`${grams}g ${ing} cooked (${kcal} kcal)`);
+    });
+
+    calculatedIngredients.push("3ml fish oil (26 kcal)");
+    totalFatG += 3;
+    totalKcal += 26;
+
+    if (totalKcal < dailyCalories - 50 && proteinIngredients.length > 0) {
+      const primaryIng = proteinIngredients[0];
+      const n = nutritionData[primaryIng];
+      const idx = calculatedIngredients.findIndex((line) => new RegExp(`^\\d+g ${primaryIng} cooked`).test(line));
+      if (idx >= 0) {
+        const oldMatch = calculatedIngredients[idx].match(/^(\d+)g/);
+        const oldGrams = oldMatch ? parseInt(oldMatch[1], 10) : 0;
+        const addGrams = Math.round(((dailyCalories - totalKcal) / n.kcalPer100g) * 100);
+        const newGrams = Math.min(400, oldGrams + addGrams);
+        const oldKcal = Math.round((oldGrams * n.kcalPer100g) / 100);
+        const newKcal = Math.round((newGrams * n.kcalPer100g) / 100);
+
+        totalProteinG += (newGrams - oldGrams) * n.proteinPer100g / 100;
+        totalFatG += (newGrams - oldGrams) * n.fatPer100g / 100;
+        totalCarbG += (newGrams - oldGrams) * n.carbsPer100g / 100;
+        totalCalciumMg += (newGrams - oldGrams) * n.calciumMgPer100g / 100;
+        totalPhosphorusMg += (newGrams - oldGrams) * n.phosphorusMgPer100g / 100;
+        totalKcal += newKcal - oldKcal;
+        calculatedIngredients[idx] = `${newGrams}g ${primaryIng} cooked (${newKcal} kcal)`;
+      }
+    }
+
+    if (totalKcal < dailyCalories - 50 && carbIngredients.length > 0) {
+      const carbIng = carbIngredients[0];
+      const cn = nutritionData[carbIng];
+      const carbIdx = calculatedIngredients.findIndex((line) => new RegExp(`^\\d+g ${carbIng} cooked`).test(line));
+      if (carbIdx >= 0) {
+        const oldMatch = calculatedIngredients[carbIdx].match(/^(\d+)g/);
+        const oldGrams = oldMatch ? parseInt(oldMatch[1], 10) : 0;
+        const addGrams = Math.round(((dailyCalories - totalKcal) / cn.kcalPer100g) * 100);
+        const newGrams = Math.min(400, oldGrams + addGrams);
+        const oldKcal = Math.round((oldGrams * cn.kcalPer100g) / 100);
+        const newKcal = Math.round((newGrams * cn.kcalPer100g) / 100);
+
+        totalCarbG += (newGrams - oldGrams) * cn.carbsPer100g / 100;
+        totalCalciumMg += (newGrams - oldGrams) * cn.calciumMgPer100g / 100;
+        totalPhosphorusMg += (newGrams - oldGrams) * cn.phosphorusMgPer100g / 100;
+        totalKcal += newKcal - oldKcal;
+        calculatedIngredients[carbIdx] = `${newGrams}g ${carbIng} cooked (${newKcal} kcal)`;
+      }
+    }
+
+    if (proteinIngredients.length > 0 && carbIngredients.length > 0) {
+      const tempProteinPct = totalKcal > 0 ? Math.round((totalProteinG * 4) / totalKcal * 100) : 0;
+      if (tempProteinPct > 42) {
+        const protIng = proteinIngredients[0];
+        const carbIng = carbIngredients[0];
+        const pn = nutritionData[protIng];
+        const cn = nutritionData[carbIng];
+        const protIdx = calculatedIngredients.findIndex((l) => new RegExp(`^\\d+g ${protIng} cooked`).test(l));
+        const carbIdx = calculatedIngredients.findIndex((l) => new RegExp(`^\\d+g ${carbIng} cooked`).test(l));
+        if (protIdx >= 0 && carbIdx >= 0) {
+          const oldProtGrams = parseInt(calculatedIngredients[protIdx].match(/^(\d+)g/)[1], 10);
+          const newProtGrams = Math.max(100, oldProtGrams - 50);
+          const kCalShifted = Math.round((oldProtGrams - newProtGrams) * pn.kcalPer100g / 100);
+          const addCarbGrams = Math.round(kCalShifted / cn.kcalPer100g * 100);
+          const oldCarbGrams = parseInt(calculatedIngredients[carbIdx].match(/^(\d+)g/)[1], 10);
+          const newCarbGrams = Math.min(300, oldCarbGrams + addCarbGrams);
+
+          const newProtKcal = Math.round(newProtGrams * pn.kcalPer100g / 100);
+          const oldProtKcal = Math.round(oldProtGrams * pn.kcalPer100g / 100);
+          totalProteinG += (newProtGrams - oldProtGrams) * pn.proteinPer100g / 100;
+          totalFatG += (newProtGrams - oldProtGrams) * pn.fatPer100g / 100;
+          totalCalciumMg += (newProtGrams - oldProtGrams) * pn.calciumMgPer100g / 100;
+          totalPhosphorusMg += (newProtGrams - oldProtGrams) * pn.phosphorusMgPer100g / 100;
+          totalKcal += newProtKcal - oldProtKcal;
+          calculatedIngredients[protIdx] = `${newProtGrams}g ${protIng} cooked (${newProtKcal} kcal)`;
+
+          const newCarbKcal = Math.round(newCarbGrams * cn.kcalPer100g / 100);
+          const oldCarbKcal = Math.round(oldCarbGrams * cn.kcalPer100g / 100);
+          totalCarbG += (newCarbGrams - oldCarbGrams) * cn.carbsPer100g / 100;
+          totalCalciumMg += (newCarbGrams - oldCarbGrams) * cn.calciumMgPer100g / 100;
+          totalPhosphorusMg += (newCarbGrams - oldCarbGrams) * cn.phosphorusMgPer100g / 100;
+          totalKcal += newCarbKcal - oldCarbKcal;
+          calculatedIngredients[carbIdx] = `${newCarbGrams}g ${carbIng} cooked (${newCarbKcal} kcal)`;
+        }
+      }
+    }
+
+    const aafcoCalciumMg = (totalKcal / 1000) * 1250;
+    const calciumFromFoodMg = Math.round(totalCalciumMg);
+    const calciumSupplementNeededMg = Math.max(0, aafcoCalciumMg - calciumFromFoodMg);
+    const calciumCarbonateDoseMg = Math.round(calciumSupplementNeededMg / 0.40 / 100) * 100;
+    const caPRatio = totalPhosphorusMg > 0 ? (totalCalciumMg + calciumSupplementNeededMg) / totalPhosphorusMg : 0;
+
+    const proteinPct = totalKcal > 0 ? Math.round((totalProteinG * 4) / totalKcal * 100) : 0;
+    const fatPct = totalKcal > 0 ? Math.round((totalFatG * 9) / totalKcal * 100) : 0;
+    const carbPct = totalKcal > 0 ? Math.round((totalCarbG * 4) / totalKcal * 100) : 0;
+    const clampedCarbPct = Math.min(carbPct, Math.max(0, 100 - proteinPct - fatPct));
+    const aafcoPass = proteinPct >= 18 && fatPct >= 5.5;
+
+    if (aafcoPass || proteinIngredients.length === 0 || iter === 2) {
+      calculatedIngredients.push(`TOTAL: ${totalKcal} kcal`);
+      const shoppingList14 = calculatedIngredients
+        .filter((i) => !i.startsWith("TOTAL"))
+        .map((i) => {
+          const match = i.match(/^(\d+)(g|ml)/);
+          if (!match) return null;
+          const totalAmount = parseInt(match[1], 10) * 14;
+          const unit = match[2];
+          const ingName = i.replace(/^\d+(g|ml)\s*/, "").split("(")[0].trim();
+          let displayAmount;
+          if (unit === "g" && totalAmount >= 454) {
+            displayAmount = `${(totalAmount / 453.592).toFixed(1)} lbs`;
+          } else {
+            displayAmount = `${totalAmount}${unit}`;
+          }
+          return `${displayAmount} ${ingName}`;
+        })
+        .filter(Boolean);
+
+      return {
+        calculatedIngredients,
+        shoppingList14,
+        totalProteinG,
+        totalFatG,
+        totalCarbG,
+        totalKcal,
+        proteinPct,
+        fatPct,
+        carbPct: clampedCarbPct,
+        aafcoPass,
+        calciumCarbonateDoseMg,
+        calciumFromFoodMg,
+        caPRatio: Math.round(caPRatio * 10) / 10,
+      };
+    }
+
+    proteinBonus += 20;
+  }
+
+  return {
+    calculatedIngredients: [`TOTAL: ${dailyCalories} kcal`],
+    shoppingList14: [],
+    totalProteinG: 0,
+    totalFatG: 0,
+    totalCarbG: 0,
+    totalKcal: dailyCalories,
+    proteinPct: 0,
+    fatPct: 0,
+    carbPct: 0,
+    aafcoPass: false,
+    calciumCarbonateDoseMg: 0,
+    calciumFromFoodMg: 0,
+    caPRatio: 0,
+  };
+}
+
 exports.getRecipe = onRequest(
-  { cors: true, secrets: [anthropicKey] },
+  { cors: true, secrets: [anthropicKey, usdaKey] },
   async (req, res) => {
-    // 1. Verify Firebase Auth token
     const uid = await verifyToken(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
 
-    // 2. Check plan — recipes are plus/family only
     const plan = await getUserPlan(uid);
     if (plan !== "plus" && plan !== "family") {
       return res.status(403).json({ error: "Pet recipes require Plus or Family plan" });
     }
 
-    const { petName, species, breed, age, weight, allergies } = req.body;
+    const { petName, species, breed, age, weight, weightUnit, activityLevel, neutered, dailyCalories, ingredients } = req.body;
     if (!species) return res.status(400).json({ error: "Missing pet species" });
 
     try {
-      const prompt = `Create a healthy homemade meal recipe for a ${species}${breed ? ` (${breed})` : ""}${age ? `, ${age} old` : ""}${weight ? `, ${weight}` : ""}${allergies ? `. Allergies/avoid: ${allergies}` : ""}.
+      const weightNum = parseFloat(weight) || 0;
+      const weightLbs = weightUnit === "kg" ? weightNum * 2.20462 : weightNum;
+      const wsavaKcal = wsavaCalories(weightLbs, activityLevel);
+      const calorieTarget = dailyCalories || wsavaKcal;
 
-Return a JSON object with exactly this structure:
+      const nutritionData = {};
+      await Promise.all((ingredients || []).map(async (ing) => {
+        nutritionData[ing] = await fetchNutrition(ing, usdaKey.value());
+      }));
+
+      const {
+        calculatedIngredients,
+        shoppingList14,
+        totalProteinG,
+        totalFatG,
+        totalCarbG,
+        totalKcal,
+        proteinPct,
+        fatPct,
+        carbPct,
+        aafcoPass,
+        calciumCarbonateDoseMg,
+        calciumFromFoodMg,
+        caPRatio,
+      } = calculateRecipeNutrition(calorieTarget, ingredients, nutritionData);
+
+      const presentationPrompt = `You are a veterinary nutritionist writing a recipe presentation. The nutrition calculations are ALREADY DONE — do not change any numbers.
+
+Pet: ${petName}, ${species}, ${breed || "Mixed"}, ${age} years, ${weight} ${weightUnit || "lbs"}, ${activityLevel || "moderate"}
+Neutered: ${neutered ? "Yes" : "No"}
+Daily calories: ${totalKcal} kcal (WSAVA validated: ${wsavaKcal} kcal target)
+AAFCO status: ${aafcoPass ? "PASSES" : "REVIEW NEEDED"} — Protein ${proteinPct}%, Fat ${fatPct}%, Carbs ${carbPct}%
+
+Calcium from food: ${calciumFromFoodMg}mg
+Calcium carbonate supplement needed: ${calciumCarbonateDoseMg}mg/day (calculated: AAFCO requires ${Math.round((totalKcal / 1000) * 1250)}mg calcium total; food provides ${calciumFromFoodMg}mg; supplement provides the rest at 40% elemental calcium)
+Ca:P ratio with supplementation: ${caPRatio}:1 (target 1:1 to 2:1)
+
+SUPPLEMENTS REQUIRED — use exactly these doses, do not change them:
+- Calcium Carbonate: ${calciumCarbonateDoseMg}mg/day — calculated from AAFCO requirement minus calcium in ingredients
+- Glucosamine: 500mg/day — joint support for active ${breed || species}
+- Vitamin E: 400 IU/day — required when feeding fish oil to prevent oxidation
+- Fish Oil: 3ml/day (already in ingredients) — omega-3 for joints and coat
+
+Pre-calculated ingredients:
+${calculatedIngredients.join("\n")}
+
+14-day shopping list:
+${shoppingList14.join("\n")}
+
+IMPORTANT: The instructions must ONLY reference the daily serving amounts listed in the ingredients above. Do NOT reference the 14-day shopping list amounts in the cooking instructions. Keep instructions based on daily portions only.
+
+Write ONLY the following JSON fields (do not invent or change any numbers):
 {
-  "name": "Recipe name",
+  "name": "Creative recipe name",
   "description": "One sentence description",
-  "ingredients": ["ingredient 1 with amount", "ingredient 2 with amount"],
-  "instructions": ["Step 1", "Step 2", "Step 3"],
-  "nutritionTip": "One key nutrition benefit",
-  "warning": "Any important safety note or null"
+  "servingInfo": "Total daily: ${totalKcal} kcal in 2 meals. Each meal = ${Math.round(totalKcal / 2)} kcal",
+  "ingredients": ${JSON.stringify(calculatedIngredients)},
+  "instructions": ["Step 1...", "Step 2...", "detailed cooking steps"],
+  "supplements": ["Calcium Carbonate: 800-1000mg/day — essential for homemade diets", "other breed-appropriate supplements"],
+  "multivitamin": "Balance IT Canine - 1 scoop daily",
+  "nutritionBreakdown": "Protein ${proteinPct}% (${Math.round(totalProteinG)}g × 4 ÷ ${totalKcal} × 100), Fat ${fatPct}% (${Math.round(totalFatG)}g × 9 ÷ ${totalKcal} × 100), Carbs ${carbPct}% — ${aafcoPass ? "meets" : "review"} AAFCO adult maintenance minimums",
+  "shoppingList14Days": ${JSON.stringify(shoppingList14)},
+  "breedNote": "Specific note for ${breed || species}",
+  "warning": "This recipe is a guide only. Consult your veterinarian before switching from commercial food. Nutrition data sourced from USDA FoodData Central. Calorie target based on WSAVA guidelines."
 }
 
-Only return valid JSON, no other text.`;
+Return ONLY a raw JSON object — no markdown, no explanation, no code fences.`;
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -276,15 +607,42 @@ Only return valid JSON, no other text.`;
         },
         body: JSON.stringify({
           model: "claude-haiku-4-5-20251001",
-          max_tokens: 800,
-          messages: [{ role: "user", content: prompt }],
+          max_tokens: 1500,
+          messages: [{ role: "user", content: presentationPrompt }],
         }),
       });
       const data = await response.json();
       const text = data.content?.[0]?.text || "{}";
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      const recipe = jsonMatch ? JSON.parse(jsonMatch[0]) : { error: "Could not generate recipe" };
+      let recipe;
+      try {
+        recipe = JSON.parse(text);
+      } catch {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        try {
+          recipe = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+        } catch {
+          recipe = null;
+        }
+      }
+      if (!recipe || !recipe.name) {
+        console.error("getRecipe: bad JSON from AI:", text.substring(0, 200));
+        return res.status(500).json({ error: "Could not parse recipe. Please try again." });
+      }
+
+      recipe.ingredients = calculatedIngredients;
+      recipe.shoppingList14Days = shoppingList14;
+      recipe.nutritionBreakdown = `Protein ${proteinPct}% (${Math.round(totalProteinG)}g × 4 ÷ ${totalKcal} × 100), Fat ${fatPct}% (${Math.round(totalFatG)}g × 9 ÷ ${totalKcal} × 100), Carbs ${carbPct}% — ${aafcoPass ? "meets" : "review"} AAFCO adult maintenance minimums`;
+      recipe.servingInfo = `Total daily: ${totalKcal} kcal in 2 meals. Each meal = ${Math.round(totalKcal / 2)} kcal`;
+      recipe.supplements = [
+        `Calcium Carbonate: ${calciumCarbonateDoseMg}mg/day — AAFCO-calculated (food provides ${calciumFromFoodMg}mg; supplement closes the gap)`,
+        `Glucosamine: 500mg/day — joint cartilage support for active ${breed || "dog"}`,
+        `Vitamin E: 400 IU/day — antioxidant required when supplementing fish oil`,
+        `Fish Oil: 3ml/day — included in recipe (omega-3 for coat and joint health)`,
+      ];
+      if (fatPct > 35) {
+        recipe.breedNote = (recipe.breedNote || "") + ` Note: fat content is ${fatPct}% — monitor ${petName}'s weight monthly. If weight gain occurs, reduce the protein source by 50g and increase the carb source accordingly.`;
+      }
+
       res.json(recipe);
     } catch (err) {
       console.error("getRecipe error:", err);
@@ -893,23 +1251,30 @@ function verificationEmailHTML(name, role, plan, verifyLink) {
 
 // ─── Public Pet Profile ───────────────────────────────────────────────────────
 exports.getPetProfile = onRequest({ cors: true }, async (req, res) => {
-  const petId = req.query.petId;
-  if (!petId) { res.status(400).json({ error: "Missing petId" }); return; }
+  const { uid, petId } = req.query;
+  if (!uid || !petId) { res.status(400).json({ error: "Missing uid or petId" }); return; }
   try {
-    const petDoc = await db.collection("pets").doc(petId).get();
+    const petDoc = await db.collection("users").doc(uid).collection("pets").doc(petId).get();
     if (!petDoc.exists) { res.status(404).json({ error: "Pet not found" }); return; }
     const p = petDoc.data();
     res.status(200).json({
       name: p.name || "",
-      type: p.type || "Pet",
+      species: p.species || p.type || "Pet",
       breed: p.breed || "",
       age: p.age || "",
       weight: p.weight || "",
-      nextVet: p.nextVet || "",
-      feeding: p.feeding || "",
-      notes: p.notes || "",
+      weightUnit: p.weightUnit || "lbs",
+      sex: p.sex || "",
+      neutered: p.neutered ?? null,
+      licenseNumber: p.licenseNumber || "",
+      activityLevel: p.activityLevel || "",
       photoURL: p.photoURL || "",
       vaccines: p.vaccines || [],
+      medications: p.medications || [],
+      vet: p.vet || null,
+      feeding: p.feeding || "",
+      notes: p.notes || "",
+      nextVet: p.nextVet || "",
     });
   } catch (err) {
     console.error("getPetProfile error:", err);

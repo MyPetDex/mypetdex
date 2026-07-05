@@ -1,8 +1,9 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  Linking, TextInput, ActivityIndicator,
+  Linking, TextInput, ActivityIndicator, Image,
 } from "react-native";
 import { useState, useEffect } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 
@@ -19,6 +20,7 @@ export default function ShoppingScreen() {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [imgError, setImgError] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadProducts();
@@ -62,7 +64,7 @@ export default function ShoppingScreen() {
           style={[styles.toggleBtn, shopTab === "amazon" && styles.toggleBtnAmazon]}
           onPress={() => setShopTab("amazon")}
         >
-          <Text style={styles.toggleEmoji}>📦</Text>
+          <Ionicons name="cube-outline" size={16} color={shopTab === "amazon" ? "#fff" : "#666"} />
           <Text style={[styles.toggleText, shopTab === "amazon" && styles.toggleTextActive]}>
             Amazon
           </Text>
@@ -71,7 +73,7 @@ export default function ShoppingScreen() {
           style={[styles.toggleBtn, shopTab === "chewy" && styles.toggleBtnChewy]}
           onPress={() => setShopTab("chewy")}
         >
-          <Text style={styles.toggleEmoji}>🛒</Text>
+          <Ionicons name="cart-outline" size={16} color={shopTab === "chewy" ? "#fff" : "#666"} />
           <Text style={[styles.toggleText, shopTab === "chewy" && styles.toggleTextActive]}>
             Chewy
           </Text>
@@ -80,7 +82,7 @@ export default function ShoppingScreen() {
 
       {/* Search */}
       <View style={styles.searchBar}>
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Ionicons name="search-outline" size={16} color="#aaa" style={{ marginRight: 8 }} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search products..."
@@ -113,12 +115,12 @@ export default function ShoppingScreen() {
       {/* Products */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
-          {shopTab === "amazon" ? "🛍️ Amazon Products" : "🛒 Chewy Products"}
+          {shopTab === "amazon" ? "Amazon Products" : "Chewy Products"}
         </Text>
 
         {shopTab === "amazon" && (
           <View style={styles.disclaimer}>
-            <Text style={styles.disclaimerEmoji}>💚</Text>
+            <Ionicons name="heart-circle-outline" size={24} color="#2d7a52" />
             <View style={styles.disclaimerTextWrap}>
               <Text style={styles.disclaimerBold}>You pay the exact same price!</Text>
               <Text style={styles.disclaimerText}>
@@ -132,7 +134,7 @@ export default function ShoppingScreen() {
           <ActivityIndicator color={BRAND} style={{ marginTop: 32 }} />
         ) : visibleProducts.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyEmoji}>{shopTab === "amazon" ? "📦" : "🛒"}</Text>
+            <Ionicons name={shopTab === "amazon" ? "cube-outline" : "cart-outline"} size={48} color="#ccc" />
             <Text style={styles.emptyTitle}>No products found</Text>
             <Text style={styles.emptySub}>
               {search || selected !== "All"
@@ -149,19 +151,22 @@ export default function ShoppingScreen() {
               style={styles.productCard}
               onPress={() => product.url && Linking.openURL(product.url)}
             >
-              <View style={styles.storeTag}>
-                <Text style={styles.storeEmoji}>{product.store === "Chewy" ? "🛒" : "📦"}</Text>
-                <Text style={[styles.storeName, product.store === "Chewy" && { color: "#1B75BC" }]}>
-                  {product.store}
-                </Text>
-              </View>
+              {product.imageUrl && !imgError[product.id] ? (
+                <Image
+                  source={{
+                    uri: product.imageUrl,
+                    headers: { Referer: "https://www.chewy.com/" },
+                  }}
+                  style={styles.productImage}
+                  onError={() => setImgError(prev => ({ ...prev, [product.id]: true }))}
+                />
+              ) : (
+                <View style={styles.productImageFallback}>
+                  <Ionicons name={product.store === "Chewy" ? "cart-outline" : "cube-outline"} size={28} color="#aaa" />
+                </View>
+              )}
               <View style={styles.productInfo}>
                 <Text style={styles.productName}>{product.title}</Text>
-                {product.price ? (
-                  <Text style={[styles.productPrice, product.store === "Chewy" && { color: "#1B75BC" }]}>
-                    {product.price}
-                  </Text>
-                ) : null}
                 {product.description ? (
                   <Text style={styles.productDesc} numberOfLines={1}>{product.description}</Text>
                 ) : null}
@@ -276,12 +281,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  storeTag: { alignItems: "center", width: 44 },
-  storeEmoji: { fontSize: 24 },
-  storeName: { fontSize: 10, color: "#888", fontWeight: "500" },
+  productImage: { width: 64, height: 64, borderRadius: 10, resizeMode: "cover", backgroundColor: "#f0f0f0" },
+  productImageFallback: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    backgroundColor: "#f0f0f0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   productInfo: { flex: 1 },
   productName: { fontSize: 14, fontWeight: "600", color: "#1a1a1a" },
-  productPrice: { fontSize: 15, color: BRAND, fontWeight: "700", marginTop: 2 },
   productDesc: { fontSize: 12, color: "#888", marginTop: 2 },
   shopBtn: { fontSize: 13, color: BRAND, fontWeight: "600" },
 
