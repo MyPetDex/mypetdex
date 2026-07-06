@@ -339,12 +339,14 @@ The shopping tab (`shopping.tsx`) pulls products from `featured_products` Firest
 ### Gap 2 — Recipe Supplement Buttons (Amazon) ✅ DONE
 Five blue Amazon affiliate buttons are live under "Required Supplements" in the Recipes tab, linking to ingredient-specific Amazon searches with tag `mypetdex20-20`. Deployed via OTA.
 
-### Gap 3 — Recipe Shopping List — Chewy Affiliate Links ⚠️ PARTIALLY DONE
-The 14-day shopping list is displayed but Chewy deep links are not yet wired up. Chewy uses pre-generated tracking URLs (`chewy.sjv.io/XXXXX`) from the Impact dashboard — these cannot be constructed dynamically like Amazon links. Each ingredient needs its own pre-generated URL from Impact before the "Shop This List" button can include Chewy.
-
-**What's needed:**
-- Generate per-ingredient Chewy tracking URLs in Impact dashboard
-- Add those URLs to the ingredient mapping in `pet/[id].tsx` alongside the existing Amazon links
+### Gap 3 — Recipe Supplement Chewy Affiliate Links ✅ DONE
+Six Chewy supplement buttons added to recipe result screen below the Amazon section. Impact publisher ID `7270969`. Links:
+- Fish Oil: `https://chewy.sjv.io/E0xqXK` (Zesty Paws Omega-3)
+- Calcium: `https://chewy.sjv.io/xJmn3v` (Wholistic Pet Organics)
+- Glucosamine: `https://chewy.sjv.io/zz0jk6` (Nutramax Cosequin)
+- Vitamin E: `https://chewy.sjv.io/OYa1Qn` (Zesty Paws 8-in-1)
+- Probiotic: `https://chewy.sjv.io/3kR7xd` (Purina FortiFlora)
+- Multivitamin: `https://chewy.sjv.io/9V9eP3` (Wholistic Canine Complete)
 
 ---
 
@@ -367,7 +369,7 @@ The 14-day shopping list is displayed but Chewy deep links are not yet wired up.
 | Amazon auto-catalog | 🔜 Post-release | Shopping is manual admin entries; PA-API requires 3 qualifying sales before access — good to have, not blocking |
 | Provider detail page + reviews | ❌ In progress | Clickable cards → detail screen, user reviews, admin moderation, Google Places rating |
 | Provider self-listing portal | ❌ Pending | Independent groomers/trainers/sitters can self-register — competes with Rover/Wag on fees |
-| Proactive AI health alerts | ❌ Pending | Firebase scheduled function cross-references health logs and pushes contextual alerts without user prompting — premium feature |
+| Proactive AI health alerts | ✅ Done | `sendHealthAlerts` Cloud Function — runs daily 9AM UTC, targets Plus/Family users, checks medication refills (7 days), weight trend (3 consecutive drops/gains), overdue vet visit (11+ months). Push via Expo fetch pattern. `lastHealthAlertSent` on pet doc prevents duplicate alerts within 20 hours. |
 | Pet Resume PDF generator | ✅ Done | `generatePetResume()` in `pet/[id].tsx` — HTML template, expo-print → PDF, expo-sharing native sheet. Button in Records tab below QR code. Needs new EAS build (expo-print is native). |
 | Freemium tier formalization | ❌ Pending | Tighten free vs premium feature gates — basic profiles/reminders free, AI analysis/multi-pet/PDF export premium |
 | Cloudflare CDN caching | ❌ Pending | Cache recipe data at edge via Cloudflare — already on Cloudflare, easy win for performance |

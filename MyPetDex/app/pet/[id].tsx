@@ -69,7 +69,7 @@ function BreedDropdown({ value, options, onSelect }: { value: string; options: s
 export default function PetProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
-  const { plan } = usePlan();
+  const { plan, pdfExport } = usePlan();
   const router = useRouter();
   const navigation = useNavigation();
 
@@ -312,6 +312,16 @@ ${pet.vet?.name ? `<div class="section">
     ? `<p class="empty">No active medications</p>`
     : activeMeds.map((m: any) => `<div class="med"><div class="med-name">${m.name}</div><div class="med-sub">${[m.dosage, m.frequency].filter(Boolean).join(" · ")}${m.note ? ` · ${m.note}` : ""}</div></div>`).join("")}
 </div>
+${(pet.vaccines || []).length > 0 ? `
+<div class="section">
+  <div class="label">Health Records</div>
+  ${(pet.vaccines as any[]).map(v => `
+    <div class="med">
+      <div class="med-name">${v.title || v.type || "Record"}</div>
+      <div class="med-sub">${v.type || ""}${v.type && v.date ? " · " : ""}${v.date || ""}${v.note ? ` · ${v.note}` : ""}</div>
+    </div>
+  `).join("")}
+</div>` : ""}
 <div class="footer">
   <div class="footer-brand">MyPetDex</div>
   <div class="footer-sub">The complete home for pet owners · home.mypetdex.app</div>
@@ -365,9 +375,24 @@ ${pet.vet?.name ? `<div class="section">
             <Text style={styles.qrBtnText}>📱 QR</Text>
           </Pressable>
         </View>
-        <Pressable style={styles.resumeBtn} onPress={generatePetResume}>
-          <Ionicons name="document-text-outline" size={18} color={BRAND} />
-          <Text style={styles.resumeBtnText}>Generate Care Resume PDF</Text>
+        <Pressable
+          style={[styles.resumeBtn, !pdfExport && styles.resumeBtnLocked]}
+          onPress={() => {
+            if (!pdfExport) {
+              Alert.alert(
+                "Plus Feature",
+                "Generate and share a professional Care Resume PDF for your pet. Upgrade to Plus to unlock.",
+                [{ text: "Not now", style: "cancel" }, { text: "Upgrade", onPress: () => router.push("/settings/subscription") }]
+              );
+              return;
+            }
+            generatePetResume();
+          }}
+        >
+          <Ionicons name={pdfExport ? "document-text-outline" : "lock-closed-outline"} size={18} color={pdfExport ? BRAND : "#94A3B8"} />
+          <Text style={[styles.resumeBtnText, !pdfExport && { color: "#94A3B8" }]}>
+            {pdfExport ? "Generate Care Resume PDF" : "Care Resume PDF — Plus Feature"}
+          </Text>
         </Pressable>
         <Text style={styles.petBreed}>{pet.breed}</Text>
         <View style={styles.petTags}>
@@ -1737,6 +1762,32 @@ function RecipesTab({ pet, canUseAI }: { pet: any; canUseAI: boolean }) {
               As an Amazon Associate, MyPetDex earns from qualifying purchases.
             </Text>
           </View>
+          {/* Shop Supplements on Chewy */}
+          <View style={styles.recipeSection}>
+            <Text style={styles.recipeSectionLabel}>🐾 Shop Supplements on Chewy</Text>
+            <Text style={[styles.recipeSectionText, { marginBottom: 10 }]}>
+              Find these supplements on Chewy with fast delivery:
+            </Text>
+            {[
+              { label: "Fish Oil — Zesty Paws Omega-3", url: "https://chewy.sjv.io/E0xqXK" },
+              { label: "Calcium — Wholistic Pet Organics", url: "https://chewy.sjv.io/xJmn3v" },
+              { label: "Glucosamine — Nutramax Cosequin", url: "https://chewy.sjv.io/zz0jk6" },
+              { label: "Vitamin E — Zesty Paws 8-in-1", url: "https://chewy.sjv.io/OYa1Qn" },
+              { label: "Probiotic — Purina FortiFlora", url: "https://chewy.sjv.io/3kR7xd" },
+              { label: "Multivitamin — Wholistic Canine Complete", url: "https://chewy.sjv.io/9V9eP3" },
+            ].map((item, i) => (
+              <Pressable
+                key={i}
+                style={styles.chewyBtn}
+                onPress={() => Linking.openURL(item.url)}
+              >
+                <Text style={styles.chewyBtnText}>🐾 {item.label}</Text>
+              </Pressable>
+            ))}
+            <Text style={styles.amazonDisclaimer}>
+              MyPetDex earns a commission from qualifying Chewy purchases.
+            </Text>
+          </View>
           {/* Multivitamin */}
           <View style={styles.recipeSection}>
             <Text style={styles.recipeSectionLabel}>🌿 Multivitamin</Text>
@@ -1955,6 +2006,7 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 2 },
   qrBtn: { backgroundColor: BRAND + "20", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: BRAND + "44" },
   resumeBtn: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1.5, borderColor: BRAND, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, marginTop: 10, justifyContent: "center" },
+  resumeBtnLocked: { borderColor: "#E2E8F0", backgroundColor: "#F8FAFC" },
   resumeBtnText: { color: BRAND, fontWeight: "700", fontSize: 14 },
   qrBtnText: { fontSize: 12, fontWeight: "700", color: BRAND },
   qrModalContainer: { flex: 1, backgroundColor: "#f8f8f8" },
@@ -2026,6 +2078,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   amazonBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  chewyBtn: {
+    backgroundColor: "#0074C8",
+    borderRadius: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  chewyBtnText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "700",

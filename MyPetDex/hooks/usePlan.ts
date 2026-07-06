@@ -11,13 +11,14 @@ export interface PlanLimits {
   aiAssistant: boolean;
   recipes: boolean;
   reminders: boolean;
+  pdfExport: boolean;
   loading: boolean;
 }
 
 const LIMITS: Record<Plan, Omit<PlanLimits, "plan" | "loading">> = {
-  free:   { maxPets: 1,   aiAssistant: false, recipes: false, reminders: true },
-  plus:   { maxPets: 3,   aiAssistant: true,  recipes: true,  reminders: true },
-  family: { maxPets: 999, aiAssistant: true,  recipes: true,  reminders: true },
+  free:   { maxPets: 1,   aiAssistant: false, recipes: false, reminders: true, pdfExport: false },
+  plus:   { maxPets: 3,   aiAssistant: true,  recipes: true,  reminders: true, pdfExport: true  },
+  family: { maxPets: 999, aiAssistant: true,  recipes: true,  reminders: true, pdfExport: true  },
 };
 
 function parsePlan(value: any): Plan {

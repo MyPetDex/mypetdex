@@ -236,6 +236,16 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="admin-feedback"
+        options={{
+          title: "Feedback",
+          href: isAdmin ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />
+          ),
+        }}
+      />
 
       {/* ── Always hidden ──────────────────────────────────────────── */}
       <Tabs.Screen name="pets" options={{ href: null }} />

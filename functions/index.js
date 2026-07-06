@@ -1412,3 +1412,140 @@ exports.sendFeedback = onCall({ cors: true, secrets: [resendKey] }, async (reque
     throw new Error("Failed to send feedback. Please try again.");
   }
 });
+
+// ─── Daily Health Alerts (Plus/Family) ───────────────────────────────────────
+exports.sendHealthAlerts = onSchedule("0 9 * * *", async () => {
+  const usersSnap = await db.collection("users")
+    .where("plan", "in", ["plus", "family"])
+    .get();
+
+  const messages = [];
+
+  for (const userDoc of usersSnap.docs) {
+    try {
+      const userId = userDoc.id;
+      const userData = userDoc.data();
+      const expoPushToken = userData.expoPushToken;
+
+      if (!expoPushToken || !expoPushToken.startsWith("ExponentPushToken")) continue;
+
+      const petsSnap = await db
+        .collection("users").doc(userId)
+        .collection("pets").get();
+
+      for (const petDoc of petsSnap.docs) {
+        try {
+          const pet = petDoc.data();
+          const petId = petDoc.id;
+
+          if (pet.lastHealthAlertSent) {
+            const hoursSince = (Date.now() - pet.lastHealthAlertSent.toDate().getTime()) / 3600000;
+            if (hoursSince < 20) continue;
+          }
+
+          const alerts = [];
+
+          const activeMeds = (pet.medications || []).filter(m => m.active !== false);
+          for (const med of activeMeds) {
+            if (!med.refillDate) continue;
+            const refillDate = new Date(med.refillDate);
+            const daysUntil = Math.ceil((refillDate.getTime() - Date.now()) / 86400000);
+            if (daysUntil >= 0 && daysUntil <= 7) {
+              const when = daysUntil === 0 ? "today" : `in ${daysUntil} day${daysUntil === 1 ? "" : "s"}`;
+              alerts.push(`${med.name} refill due ${when}`);
+            }
+          }
+
+          try {
+            const weightSnap = await petDoc.ref
+              .collection("weightLog")
+              .orderBy("date", "desc")
+              .limit(5)
+              .get();
+
+            const weights = weightSnap.docs
+              .map(d => parseFloat(d.data().weight))
+              .filter(w => !isNaN(w));
+
+            if (weights.length >= 3) {
+              const allDown = weights[0] < weights[1] && weights[1] < weights[2];
+              const allUp   = weights[0] > weights[1] && weights[1] > weights[2];
+              const changePct = Math.abs((weights[0] - weights[weights.length - 1]) / weights[weights.length - 1] * 100);
+
+              if (allDown && changePct > 5) {
+                alerts.push(`${pet.name}'s weight has been dropping — down ${changePct.toFixed(1)}% over recent weigh-ins`);
+              } else if (allUp && changePct > 8) {
+                alerts.push(`${pet.name}'s weight has been rising — up ${changePct.toFixed(1)}% recently`);
+              }
+            }
+          } catch (weightErr) {
+            // Weight log optional — continue if unavailable
+          }
+
+          const records = pet.vaccines || [];
+          const vetVisits = records.filter(r => r.type === "Vet Visit" && r.date);
+          if (vetVisits.length > 0) {
+            const lastVisit = new Date(Math.max(
+              ...vetVisits.map(v => new Date(v.date).getTime()).filter(t => !isNaN(t))
+            ));
+            const monthsSince = (Date.now() - lastVisit.getTime()) / (86400000 * 30);
+            if (monthsSince > 11) {
+              alerts.push(`${pet.name}'s last vet visit was ${Math.floor(monthsSince)} months ago`);
+            }
+          }
+
+          if (alerts.length === 0) continue;
+
+          const body = alerts.length === 1
+            ? alerts[0]
+            : `${alerts[0]} (+${alerts.length - 1} more)`;
+
+          messages.push({
+            to: expoPushToken,
+            sound: "default",
+            title: `Health reminder for ${pet.name} 🐾`,
+            body,
+            data: { type: "health_alert", petId, userId },
+          });
+
+          await petDoc.ref.update({
+            lastHealthAlertSent: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+        } catch (petErr) {
+          console.error(`sendHealthAlerts — error on pet ${petDoc.id}:`, petErr);
+        }
+      }
+    } catch (userErr) {
+      console.error(`sendHealthAlerts — error on user ${userDoc.id}:`, userErr);
+    }
+  }
+
+  if (messages.length > 0) {
+    for (let i = 0; i < messages.length; i += 100) {
+      const chunk = messages.slice(i, i + 100);
+      try {
+        const pushRes = await fetch("https://exp.host/--/api/v2/push/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify(chunk),
+        });
+        const pushResult = await pushRes.json();
+        const results = Array.isArray(pushResult.data) ? pushResult.data : [pushResult.data];
+        for (const result of results) {
+          if (result?.status === "error") {
+            console.error("sendHealthAlerts — push error:", result.message);
+          }
+        }
+      } catch (err) {
+        console.error("sendHealthAlerts — push send error:", err);
+      }
+    }
+    console.log(`sendHealthAlerts — sent ${messages.length} notification(s)`);
+  } else {
+    console.log("sendHealthAlerts — no alerts to send today");
+  }
+});
