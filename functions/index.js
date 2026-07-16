@@ -1,4 +1,5 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onRequest, onCall } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
@@ -1549,3 +1550,53 @@ exports.sendHealthAlerts = onSchedule("0 9 * * *", async () => {
     console.log("sendHealthAlerts — no alerts to send today");
   }
 });
+
+// ─── Notify admin when new provider applies ───────────────────────────────────
+exports.notifyAdminNewProvider = onDocumentCreated("users/{uid}", async (event) => {
+  const data = event.data?.data();
+  if (!data || data.role !== "pending_provider") return;
+  try {
+    const adminSnap = await db.collection("users")
+      .where("email", "==", "mypetdexapp@gmail.com").limit(1).get();
+    if (adminSnap.empty) return;
+    const token = adminSnap.docs[0].data().expoPushToken;
+    if (!token || !token.startsWith("ExponentPushToken[")) return;
+    await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: token,
+        title: "New Provider Application",
+        body: `${data.businessName || data.displayName || "Unknown"} applied as a ${data.service || "provider"}. Tap to review.`,
+        data: { screen: "admin-providers" },
+      }),
+    });
+  } catch (e) { console.error("notifyAdminNewProvider error:", e); }
+});
+
+// ─── Email provider on approval or rejection ──────────────────────────────────
+exports.notifyProviderStatusChange = onDocumentUpdated(
+  { document: "users/{uid}", secrets: [resendKey] },
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after  = event.data?.after?.data();
+    if (!before || !after) return;
+    if (before.role === after.role) return;
+    const isApproval  = after.role === "provider";
+    const isRejection = after.role === "rejected_provider";
+    if (!isApproval && !isRejection) return;
+    const email   = after.email;
+    const name    = after.displayName || after.businessName || "there";
+    const service = after.service || "services";
+    if (!email) return;
+    const subject = isApproval
+      ? "Your MyPetDex provider application is approved!"
+      : "Update on your MyPetDex provider application";
+    const html = isApproval
+      ? `<div style="font-family:-apple-system,Helvetica,sans-serif;max-width:520px;margin:0 auto;"><div style="background:#4486F4;padding:28px 32px;border-radius:12px 12px 0 0;"><h1 style="color:white;margin:0;font-size:22px;">MyPetDex</h1></div><div style="background:#fff;padding:32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 12px 12px;"><h2 style="font-size:20px;font-weight:800;">You're approved, ${name}!</h2><p style="color:#475569;line-height:24px;">Your <strong>${service}</strong> listing is now live on MyPetDex. Open the app and sign in to access your provider dashboard.</p><p style="font-size:13px;color:#94A3B8;">Questions? <a href="mailto:help@mypetdex.app" style="color:#4486F4;">help@mypetdex.app</a></p></div></div>`
+      : `<div style="font-family:-apple-system,Helvetica,sans-serif;max-width:520px;margin:0 auto;"><div style="background:#4486F4;padding:28px 32px;border-radius:12px 12px 0 0;"><h1 style="color:white;margin:0;font-size:22px;">MyPetDex</h1></div><div style="background:#fff;padding:32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 12px 12px;"><h2 style="font-size:20px;font-weight:800;">Application update, ${name}</h2><p style="color:#475569;line-height:24px;">Thank you for applying to list your <strong>${service}</strong>. After review, we're unable to approve your application at this time.</p><a href="mailto:help@mypetdex.app?subject=Provider%20Application%20Inquiry" style="display:inline-block;background:#4486F4;color:white;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:700;">Contact Support</a></div></div>`;
+    try {
+      await sendEmail(resendKey.value(), { to: [email], subject, html });
+    } catch (e) { console.error("notifyProviderStatusChange error:", e); }
+  }
+);

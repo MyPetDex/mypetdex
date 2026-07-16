@@ -133,9 +133,12 @@ export default function SignInScreen() {
       const u = pendingUser || auth.currentUser;
       if (!u) throw new Error("No user found.");
 
+      // Providers start as "pending_provider" until admin approves them.
+      // This keeps them out of the explore search and grants them a "pending" holding screen.
+      const savedRole = role === "provider" ? "pending_provider" : role;
       const userDoc: any = {
         uid: u.uid, email: u.email, displayName: form.name,
-        role, plan: role === "owner" ? "free" : role,
+        role: savedRole, plan: role === "owner" ? "free" : role,
         state: form.state, city: form.city,
         onboardingComplete: true,
         createdAt: serverTimestamp(),

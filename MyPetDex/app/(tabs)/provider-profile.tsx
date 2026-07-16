@@ -4,7 +4,7 @@ import {
   Share, Linking, Alert, Modal, TextInput, Pressable, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { webDb, webAuth, callFunction } from "@/lib/firebase";
-import { doc, getDoc, deleteDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -22,17 +22,56 @@ export default function ProviderProfile() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackSending, setFeedbackSending] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ businessName: "", service: "", phone: "", website: "", bio: "", priceRange: "", city: "", state: "" });
+  const [saving, setSaving] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     async function load() {
       const snap = await getDoc(doc(webDb, "users", user!.uid));
-      if (snap.exists()) setProfile(snap.data());
+      if (snap.exists()) {
+        const data = snap.data();
+        setProfile(data);
+        setEditForm({
+          businessName: data.businessName || "",
+          service: data.service || data.serviceType || "",
+          phone: data.phone || "",
+          website: data.website || "",
+          bio: data.bio || "",
+          priceRange: data.priceRange || "",
+          city: data.city || "",
+          state: data.state || "",
+        });
+      }
       setLoading(false);
     }
     load();
   }, [user]);
+
+  async function handleSaveEdit() {
+    if (!user) return;
+    setSaving(true);
+    try {
+      await updateDoc(doc(webDb, "users", user.uid), {
+        businessName: editForm.businessName.trim(),
+        service: editForm.service,
+        serviceType: editForm.service,
+        phone: editForm.phone.trim(),
+        website: editForm.website.trim(),
+        bio: editForm.bio.trim(),
+        priceRange: editForm.priceRange.trim(),
+        city: editForm.city.trim(),
+        state: editForm.state.trim(),
+      });
+      setProfile((p: any) => ({ ...p, ...editForm, serviceType: editForm.service }));
+      setShowEdit(false);
+    } catch {
+      Alert.alert("Error", "Could not save changes. Please try again.");
+    }
+    setSaving(false);
+  }
 
   async function handleSignOut() {
     await signOut();
@@ -114,8 +153,13 @@ export default function ProviderProfile() {
         <Text style={s.badgeText}>{profile?.verified ? "Verified Provider" : "Pending Verification"}</Text>
       </View>
 
+      <TouchableOpacity style={s.editBtn} onPress={() => setShowEdit(true)}>
+        <Ionicons name="pencil-outline" size={16} color={BRAND} />
+        <Text style={s.editBtnText}>Edit Profile</Text>
+      </TouchableOpacity>
+
       <View style={s.card}>
-        <Row icon="briefcase-outline" label="Service Type" value={profile?.serviceType} />
+        <Row icon="briefcase-outline" label="Service Type" value={profile?.service || profile?.serviceType} />
         <Row icon="location-outline" label="Location" value={profile?.city && profile?.state ? `${profile.city}, ${profile.state}` : profile?.city || profile?.state} />
         <Row icon="call-outline" label="Phone" value={profile?.phone} />
         <Row icon="globe-outline" label="Website" value={profile?.website} />
@@ -174,6 +218,57 @@ export default function ProviderProfile() {
       </TouchableOpacity>
 
       <Text style={s.version}>MyPetDex v1.0.0 · help@mypetdex.app</Text>
+
+      {/* ── Edit Profile Modal ─────────────────────────────────── */}
+      <Modal visible={showEdit} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowEdit(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <ScrollView style={s.modalContainer} contentContainerStyle={{ paddingBottom: 40 }}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Edit Profile</Text>
+              <Pressable onPress={() => setShowEdit(false)}>
+                <Text style={s.modalClose}>Cancel</Text>
+              </Pressable>
+            </View>
+            {[
+              { label: "Business Name", key: "businessName", placeholder: "Your business name" },
+              { label: "Phone", key: "phone", placeholder: "+1 (555) 000-0000" },
+              { label: "Website", key: "website", placeholder: "https://yoursite.com" },
+              { label: "Price Range", key: "priceRange", placeholder: "e.g. $30–$60" },
+              { label: "City", key: "city", placeholder: "City" },
+              { label: "State", key: "state", placeholder: "e.g. NJ" },
+            ].map(field => (
+              <View key={field.key} style={{ marginBottom: 14 }}>
+                <Text style={s.fieldLabel}>{field.label}</Text>
+                <TextInput
+                  style={s.fieldInput}
+                  value={(editForm as any)[field.key]}
+                  onChangeText={v => setEditForm(f => ({ ...f, [field.key]: v }))}
+                  placeholder={field.placeholder}
+                  placeholderTextColor="#aaa"
+                />
+              </View>
+            ))}
+            <View style={{ marginBottom: 14 }}>
+              <Text style={s.fieldLabel}>Bio</Text>
+              <TextInput
+                style={[s.fieldInput, { height: 100, textAlignVertical: "top" }]}
+                value={editForm.bio}
+                onChangeText={v => setEditForm(f => ({ ...f, bio: v }))}
+                placeholder="Tell clients about your services..."
+                placeholderTextColor="#aaa"
+                multiline
+              />
+            </View>
+            <Pressable
+              style={[s.sendBtn, saving && { opacity: 0.6 }]}
+              onPress={handleSaveEdit}
+              disabled={saving}
+            >
+              {saving ? <ActivityIndicator color="#fff" /> : <Text style={s.sendBtnText}>Save Changes</Text>}
+            </Pressable>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <Modal visible={showFeedback} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowFeedback(false)}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -246,6 +341,10 @@ const s = StyleSheet.create({
   menuRowLast: { borderBottomWidth: 0 },
   menuIcon: { fontSize: 18 },
   menuLabel: { flex: 1, fontSize: 15, fontWeight: "600", color: "#1E293B" },
+  editBtn: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1.5, borderColor: BRAND, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, marginBottom: 24 },
+  editBtnText: { color: BRAND, fontWeight: "700", fontSize: 14 },
+  fieldLabel: { fontSize: 12, fontWeight: "700", color: "#64748B", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 },
+  fieldInput: { backgroundColor: "#fff", borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, padding: 12, fontSize: 15, color: "#1E293B" },
   deleteBtn: { backgroundColor: "#E53935", borderRadius: 14, padding: 16, alignItems: "center", width: "100%", marginTop: 10 },
   deleteBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   version: { textAlign: "center", fontSize: 12, color: "#94A3B8", marginTop: 16 },

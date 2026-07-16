@@ -18,6 +18,9 @@ export default function TabLayout() {
   const isProvider = role === "provider";
   const isShelter = role === "shelter";
   const isAdmin = role === "admin";
+  const isPendingProvider = role === "pending_provider";
+  const isRejectedProvider = role === "rejected_provider";
+  const isLimboProvider = isPendingProvider || isRejectedProvider;
 
   return (
     <Tabs
@@ -47,7 +50,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
-          href: isProvider || isShelter || isAdmin ? null : undefined,
+          href: isProvider || isShelter || isAdmin || isLimboProvider ? null : undefined,
           headerTitle: () => (
             <Image
               source={require("../../assets/images/logo-transparent.png")}
@@ -64,7 +67,7 @@ export default function TabLayout() {
         name="explore"
         options={{
           title: "Explore",
-          href: isProvider || isShelter || isAdmin ? null : undefined,
+          href: isProvider || isShelter || isAdmin || isLimboProvider ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="compass-outline" size={size} color={color} />
           ),
@@ -74,7 +77,7 @@ export default function TabLayout() {
         name="shopping"
         options={{
           title: "Shop",
-          href: isProvider || isShelter || isAdmin ? null : undefined,
+          href: isProvider || isShelter || isAdmin || isLimboProvider ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cart-outline" size={size} color={color} />
           ),
@@ -84,7 +87,7 @@ export default function TabLayout() {
         name="ai"
         options={{
           title: "Pet Assistant",
-          href: isProvider || isShelter || isAdmin ? null : undefined,
+          href: isProvider || isShelter || isAdmin || isLimboProvider ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sparkles-outline" size={size} color={color} />
           ),
@@ -94,9 +97,21 @@ export default function TabLayout() {
         name="me"
         options={{
           title: "Me",
-          href: isProvider || isShelter || isAdmin ? null : undefined,
+          href: isProvider || isShelter || isAdmin || isLimboProvider ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="paw-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* ── Pending Provider tab ───────────────────────────────────── */}
+      <Tabs.Screen
+        name="pending-provider"
+        options={{
+          title: "Application",
+          href: isLimboProvider ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name={isRejectedProvider ? "close-circle-outline" : "hourglass-outline"} size={size} color={color} />
           ),
         }}
       />
@@ -243,6 +258,16 @@ export default function TabLayout() {
           href: isAdmin ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin-providers"
+        options={{
+          title: "Providers",
+          href: isAdmin ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-add-outline" size={size} color={color} />
           ),
         }}
       />

@@ -1,5 +1,5 @@
 # MyPetDex — Master Reference Document
-*Last updated: July 5, 2026 — use this to resume work in any new session*
+*Last updated: July 16, 2026 — use this to resume work in any new session*
 
 ---
 
@@ -54,6 +54,8 @@ All paid plans include a **30-day free trial, no credit card required.**
   - `sendVerifiedEmail` — post-verification welcome
   - `createCheckoutSession`, `stripeWebhook`, `createPortalSession` — Stripe billing
   - `getPetProfile` — public pet profile (reads from `users/{uid}/pets/{petId}`, accepts `uid` + `petId` query params, returns all fields including sex, neutered, licenseNumber, activityLevel, **medications**, **vet**)
+  - `notifyAdminNewProvider` — `onDocumentCreated("users/{uid}")` — sends push notification to admin's Expo push token when a new user registers with `role: "pending_provider"`
+  - `notifyProviderStatusChange` — `onDocumentUpdated("users/{uid}")` — sends approval or rejection email via Resend when `role` changes to `"provider"` or `"rejected_provider"`
 - **Storage:** Pet photos via `uploadPetPhoto()`
 - **Hosting:** Not used (app is native iOS, web is on Vercel)
 
@@ -131,7 +133,7 @@ firebase functions:secrets:set SECRET_NAME
 | AI Assistant | `(tabs)/ai.tsx` | Chat interface → `aiProxy` Cloud Function → Anthropic Claude Haiku |
 | Me | `(tabs)/me.tsx` | Pet list, settings, share app, sign out |
 | Settings | `(tabs)/settings.tsx` | Notifications, app info, feedback, subscription |
-| Subscription | `settings/subscription.tsx` | **PLACEHOLDER — says "Coming soon"** |
+| Subscription | `settings/subscription.tsx` | Full paywall UI — Plus/Family monthly+yearly, RevenueCat, 1-month free trial, restore purchases |
 | Onboarding | `onboarding.tsx` | First-run flow |
 
 ### Provider Flow
@@ -141,7 +143,15 @@ firebase functions:secrets:set SECRET_NAME
 | `provider-services.tsx` | Manage service listings |
 | `provider-bookings.tsx` | View and manage bookings |
 | `provider-reviews.tsx` | Read customer reviews |
-| `provider-profile.tsx` | Edit business profile |
+| `provider-profile.tsx` | Edit business profile — **edit modal added** (businessName, service, phone, website, bio, priceRange, city, state). Delete account option also present. |
+| `pending-provider.tsx` | **NEW** — shown to `pending_provider` and `rejected_provider` roles. Uses `useUserProfile` (onSnapshot real-time) — auto-navigates to provider-home the moment admin approves, no sign-out needed. Shows rejection banner + contact support for rejected providers. |
+
+**Provider registration flow:**
+- Providers register via normal sign-up (`sign-in.tsx`) — role saved as `pending_provider` (not `provider`) until admin approves
+- `pending_provider` role is invisible in explore search (which queries `where("role", "==", "provider")`)
+- On approval: `role` → `"provider"`, `approved: true`, `approvedAt: serverTimestamp()`
+- On rejection: `role` → `"rejected_provider"`, `approved: false`, `rejectedAt: serverTimestamp()`
+- On reactivation (from rejected): role moves back to `pending_provider`
 
 ### Shelter Flow
 | Screen | What It Does |
@@ -158,6 +168,7 @@ firebase functions:secrets:set SECRET_NAME
 | `admin-users.tsx` | View/manage all users |
 | `admin-products.tsx` | Manage `featured_products` for shopping tab |
 | `admin-reviews.tsx` | Moderate provider reviews |
+| `admin-providers.tsx` | **NEW** — Provider approval queue. Lists all pending/approved/rejected providers. Approve → sets `role: "provider"`; Reject → sets `role: "rejected_provider"`; Reactivate → sets back to `pending_provider`. Alert banner shows pending count. |
 | Web: `app.mypetdex.app/mypetdex-admin` | Full web admin panel (Firebase compat SDK, CDN) |
 
 ---
@@ -278,6 +289,8 @@ All emails go through Resend via the `help@mypetdex.app` address. Triggered emai
 - **Password reset** — branded with 1-hour expiry
 - **Feedback** — forwarded to `mypetdexapp@gmail.com`
 - **Admin notification** — every new signup alerts admin
+- **Provider approval email** — sent to provider when admin approves (`notifyProviderStatusChange` Cloud Function, `onDocumentUpdated` trigger on `users/{uid}`)
+- **Provider rejection email** — sent to provider when admin rejects (same function, branches on `role === "rejected_provider"`)
 
 ---
 
@@ -367,8 +380,8 @@ Six Chewy supplement buttons added to recipe result screen below the Amazon sect
 | Public profile: meds + vet | ✅ Done | `public/pet/index.html` + `getPetProfile` function updated — deployed July 4, 2026 |
 | Pet photo gallery | 🔜 Post-release | Single profile photo only; no multi-photo album — good to have, not blocking |
 | Amazon auto-catalog | 🔜 Post-release | Shopping is manual admin entries; PA-API requires 3 qualifying sales before access — good to have, not blocking |
-| Provider detail page + reviews | ❌ In progress | Clickable cards → detail screen, user reviews, admin moderation, Google Places rating |
-| Provider self-listing portal | ❌ Pending | Independent groomers/trainers/sitters can self-register — competes with Rover/Wag on fees |
+| Provider detail page + reviews | ⚠️ Partial | `app/provider/[id].tsx` detail screen built. Reviews system + Google Places rating still pending. |
+| Provider self-listing portal | ✅ Done | Providers self-register via sign-up flow. `role: "pending_provider"` until admin approves. Push notification to admin + email to provider on approval/rejection. |
 | Proactive AI health alerts | ✅ Done | `sendHealthAlerts` Cloud Function — runs daily 9AM UTC, targets Plus/Family users, checks medication refills (7 days), weight trend (3 consecutive drops/gains), overdue vet visit (11+ months). Push via Expo fetch pattern. `lastHealthAlertSent` on pet doc prevents duplicate alerts within 20 hours. |
 | Pet Resume PDF generator | ✅ Done | `generatePetResume()` in `pet/[id].tsx` — HTML template, expo-print → PDF, expo-sharing native sheet. Button in Records tab below QR code. Needs new EAS build (expo-print is native). |
 | Freemium tier formalization | ❌ Pending | Tighten free vs premium feature gates — basic profiles/reminders free, AI analysis/multi-pet/PDF export premium |
@@ -379,7 +392,7 @@ Six Chewy supplement buttons added to recipe result screen below the Amazon sect
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Nutritionist-verified recipe badge | ❌ Pending | Add "Vet-Reviewed" badge after nutritionist approval |
-| Git commit of accumulated changes | ⚠️ Pending | Large number of uncommitted changes across app + functions |
+| Git commit of accumulated changes | ⚠️ Pending | Large number of uncommitted changes across app + functions — commit after each session |
 | Home screen pet selector emoji | ✅ Done | Removed 🐶/🐱 emoji from pet selector pill on home screen |
 
 ---
@@ -455,4 +468,22 @@ When writing a Cursor prompt, always specify:
 
 ---
 
-*This document covers everything built as of July 3, 2026. Update it as new features are added.*
+---
+
+## 14. Known Bugs
+
+| Bug | File | Notes |
+|-----|------|-------|
+| Google sign-up skips name/role screen | `sign-in.tsx` / `AuthContext.tsx` | Firebase creates auth account instantly on Google sign-in; app routes to onboarding before name+role entry completes. Need to hold user on registration until they've explicitly submitted name + role. |
+
+---
+
+## 15. Build & Submission History
+
+| Build | Date | Notes |
+|-------|------|-------|
+| #26 | July 9, 2026 | Production build — submitted to App Store Connect. IAP products configured (4 products, all with screenshots). **App Store version not yet submitted for review** — need to create version 1.0 in ASC, attach build #26, and submit. |
+
+---
+
+*This document covers everything built as of July 16, 2026. Update it at the end of each session.*
