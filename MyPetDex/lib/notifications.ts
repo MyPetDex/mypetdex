@@ -10,6 +10,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -24,7 +26,6 @@ export async function registerForPushNotifications(uid: string): Promise<void> {
   try {
     // Physical device required — simulators can't receive push
     if (!Device.isDevice) {
-      console.log("Push notifications require a physical device");
       return;
     }
 
@@ -38,7 +39,6 @@ export async function registerForPushNotifications(uid: string): Promise<void> {
     }
 
     if (finalStatus !== "granted") {
-      console.log("Push notification permission denied");
       return;
     }
 
@@ -49,13 +49,11 @@ export async function registerForPushNotifications(uid: string): Promise<void> {
     const expoPushToken = tokenData.data;
 
     if (!expoPushToken) {
-      console.log("No Expo push token returned");
       return;
     }
 
     // Save to Firestore (JS SDK — works on both iOS and web)
     await updateDoc(doc(db, "users", uid), { expoPushToken });
-    console.log("Expo push token saved:", expoPushToken.substring(0, 30) + "...");
 
     // Android notification channel
     if (Platform.OS === "android") {

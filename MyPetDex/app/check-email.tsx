@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { webAuth, callFunction } from "@/lib/firebase";
 
 const BRAND = "#4486F4";
@@ -15,7 +16,8 @@ const sentForUid = new Set<string>();
 
 export default function CheckEmailScreen() {
   const router = useRouter();
-  const { user, signOut, refreshEmailVerification } = useAuth();
+  const { user, signOut, refreshEmailVerification, getPendingRole } = useAuth();
+  const { profile } = useUserProfile();
   const [checking, setChecking] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
@@ -51,7 +53,12 @@ export default function CheckEmailScreen() {
     const verified = await refreshEmailVerification();
     setChecking(false);
     if (verified) {
-      router.replace("/(tabs)");
+      const role = profile?.role || getPendingRole();
+      if (role === "shelter") router.replace("/(tabs)/shelter-home");
+      else if (role === "provider") router.replace("/(tabs)/provider-home");
+      else if (role === "pending_provider" || role === "rejected_provider") router.replace("/(tabs)/pending-provider");
+      else if (role === "admin" || user?.email === "mypetdexapp@gmail.com") router.replace("/(tabs)/admin-dashboard");
+      else router.replace("/(tabs)");
     } else {
       setError("Not verified yet. Open the link in the email we sent, then try again.");
     }

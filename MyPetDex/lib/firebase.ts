@@ -1,6 +1,8 @@
 import { initializeApp, getApps } from "firebase/app";
 import {
-  initializeAuth, getReactNativePersistence,
+  initializeAuth,
+  // @ts-expect-error — exported in the RN bundle; missing from web TypeScript typings
+  getReactNativePersistence,
   GoogleAuthProvider, OAuthProvider,
   onAuthStateChanged, signOut, signInAnonymously,
   createUserWithEmailAndPassword, signInWithEmailAndPassword,

@@ -47,6 +47,10 @@ export default function HomeScreen() {
       if (role === "provider") { router.replace("/(tabs)/provider-home"); return; }
       if (role === "shelter") { router.replace("/(tabs)/shelter-home"); return; }
       if (role === "admin") { router.replace("/(tabs)/admin-dashboard"); return; }
+      if (role === "pending_provider" || role === "rejected_provider") {
+        router.replace("/(tabs)/pending-provider");
+        return;
+      }
       setRoleChecked(true);
     }).catch(() => setRoleChecked(true));
   }, [user]);
@@ -61,7 +65,7 @@ export default function HomeScreen() {
         // Prefetch all pet photos immediately so they're cached before user navigates
         docs.forEach((d: any) => { if (d.photoURL) ExpoImage.prefetch(d.photoURL); });
         if (docs.length > 0) {
-          setSelectedPet(prev =>
+          setSelectedPet((prev: any) =>
             prev ? (docs.find(d => d.id === prev.id) ?? docs[0]) : docs[0]
           );
         }

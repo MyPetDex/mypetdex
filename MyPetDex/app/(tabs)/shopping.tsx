@@ -20,6 +20,7 @@ export default function ShoppingScreen() {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [imgError, setImgError] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function ShoppingScreen() {
 
   async function loadProducts() {
     setLoading(true);
+    setLoadError("");
     try {
       const snap = await getDocs(collection(db, "featured_products"));
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
@@ -35,6 +37,7 @@ export default function ShoppingScreen() {
       setProducts(list);
     } catch (e) {
       console.error("Failed to load products:", e);
+      setLoadError("Could not load products. Check your connection and try again.");
     }
     setLoading(false);
   }
@@ -132,6 +135,15 @@ export default function ShoppingScreen() {
 
         {loading ? (
           <ActivityIndicator color={BRAND} style={{ marginTop: 32 }} />
+        ) : loadError ? (
+          <View style={styles.emptyBox}>
+            <Ionicons name="cloud-offline-outline" size={48} color="#ccc" />
+            <Text style={styles.emptyTitle}>Couldn't load products</Text>
+            <Text style={styles.emptySub}>{loadError}</Text>
+            <Pressable style={styles.retryBtn} onPress={loadProducts}>
+              <Text style={styles.retryBtnText}>Try Again</Text>
+            </Pressable>
+          </View>
         ) : visibleProducts.length === 0 ? (
           <View style={styles.emptyBox}>
             <Ionicons name={shopTab === "amazon" ? "cube-outline" : "cart-outline"} size={48} color="#ccc" />
@@ -300,4 +312,6 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 48 },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: "#333" },
   emptySub: { fontSize: 13, color: "#888", textAlign: "center", lineHeight: 20, paddingHorizontal: 16 },
+  retryBtn: { marginTop: 12, backgroundColor: BRAND, borderRadius: 10, paddingHorizontal: 20, paddingVertical: 12 },
+  retryBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 });

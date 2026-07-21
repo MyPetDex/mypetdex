@@ -15,6 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.mypetdex",
+      "buildNumber": "1",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "MyPetDex uses your camera to add pet photos.",
@@ -36,6 +37,7 @@
         "backgroundColor": "#4CAF82"
       },
       "package": "app.mypetdex",
+      "versionCode": 1,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",

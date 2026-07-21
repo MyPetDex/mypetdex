@@ -62,14 +62,18 @@ export default function SignInScreen() {
   // Handle Google auth response
   useEffect(() => {
     if (response?.type === "success") {
+      // Keep loading=true — signInWithCredential is async; the component
+      // will unmount when onAuthStateChanged fires. Only clear on failure.
       const { id_token } = response.params;
       const credential = GoogleAuthProvider.credential(id_token);
       signInWithCredential(auth, credential).catch((e) => {
         setError("Could not sign in with Google. Please try again.");
+        setLoading(false);
         console.error(e);
       });
-    } else if (response?.type === "error") {
+    } else if (response?.type === "error" || response?.type === "dismiss") {
       setError("Could not sign in with Google. Please try again.");
+      setLoading(false);
     }
   }, [response]);
   const [form, setForm] = useState({
@@ -80,7 +84,7 @@ export default function SignInScreen() {
     shelterName: "", ein: "", license: "",
   });
 
-  if (authLoading || user) return null;
+  if (authLoading || user || loading) return null;
 
   function set(key: string) {
     return (val: string) => setForm(f => ({ ...f, [key]: val }));
@@ -90,8 +94,12 @@ export default function SignInScreen() {
     setError(""); setLoading(true);
     setPendingRole(role);
     try { await signInWithGoogle(); }
-    catch { setError("Could not sign in with Google. Please try again."); }
-    finally { setLoading(false); }
+    catch {
+      setError("Could not sign in with Google. Please try again.");
+      setLoading(false);
+    }
+    // No finally setLoading(false) — loading stays true until the response
+    // useEffect processes the credential and the component unmounts on success.
   }
 
   async function handleApple() {
@@ -119,9 +127,18 @@ export default function SignInScreen() {
       setPendingUser(u);
       setStep(2);
     } catch (e: any) {
-      setError(e.code === "auth/email-already-in-use"
-        ? "This email is already registered. Please sign in instead."
-        : e.message || "Registration failed.");
+      const code = e?.code || "";
+      if (code === "auth/email-already-in-use") {
+        setError("This email is already registered. Please sign in instead.");
+      } else if (code === "auth/weak-password") {
+        setError("Password is too weak. Use at least 8 characters.");
+      } else if (code === "auth/invalid-email") {
+        setError("Please enter a valid email address.");
+      } else if (code === "auth/network-request-failed") {
+        setError("Network error. Check your connection and try again.");
+      } else {
+        setError("Registration failed. Please try again.");
+      }
     }
     setLoading(false);
   }
@@ -163,8 +180,8 @@ export default function SignInScreen() {
         });
       }
       // Verification email is sent from check-email.tsx — AuthGuard routes there automatically.
-    } catch (e: any) {
-      setError(e.message || "Could not complete registration.");
+    } catch {
+      setError("Could not complete registration. Please try again.");
     }
     setLoading(false);
   }

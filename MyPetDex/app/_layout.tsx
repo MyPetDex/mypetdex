@@ -1,5 +1,5 @@
 import { useEffect, useRef, Component, ReactNode } from "react";
-import { Pressable, Text, View, ScrollView } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
@@ -29,23 +29,29 @@ Sentry.init({
   // spotlight: __DEV__,
 });
 
-// ── Error Boundary — catches JS crashes and shows the error on screen ──────────
+// ── Error Boundary — catches JS crashes without exposing stack to users ──────────
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null };
   static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error) {
+    Sentry.captureException(error);
+  }
   render() {
     if (this.state.error) {
-      const err = this.state.error as Error;
       return (
-        <View style={{ flex: 1, backgroundColor: "#fff", padding: 24, paddingTop: 80 }}>
-          <Text style={{ fontSize: 18, fontWeight: "700", color: "#E53935", marginBottom: 12 }}>
-            🚨 App Error (send this to developer)
+        <View style={{ flex: 1, backgroundColor: "#fff", padding: 24, paddingTop: 80, alignItems: "center" }}>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: "#1a1a1a", marginBottom: 12, textAlign: "center" }}>
+            Something went wrong
           </Text>
-          <ScrollView style={{ backgroundColor: "#f5f5f5", borderRadius: 8, padding: 12 }}>
-            <Text style={{ fontSize: 13, color: "#333", fontFamily: "Courier", lineHeight: 20 }}>
-              {err.name}: {err.message}{"\n\n"}{err.stack}
-            </Text>
-          </ScrollView>
+          <Text style={{ fontSize: 14, color: "#666", textAlign: "center", lineHeight: 22, marginBottom: 24 }}>
+            Please close and reopen the app. If this keeps happening, contact help@mypetdex.app.
+          </Text>
+          <Pressable
+            onPress={() => this.setState({ error: null })}
+            style={{ backgroundColor: BRAND, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 14 }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Try Again</Text>
+          </Pressable>
         </View>
       );
     }
@@ -73,6 +79,8 @@ function tabsHomeHref(profile: { role?: string } | null | undefined, pendingRole
   const role = profile?.role || pendingRole;
   if (role === "shelter") return "/(tabs)/shelter-home" as const;
   if (role === "provider") return "/(tabs)/provider-home" as const;
+  if (role === "pending_provider" || role === "rejected_provider") return "/(tabs)/pending-provider" as const;
+  if (role === "admin") return "/(tabs)/admin-dashboard" as const;
   return "/(tabs)" as const;
 }
 
@@ -157,8 +165,8 @@ function AuthGuard() {
   useEffect(() => {
     try {
       Purchases.configure({ apiKey: "appl_pEdUnYfNGuoftcDZxKvVuyYzYUb" });
-    } catch (e) {
-      console.log("RevenueCat unavailable in this environment");
+    } catch {
+      // RevenueCat unavailable in this environment (e.g. Expo Go / web)
     }
   }, []);
 

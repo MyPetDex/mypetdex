@@ -16,6 +16,17 @@ const AI_PROXY_URL = "https://us-central1-mypetdex-c4315.cloudfunctions.net/aiPr
 
 type Message = { role: "user" | "assistant"; text: string };
 
+// Strip markdown syntax to clean plain text
+function cleanMarkdown(text: string): string {
+  return text
+    .replace(/^#{1,3}\s+/gm, "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/^[-*]\s+/gm, "• ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 type Pet = {
   id: string;
   name?: string;
@@ -245,7 +256,9 @@ export default function AIVetScreen() {
                 <Text style={styles.aiLabel}>MyPetDex Assistant</Text>
               </View>
             )}
-            <Text style={[styles.bubbleText, msg.role === "user" && styles.userText]}>{msg.text}</Text>
+            <Text style={[styles.bubbleText, msg.role === "user" && styles.userText]}>
+              {msg.role === "assistant" ? cleanMarkdown(msg.text) : msg.text}
+            </Text>
           </View>
         ))}
         {loading && (

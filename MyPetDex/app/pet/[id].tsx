@@ -1513,6 +1513,7 @@ function CaloriesTab({ pet, user }: { pet: any; user: any }) {
 const RECIPE_URL = "https://us-central1-mypetdex-c4315.cloudfunctions.net/getRecipe";
 
 function RecipesTab({ pet, canUseAI }: { pet: any; canUseAI: boolean }) {
+  const router = useRouter();
   const { user } = useAuth();
   const [step, setStep] = useState<"select" | "result">("select");
   const [selected, setSelected] = useState<Record<string, string[]>>({});
@@ -1697,6 +1698,9 @@ ${recipe.warning ? `<div class="section"><div class="label">Important</div><div 
         <Text style={styles.emptyEmoji}>🔒</Text>
         <Text style={styles.emptyTitle}>Plus Feature</Text>
         <Text style={styles.emptySub}>Upgrade to Plus to generate AI-powered personalized recipes for {pet.name}</Text>
+        <Pressable style={styles.addBtn} onPress={() => router.push("/settings/subscription")}>
+          <Text style={styles.addBtnText}>Upgrade to Plus</Text>
+        </Pressable>
       </View>
     </View>
   );

@@ -90,7 +90,7 @@ export default function AdminDashboard() {
         <TouchableOpacity
           key={item.tab}
           style={s.navCard}
-          onPress={() => router.push(`/(tabs)/${item.tab}`)}
+          onPress={() => router.push(`/(tabs)/${item.tab}` as any)}
           activeOpacity={0.7}
         >
           <View style={s.navIcon}>
