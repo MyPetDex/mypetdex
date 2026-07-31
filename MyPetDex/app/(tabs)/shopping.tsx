@@ -59,7 +59,7 @@ export default function ShoppingScreen() {
   const visibleProducts = shopTab === "amazon" ? amazonProducts : chewyProducts;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} bounces={false}>
 
       {/* Tab Toggle */}
       <View style={styles.toggleRow}>

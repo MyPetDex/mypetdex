@@ -16,8 +16,13 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.mypetdex",
       "buildNumber": "1",
+      "orientation": "portrait",
+      "requireFullScreen": true,
       "usesAppleSignIn": true,
       "infoPlist": {
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait"
+        ],
         "NSCameraUsageDescription": "MyPetDex uses your camera to add pet photos.",
         "NSPhotoLibraryUsageDescription": "MyPetDex accesses your photos to set pet profile pictures.",
         "NSMicrophoneUsageDescription": "MyPetDex may use your microphone for video recording.",
@@ -32,6 +37,7 @@
       }
     },
     "android": {
+      "orientation": "portrait",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#4CAF82"
@@ -55,6 +61,12 @@
     "plugins": [
       "expo-router",
       "expo-apple-authentication",
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
+        }
+      ],
       [
         "expo-notifications",
         {

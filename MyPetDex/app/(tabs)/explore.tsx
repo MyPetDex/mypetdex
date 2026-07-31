@@ -488,7 +488,7 @@ export default function ExploreScreen() {
 
       {/* ── Services Tab ── */}
       {activeTab === "services" && (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false}>
           <Text style={styles.heading}>Find Pet Services Near You</Text>
           <Text style={styles.subheading}>Vets, groomers, walkers & more</Text>
 
@@ -583,7 +583,7 @@ export default function ExploreScreen() {
 
       {/* ── Adopt Tab ── */}
       {activeTab === "adopt" && (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false}>
           <Text style={styles.heading}>Adopt a Pet ❤️</Text>
           <Text style={styles.subheading}>Real pets available near you</Text>
 

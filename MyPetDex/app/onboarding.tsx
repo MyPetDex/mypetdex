@@ -238,7 +238,7 @@ export default function OnboardingScreen() {
         </View>
       </SafeAreaView>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" bounces={false}>
       <View style={styles.inner}>
 
         {/* Logo */}

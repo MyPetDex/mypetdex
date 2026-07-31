@@ -93,7 +93,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} bounces={false}>
       <UpgradePrompt
         visible={showUpgrade}
         onClose={() => setShowUpgrade(false)}

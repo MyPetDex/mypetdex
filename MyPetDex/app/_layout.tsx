@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import { Ionicons } from "@expo/vector-icons";
+import * as ScreenOrientation from "expo-screen-orientation";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { registerForPushNotifications } from "@/lib/notifications";
@@ -182,6 +183,10 @@ function AuthGuard() {
 export default Sentry.wrap(function RootLayout() {
   // Load Ionicons font — fixes empty-square tab bar icons on iOS and web
   const [fontsLoaded] = useFonts({ ...Ionicons.font });
+
+  useEffect(() => {
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+  }, []);
 
   // Don't render until fonts are ready; avoids the brief empty-square flash
   if (!fontsLoaded) return null;

@@ -93,7 +93,7 @@ export default function PetsScreen() {
       {loading ? (
         <ActivityIndicator color={BRAND} style={{ marginTop: 40 }} />
       ) : (
-        <ScrollView contentContainerStyle={styles.list}>
+        <ScrollView contentContainerStyle={styles.list} bounces={false}>
           {filtered.length === 0 ? (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyEmoji}>🐾</Text>
