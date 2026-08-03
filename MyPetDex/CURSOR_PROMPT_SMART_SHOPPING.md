@@ -1,3 +1,24 @@
+# MyPetDex — Smart Shopping (Replace Manual Firestore Curation)
+
+## Problem
+
+The shopping tab loads products from Firestore `featured_products` — a collection that must be manually populated by an admin. The collection may be empty or stale, leaving users with no products.
+
+## Goal
+
+Replace the manual Firestore product list with a hardcoded smart catalog that:
+- Covers ~50 popular pet products across all categories
+- Adapts to the user's pet species (dog vs cat)
+- Generates live Amazon and Chewy search URLs — always finds in-stock products
+- Deploys via OTA (pure JS change, no new native modules)
+
+---
+
+## Full Replacement of `app/(tabs)/shopping.tsx`
+
+Replace the **entire file** with the following:
+
+```tsx
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   Linking, TextInput,
@@ -379,3 +400,29 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: "700", color: "#333" },
   emptySub: { fontSize: 13, color: "#888", textAlign: "center", lineHeight: 20 },
 });
+```
+
+---
+
+## After applying
+
+```bash
+npx tsc --noEmit --skipLibCheck   # 0 errors
+git add -A
+git commit -m "Replace manual Firestore shopping with smart product catalog"
+eas update --channel production --message "Smart shopping: 50+ products, auto dog/cat filter"
+```
+
+---
+
+## Notes
+
+- The `featured_products` Firestore collection can remain as-is — this code no longer reads from it, so old data won't interfere.
+- **Amazon Associates:** Once you have an Amazon Associates account (apply at affiliate-program.amazon.com), add your tag to `getAmazonUrl()`: `&tag=YOUR_TAG-20`. This earns you commissions on qualifying purchases.
+- Products link to Amazon/Chewy **search results** (not specific ASINs), so users always find in-stock items. When you want to link to a specific product, replace `amazonSearch` with the full product URL in `openProduct()`.
+
+## ⛔ DO NOT TOUCH
+
+- `auth.mypetdex.app` — never change auth domain
+- `service-account.json` — never commit
+- Firebase Functions deploy: always type N for `rescueProxy`, `deleteAccount`, `getPublicStats`
