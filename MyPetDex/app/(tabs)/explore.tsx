@@ -5,6 +5,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
@@ -65,17 +66,6 @@ function StateDropdown({ value, onSelect }: { value: string; onSelect: (v: strin
       </Modal>
     </>
   );
-}
-
-interface AdoptPet {
-  id: string;
-  name: string;
-  breed: string;
-  age: string;
-  sex: string;
-  photo: string;
-  url: string;
-  city: string;
 }
 
 interface LocalShelterPet {
@@ -332,38 +322,7 @@ export default function ExploreScreen() {
   // Adopt state
   const [petType, setPetType] = useState<"Dog" | "Cat">("Dog");
   const [zipCode, setZipCode] = useState("");
-  const [adoptPets, setAdoptPets] = useState<AdoptPet[]>([]);
   const [localShelterPets, setLocalShelterPets] = useState<LocalShelterPet[]>([]);
-  const [adoptLoading, setAdoptLoading] = useState(false);
-  const [adoptError, setAdoptError] = useState("");
-
-  // ── Adopt search ────────────────────────────────────────────────────────────
-  const getStateFromZip = (zip: string): string => {
-    const z = parseInt(zip);
-    if (z >= 1001 && z <= 2791) return "MA";
-    if (z >= 6001 && z <= 6999) return "CT";
-    if (z >= 7001 && z <= 8999) return "NJ";
-    if (z >= 10001 && z <= 14999) return "NY";
-    if (z >= 15001 && z <= 19699) return "PA";
-    if (z >= 19701 && z <= 19999) return "DE";
-    if (z >= 20601 && z <= 21999) return "MD";
-    if (z >= 22001 && z <= 24699) return "VA";
-    if (z >= 27001 && z <= 28999) return "NC";
-    if (z >= 30001 && z <= 31999) return "GA";
-    if (z >= 32001 && z <= 34999) return "FL";
-    if (z >= 37001 && z <= 38599) return "TN";
-    if (z >= 43001 && z <= 45999) return "OH";
-    if (z >= 46001 && z <= 47999) return "IN";
-    if (z >= 48001 && z <= 49999) return "MI";
-    if (z >= 60001 && z <= 62999) return "IL";
-    if (z >= 75001 && z <= 79999) return "TX";
-    if (z >= 80001 && z <= 81999) return "CO";
-    if (z >= 85001 && z <= 86599) return "AZ";
-    if (z >= 90001 && z <= 96199) return "CA";
-    if (z >= 97001 && z <= 97999) return "OR";
-    if (z >= 98001 && z <= 99499) return "WA";
-    return "NJ";
-  };
 
   async function fetchLocalShelterPets(zip: string, species: string): Promise<LocalShelterPet[]> {
     const snap = await getDocs(query(
@@ -390,76 +349,18 @@ export default function ExploreScreen() {
 
   const searchAdopt = async () => {
     if (!zipCode || zipCode.length < 5) return;
-    setAdoptLoading(true);
-    setAdoptError("");
-    setAdoptPets([]);
-    setLocalShelterPets([]);
-    const state = getStateFromZip(zipCode);
-
-    let localPets: LocalShelterPet[] = [];
-    let rescuePets: AdoptPet[] = [];
-
     try {
-      localPets = await fetchLocalShelterPets(zipCode, petType);
+      const localPets = await fetchLocalShelterPets(zipCode, petType);
       setLocalShelterPets(localPets);
-    } catch (e) {
-      console.error("Local shelter pets fetch error:", e);
+    } catch {
+      setLocalShelterPets([]);
     }
-
-    try {
-      const rescueRes = await fetch("https://us-central1-mypetdex-c4315.cloudfunctions.net/rescueProxy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: {
-            filters: [
-              { fieldName: "statuses.name", operation: "equals", criteria: "Available" },
-              { fieldName: "locations.state", operation: "equals", criteria: state },
-              { fieldName: "species.singular", operation: "equals", criteria: petType },
-            ],
-            limit: 12,
-            include: ["pictures", "orgs", "locations"],
-          },
-        }),
-      });
-      const data = await rescueRes.json();
-      rescuePets = (data.data || [])
-        .map((a: any) => {
-          const attr = a.attributes;
-          const locId = a.relationships?.locations?.data?.[0]?.id;
-          const orgId = a.relationships?.orgs?.data?.[0]?.id;
-          const loc = data.included?.find((i: any) => i.type === "locations" && i.id === locId);
-          const org = data.included?.find((i: any) => i.type === "orgs" && i.id === orgId);
-
-          const petDirectUrl = attr.url && attr.url.startsWith("http") && !attr.url.includes("rescuegroups.org/org/")
-            ? attr.url
-            : `https://www.rescuegroups.org/animals/detail/${a.id}/`;
-
-          return {
-            id: a.id,
-            name: attr.name || "Unknown",
-            breed: attr.breedString || attr.breedPrimary || "",
-            age: attr.ageGroup || "",
-            sex: attr.sex || "",
-            photo: attr.pictureThumbnailUrl || attr.pictureThumbUrl || "",
-            url: petDirectUrl,
-            city: loc?.attributes?.city || org?.attributes?.city || state,
-          };
-        })
-        .filter((a: AdoptPet) => a.name && a.name !== "Unknown");
-      setAdoptPets(rescuePets);
-    } catch (e) {
-      console.error("RescueGroups fetch error:", e);
-      if (localPets.length === 0) {
-        setAdoptError("Could not load pets. Please try again.");
-      }
-    }
-
-    if (localPets.length === 0 && rescuePets.length === 0) {
-      setAdoptError("No pets found near that zip code. Try another!");
-    }
-
-    setAdoptLoading(false);
+    const petTypeParam = petType === "Dog" ? "dog" : "cat";
+    const url = `https://www.adoptapet.com/pet-adoption?zip=${zipCode}&petType=${petTypeParam}`;
+    await WebBrowser.openBrowserAsync(url, {
+      presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+      toolbarColor: "#4486F4",
+    });
   };
 
   return (
@@ -585,15 +486,15 @@ export default function ExploreScreen() {
       {activeTab === "adopt" && (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false}>
           <Text style={styles.heading}>Adopt a Pet ❤️</Text>
-          <Text style={styles.subheading}>Real pets available near you</Text>
+          <Text style={styles.subheading}>Find pets near you ready to adopt</Text>
 
-          {/* Type toggle */}
+          {/* Dog / Cat toggle */}
           <View style={styles.typeRow}>
             {(["Dog", "Cat"] as const).map((t) => (
               <Pressable
                 key={t}
                 style={[styles.typeBtn, petType === t && styles.typeBtnActive]}
-                onPress={() => { setPetType(t); setAdoptPets([]); setLocalShelterPets([]); setAdoptError(""); }}
+                onPress={() => setPetType(t)}
               >
                 <Text style={[styles.typeText, petType === t && styles.typeTextActive]}>
                   {t === "Dog" ? "🐶 Dogs" : "🐱 Cats"}
@@ -601,17 +502,6 @@ export default function ExploreScreen() {
               </Pressable>
             ))}
           </View>
-
-          {/* Cat coming soon */}
-          {petType === "Cat" && (
-            <View style={styles.catBanner}>
-              <Text style={styles.catBannerEmoji}>🐱</Text>
-              <Text style={styles.catBannerTitle}>Cat Adoption Coming Soon!</Text>
-              <Text style={styles.catBannerSub}>
-                We're onboarding cat-friendly shelters. Search below to find cats near you in the meantime.
-              </Text>
-            </View>
-          )}
 
           {/* Zip search */}
           <View style={styles.searchRow}>
@@ -623,6 +513,8 @@ export default function ExploreScreen() {
               onChangeText={setZipCode}
               keyboardType="numeric"
               maxLength={5}
+              returnKeyType="search"
+              onSubmitEditing={searchAdopt}
             />
             <Pressable
               style={[styles.searchBtn, zipCode.length < 5 && { opacity: 0.5 }]}
@@ -633,17 +525,16 @@ export default function ExploreScreen() {
             </Pressable>
           </View>
 
-          {adoptLoading && (
-            <ActivityIndicator color={BRAND} style={{ marginTop: 40 }} />
-          )}
+          {/* Info card */}
+          <View style={styles.adoptInfoCard}>
+            <Text style={styles.adoptInfoEmoji}>🐾</Text>
+            <Text style={styles.adoptInfoTitle}>Real pets near you, ready to adopt</Text>
+            <Text style={styles.adoptInfoSub}>
+              Enter your zip code and tap Search to browse adoptable {petType === "Dog" ? "dogs" : "cats"} from shelters and rescues in your area.
+            </Text>
+          </View>
 
-          {adoptError ? (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyEmoji}>🐾</Text>
-              <Text style={styles.emptyTitle}>{adoptError}</Text>
-            </View>
-          ) : null}
-
+          {/* Local shelter pets from Firestore (if any) */}
           {localShelterPets.length > 0 ? (
             <>
               <Text style={styles.resultsLabel}>Available at Local Shelters</Text>
@@ -660,14 +551,10 @@ export default function ExploreScreen() {
                     <View style={styles.petInfo}>
                       <Text style={styles.petName} numberOfLines={1}>{pet.name}</Text>
                       <Text style={styles.petBreed} numberOfLines={1}>{pet.breed}</Text>
-                      <Text style={styles.petMeta}>
-                        {[pet.age, pet.gender].filter(Boolean).join(" · ")}
-                      </Text>
+                      <Text style={styles.petMeta}>{[pet.age, pet.gender].filter(Boolean).join(" · ")}</Text>
                       <Text style={styles.petCity} numberOfLines={1}>🏠 {pet.shelterName}</Text>
                       {pet.contactPhone ? (
-                        <Pressable
-                          onPress={() => Linking.openURL(`tel:${pet.contactPhone.replace(/\D/g, "")}`)}
-                        >
+                        <Pressable onPress={() => Linking.openURL(`tel:${pet.contactPhone.replace(/\D/g, "")}`)}>
                           <Text style={styles.shelterPhone}>📞 {pet.contactPhone}</Text>
                         </Pressable>
                       ) : null}
@@ -678,56 +565,13 @@ export default function ExploreScreen() {
             </>
           ) : null}
 
-          {/* RescueGroups results grid */}
-          {adoptPets.length > 0 && (
-            <>
-              <Text style={styles.resultsLabel}>
-                🐾 {adoptPets.length} more available near you
-              </Text>
-              <View style={styles.petGrid}>
-                {adoptPets.map((pet) => (
-                  <Pressable
-                    key={pet.id}
-                    style={styles.petCard}
-                    onPress={() => pet.url && Linking.openURL(pet.url)}
-                  >
-                    {pet.photo ? (
-                      <Image
-                        source={{ uri: pet.photo }}
-                        style={styles.petPhoto}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View style={styles.petPhotoPlaceholder}>
-                        <Text style={{ fontSize: 32 }}>
-                          {petType === "Dog" ? "🐶" : "🐱"}
-                        </Text>
-                      </View>
-                    )}
-                    <View style={styles.petInfo}>
-                      <Text style={styles.petName} numberOfLines={1}>{pet.name}</Text>
-                      <Text style={styles.petBreed} numberOfLines={1}>{pet.breed}</Text>
-                      <Text style={styles.petMeta}>{pet.age} · {pet.sex}</Text>
-                      <Text style={styles.petCity} numberOfLines={1}>📍 {pet.city}</Text>
-                      <View style={styles.meetBtn}>
-                        <Text style={styles.meetBtnText}>Meet {pet.name} →</Text>
-                      </View>
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-            </>
-          )}
-
-          {!adoptLoading && adoptPets.length === 0 && localShelterPets.length === 0 && !adoptError && (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyEmoji}>❤️</Text>
-              <Text style={styles.emptyTitle}>Find your next best friend</Text>
-              <Text style={styles.emptySub}>
-                Enter your zip code to search real adoptable pets near you — powered by RescueGroups.org
-              </Text>
-            </View>
-          )}
+          {/* Powered-by attribution (required by Adopt-a-Pet terms) */}
+          <View style={styles.poweredByRow}>
+            <Text style={styles.poweredByText}>Adoption data powered by </Text>
+            <Pressable onPress={() => Linking.openURL("https://www.adoptapet.com")}>
+              <Text style={styles.poweredByLink}>Adopt-a-Pet.com</Text>
+            </Pressable>
+          </View>
         </ScrollView>
       )}
     </View>
@@ -851,19 +695,31 @@ const styles = StyleSheet.create({
   typeText: { fontSize: 14, fontWeight: "600", color: "#666" },
   typeTextActive: { color: BRAND, fontWeight: "700" },
 
-  catBanner: {
-    backgroundColor: "#FFF9E6",
-    borderRadius: 14,
-    padding: 16,
+  adoptInfoCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
     alignItems: "center",
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: "#F59E0B33",
-    gap: 4,
+    gap: 8,
+    marginTop: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
-  catBannerEmoji: { fontSize: 28 },
-  catBannerTitle: { fontSize: 15, fontWeight: "700", color: "#92400E" },
-  catBannerSub: { fontSize: 12, color: "#B45309", textAlign: "center", lineHeight: 18 },
+  adoptInfoEmoji: { fontSize: 40 },
+  adoptInfoTitle: { fontSize: 16, fontWeight: "700", color: "#1a1a1a", textAlign: "center" },
+  adoptInfoSub: { fontSize: 13, color: "#888", textAlign: "center", lineHeight: 20 },
+  poweredByRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  poweredByText: { fontSize: 11, color: "#aaa" },
+  poweredByLink: { fontSize: 11, color: "#4486F4", fontWeight: "600" },
 
   resultsLabel: { fontSize: 14, fontWeight: "700", color: "#1a1a1a", marginBottom: 12, marginTop: 8 },
 
@@ -893,21 +749,9 @@ const styles = StyleSheet.create({
   petMeta: { fontSize: 11, color: "#888" },
   petCity: { fontSize: 11, color: "#888" },
   shelterPhone: { fontSize: 12, color: BRAND, fontWeight: "600", marginTop: 4 },
-  meetBtn: {
-    backgroundColor: BRAND,
-    borderRadius: 8,
-    paddingVertical: 6,
-    alignItems: "center",
-    marginTop: 6,
-  },
-  meetBtnText: { color: "#fff", fontSize: 11, fontWeight: "700" },
 
   cancelBtn: { backgroundColor: "#fee2e2", borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
   cancelBtnText: { color: "#dc2626", fontWeight: "700", fontSize: 14 },
-  emptyBox: { alignItems: "center", paddingTop: 48, gap: 10 },
-  emptyEmoji: { fontSize: 48 },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: "#333", textAlign: "center" },
-  emptySub: { fontSize: 13, color: "#888", textAlign: "center", lineHeight: 20, paddingHorizontal: 16 },
-  searchRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, marginHorizontal: 16, marginBottom: 12 },
+  searchRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, marginBottom: 12 },
   searchInput: { flex: 1, backgroundColor: "#fff", borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, padding: 12, fontSize: 14, color: "#1E293B" },
 });
