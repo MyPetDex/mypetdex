@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Linking, Modal, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Linking, Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import * as WebBrowser from "expo-web-browser";
-import { webAuth, webDb, callFunction } from "@/lib/firebase";
-import { doc, deleteDoc, collection, getDocs } from "firebase/firestore";
+import { auth, db, webAuth, webDb } from "@/lib/firebase";
+import { doc, deleteDoc, collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 
 const BRAND = "#4C6EF5";
 
@@ -17,6 +18,13 @@ export default function SettingsScreen() {
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSending, setFeedbackSending] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
+  const isPasswordUser = !!auth.currentUser?.providerData?.some((p) => p.providerId === "password");
 
   function handleDeleteAccount() {
     Alert.alert(
@@ -58,15 +66,55 @@ export default function SettingsScreen() {
     }
     setFeedbackSending(true);
     try {
-      const fn = callFunction("sendFeedback");
-      await fn({ subject: "General Feedback", message: feedbackText.trim() });
+      await addDoc(collection(db, "feedback"), {
+        message: feedbackText.trim(),
+        subject: "General Feedback",
+        uid: auth.currentUser?.uid ?? "anonymous",
+        email: auth.currentUser?.email ?? "",
+        createdAt: serverTimestamp(),
+      });
       setFeedbackText("");
       setFeedbackVisible(false);
       Alert.alert("Thank you!", "Your feedback has been sent.");
     } catch {
-      Alert.alert("Error", "Could not send feedback. Please try again.");
+      Alert.alert("Error", "Could not send feedback. Please email help@mypetdex.app");
     } finally {
       setFeedbackSending(false);
+    }
+  }
+
+  async function handleChangePassword() {
+    if (newPassword.length < 8) {
+      Alert.alert("Error", "Password must be at least 8 characters.");
+      return;
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      Alert.alert("Error", 'Password must include at least one special character (e.g. @, #, !)');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match.");
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      const currentUser = auth.currentUser!;
+      const credential = EmailAuthProvider.credential(currentUser.email!, currentPassword);
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, newPassword);
+      Alert.alert("Success", "Your password has been updated.");
+      setShowChangePassword(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (e: any) {
+      if (e.code === "auth/wrong-password" || e.code === "auth/invalid-credential") {
+        Alert.alert("Error", "Current password is incorrect.");
+      } else {
+        Alert.alert("Error", "Could not update password. Please try again.");
+      }
+    } finally {
+      setPasswordSaving(false);
     }
   }
 
@@ -101,6 +149,61 @@ export default function SettingsScreen() {
               disabled={feedbackSending}
             >
               <Text style={styles.sendBtnText}>{feedbackSending ? "Sending…" : "Send Feedback"}</Text>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Change Password Modal */}
+      <Modal visible={showChangePassword} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowChangePassword(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Change Password</Text>
+              <Pressable onPress={() => setShowChangePassword(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.fieldLabel}>Current Password</Text>
+            <TextInput
+              style={styles.passwordInput}
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              placeholder="Enter current password"
+              placeholderTextColor="#aaa"
+              secureTextEntry
+              autoCapitalize="none"
+            />
+            <Text style={styles.fieldLabel}>New Password</Text>
+            <TextInput
+              style={styles.passwordInput}
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder="At least 8 characters + special character"
+              placeholderTextColor="#aaa"
+              secureTextEntry
+              autoCapitalize="none"
+            />
+            <Text style={styles.fieldLabel}>Confirm New Password</Text>
+            <TextInput
+              style={styles.passwordInput}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Re-enter new password"
+              placeholderTextColor="#aaa"
+              secureTextEntry
+              autoCapitalize="none"
+            />
+            <Pressable
+              style={[styles.sendBtn, passwordSaving && { opacity: 0.6 }]}
+              onPress={handleChangePassword}
+              disabled={passwordSaving}
+            >
+              {passwordSaving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.sendBtnText}>Update Password</Text>
+              )}
             </Pressable>
           </View>
         </KeyboardAvoidingView>
@@ -153,6 +256,9 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>Legal & Support</Text>
         <View style={styles.card}>
           {[
+            ...(isPasswordUser
+              ? [{ label: "Change Password", icon: "🔑", onPress: () => setShowChangePassword(true) }]
+              : []),
             {
               label: "Privacy Policy", icon: "🔒",
               onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/privacy.html"),
@@ -234,7 +340,9 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 22, fontWeight: "700", color: TEXT },
   modalClose: { fontSize: 20, color: TEXT2, padding: 4 },
   modalSubtitle: { fontSize: 14, color: TEXT2, marginBottom: 16 },
+  fieldLabel: { fontSize: 13, fontWeight: "600", color: TEXT2, marginTop: 12, marginBottom: 8 },
+  passwordInput: { borderWidth: 1.5, borderColor: "#E0E4F0", borderRadius: 16, padding: 14, fontSize: 15, color: TEXT, backgroundColor: "#F8F9FC", marginBottom: 4 },
   feedbackInput: { borderWidth: 1.5, borderColor: "#E0E4F0", borderRadius: 16, padding: 14, fontSize: 15, color: TEXT, minHeight: 140, marginBottom: 16, backgroundColor: "#F8F9FC" },
-  sendBtn: { backgroundColor: BRAND, borderRadius: 16, padding: 16, alignItems: "center", shadowColor: BRAND, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
+  sendBtn: { backgroundColor: BRAND, borderRadius: 16, padding: 16, alignItems: "center", marginTop: 16, shadowColor: BRAND, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
   sendBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
 });

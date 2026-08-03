@@ -3,8 +3,8 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert,
   Share, Linking, Modal, Pressable, KeyboardAvoidingView, Platform,
 } from "react-native";
-import { webDb, webAuth, callFunction } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs } from "firebase/firestore";
+import { db, webDb, webAuth } from "@/lib/firebase";
+import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -74,15 +74,21 @@ export default function ShelterProfile() {
     }
     setFeedbackSending(true);
     try {
-      const fn = callFunction("sendFeedback");
-      await fn({ subject: "General Feedback", message: feedbackMessage.trim() });
+      await addDoc(collection(db, "feedback"), {
+        message: feedbackMessage.trim(),
+        subject: "General Feedback",
+        uid: webAuth.currentUser?.uid ?? user?.uid ?? "anonymous",
+        email: webAuth.currentUser?.email ?? user?.email ?? "",
+        createdAt: serverTimestamp(),
+      });
       setFeedbackMessage("");
       setShowFeedback(false);
       Alert.alert("Thank you!", "Your feedback has been sent.");
     } catch {
-      Alert.alert("Error", "Could not send feedback. Please email help@mypetdex.app directly.");
+      Alert.alert("Error", "Could not send feedback. Please email help@mypetdex.app");
+    } finally {
+      setFeedbackSending(false);
     }
-    setFeedbackSending(false);
   }
 
   function handleDeleteAccount() {

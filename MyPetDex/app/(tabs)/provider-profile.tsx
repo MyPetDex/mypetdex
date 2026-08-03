@@ -3,8 +3,8 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
   Share, Linking, Alert, Modal, TextInput, Pressable, KeyboardAvoidingView, Platform,
 } from "react-native";
-import { webDb, webAuth, callFunction } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs } from "firebase/firestore";
+import { db, webDb, webAuth } from "@/lib/firebase";
+import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -95,15 +95,21 @@ export default function ProviderProfile() {
     }
     setFeedbackSending(true);
     try {
-      const fn = callFunction("sendFeedback");
-      await fn({ subject: "General Feedback", message: feedbackMessage.trim() });
+      await addDoc(collection(db, "feedback"), {
+        message: feedbackMessage.trim(),
+        subject: "General Feedback",
+        uid: webAuth.currentUser?.uid ?? user?.uid ?? "anonymous",
+        email: webAuth.currentUser?.email ?? user?.email ?? "",
+        createdAt: serverTimestamp(),
+      });
       setFeedbackMessage("");
       setShowFeedback(false);
       Alert.alert("Thank you!", "Your feedback has been sent.");
     } catch {
-      Alert.alert("Error", "Could not send feedback. Please email help@mypetdex.app directly.");
+      Alert.alert("Error", "Could not send feedback. Please email help@mypetdex.app");
+    } finally {
+      setFeedbackSending(false);
     }
-    setFeedbackSending(false);
   }
 
   function handleDeleteAccount() {
@@ -221,88 +227,92 @@ export default function ProviderProfile() {
 
       {/* ── Edit Profile Modal ─────────────────────────────────── */}
       <Modal visible={showEdit} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowEdit(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-          <ScrollView style={s.modalContainer} contentContainerStyle={{ paddingBottom: 40 }}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Edit Profile</Text>
-              <Pressable onPress={() => setShowEdit(false)}>
-                <Text style={s.modalClose}>Cancel</Text>
-              </Pressable>
-            </View>
-            {[
-              { label: "Business Name", key: "businessName", placeholder: "Your business name" },
-              { label: "Phone", key: "phone", placeholder: "+1 (555) 000-0000" },
-              { label: "Website", key: "website", placeholder: "https://yoursite.com" },
-              { label: "Price Range", key: "priceRange", placeholder: "e.g. $30–$60" },
-              { label: "City", key: "city", placeholder: "City" },
-              { label: "State", key: "state", placeholder: "e.g. NJ" },
-            ].map(field => (
-              <View key={field.key} style={{ marginBottom: 14 }}>
-                <Text style={s.fieldLabel}>{field.label}</Text>
+        <View style={{ flex: 1 }}>
+          <KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+            <ScrollView contentContainerStyle={[s.modalContainer, { paddingBottom: 40 }]} keyboardShouldPersistTaps="handled">
+              <View style={s.modalHeader}>
+                <Text style={s.modalTitle}>Edit Profile</Text>
+                <Pressable onPress={() => setShowEdit(false)}>
+                  <Text style={s.modalClose}>Cancel</Text>
+                </Pressable>
+              </View>
+              {[
+                { label: "Business Name", key: "businessName", placeholder: "Your business name" },
+                { label: "Phone", key: "phone", placeholder: "+1 (555) 000-0000" },
+                { label: "Website", key: "website", placeholder: "https://yoursite.com" },
+                { label: "Price Range", key: "priceRange", placeholder: "e.g. $30–$60" },
+                { label: "City", key: "city", placeholder: "City" },
+                { label: "State", key: "state", placeholder: "e.g. NJ" },
+              ].map(field => (
+                <View key={field.key} style={{ marginBottom: 14 }}>
+                  <Text style={s.fieldLabel}>{field.label}</Text>
+                  <TextInput
+                    style={s.fieldInput}
+                    value={(editForm as any)[field.key]}
+                    onChangeText={v => setEditForm(f => ({ ...f, [field.key]: v }))}
+                    placeholder={field.placeholder}
+                    placeholderTextColor="#aaa"
+                  />
+                </View>
+              ))}
+              <View style={{ marginBottom: 14 }}>
+                <Text style={s.fieldLabel}>Bio</Text>
                 <TextInput
-                  style={s.fieldInput}
-                  value={(editForm as any)[field.key]}
-                  onChangeText={v => setEditForm(f => ({ ...f, [field.key]: v }))}
-                  placeholder={field.placeholder}
+                  style={[s.fieldInput, { height: 100, textAlignVertical: "top" }]}
+                  value={editForm.bio}
+                  onChangeText={v => setEditForm(f => ({ ...f, bio: v }))}
+                  placeholder="Tell clients about your services..."
                   placeholderTextColor="#aaa"
+                  multiline
                 />
               </View>
-            ))}
-            <View style={{ marginBottom: 14 }}>
-              <Text style={s.fieldLabel}>Bio</Text>
-              <TextInput
-                style={[s.fieldInput, { height: 100, textAlignVertical: "top" }]}
-                value={editForm.bio}
-                onChangeText={v => setEditForm(f => ({ ...f, bio: v }))}
-                placeholder="Tell clients about your services..."
-                placeholderTextColor="#aaa"
-                multiline
-              />
-            </View>
-            <Pressable
-              style={[s.sendBtn, saving && { opacity: 0.6 }]}
-              onPress={handleSaveEdit}
-              disabled={saving}
-            >
-              {saving ? <ActivityIndicator color="#fff" /> : <Text style={s.sendBtnText}>Save Changes</Text>}
-            </Pressable>
-          </ScrollView>
-        </KeyboardAvoidingView>
+              <Pressable
+                style={[s.sendBtn, saving && { opacity: 0.6 }]}
+                onPress={handleSaveEdit}
+                disabled={saving}
+              >
+                {saving ? <ActivityIndicator color="#fff" /> : <Text style={s.sendBtnText}>Save Changes</Text>}
+              </Pressable>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       <Modal visible={showFeedback} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowFeedback(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-          <View style={s.modalContainer}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Send Feedback</Text>
-              <Pressable onPress={() => setShowFeedback(false)}>
-                <Text style={s.modalClose}>Cancel</Text>
+        <View style={{ flex: 1 }}>
+          <KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+            <View style={s.modalContainer}>
+              <View style={s.modalHeader}>
+                <Text style={s.modalTitle}>Send Feedback</Text>
+                <Pressable onPress={() => setShowFeedback(false)}>
+                  <Text style={s.modalClose}>Cancel</Text>
+                </Pressable>
+              </View>
+              <TextInput
+                style={s.feedbackInput}
+                multiline
+                numberOfLines={6}
+                placeholder="Describe your issue, suggestion or question... (min 10 characters)"
+                placeholderTextColor="#aaa"
+                value={feedbackMessage}
+                onChangeText={setFeedbackMessage}
+                textAlignVertical="top"
+                autoFocus
+              />
+              <Pressable
+                style={[s.sendBtn, (feedbackSending || feedbackMessage.trim().length < 10) && { opacity: 0.5 }]}
+                onPress={sendFeedback}
+                disabled={feedbackSending || feedbackMessage.trim().length < 10}
+              >
+                {feedbackSending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={s.sendBtnText}>Send Feedback →</Text>
+                )}
               </Pressable>
             </View>
-            <TextInput
-              style={s.feedbackInput}
-              multiline
-              numberOfLines={6}
-              placeholder="Describe your issue, suggestion or question... (min 10 characters)"
-              placeholderTextColor="#aaa"
-              value={feedbackMessage}
-              onChangeText={setFeedbackMessage}
-              textAlignVertical="top"
-              autoFocus
-            />
-            <Pressable
-              style={[s.sendBtn, (feedbackSending || feedbackMessage.trim().length < 10) && { opacity: 0.5 }]}
-              onPress={sendFeedback}
-              disabled={feedbackSending || feedbackMessage.trim().length < 10}
-            >
-              {feedbackSending ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={s.sendBtnText}>Send Feedback →</Text>
-              )}
-            </Pressable>
-          </View>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
     </ScrollView>
   );
@@ -348,7 +358,7 @@ const s = StyleSheet.create({
   deleteBtn: { backgroundColor: "#E53935", borderRadius: 14, padding: 16, alignItems: "center", width: "100%", marginTop: 10 },
   deleteBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   version: { textAlign: "center", fontSize: 12, color: "#94A3B8", marginTop: 16 },
-  modalContainer: { flex: 1, padding: 20, paddingTop: 24, backgroundColor: "#F5F8FF" },
+  modalContainer: { flexGrow: 1, padding: 20, paddingTop: 24, backgroundColor: "#F5F8FF" },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   modalTitle: { fontSize: 18, fontWeight: "700", color: "#1E293B" },
   modalClose: { fontSize: 16, color: BRAND, fontWeight: "600" },

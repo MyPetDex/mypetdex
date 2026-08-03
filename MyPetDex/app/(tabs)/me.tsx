@@ -1,15 +1,16 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   TextInput, ActivityIndicator, Switch, Modal,
-  Share, Linking, Platform, Alert, Image,
+  Share, Linking, Platform, Alert, Image, KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
-import { db, webAuth, webDb, callFunction } from "@/lib/firebase";
+import { db, auth, webAuth, webDb } from "@/lib/firebase";
 import { collection, onSnapshot, doc, deleteDoc, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import * as WebBrowser from "expo-web-browser";
 
@@ -45,6 +46,13 @@ export default function MeScreen() {
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
+  const isPasswordUser = !!auth.currentUser?.providerData?.some((p) => p.providerId === "password");
 
   useEffect(() => {
     if (!user) return;
@@ -137,24 +145,14 @@ export default function MeScreen() {
     }
     setFeedbackSending(true);
     try {
-      // Always write to Firestore first — guaranteed capture
       await addDoc(collection(db, "feedback"), {
-        userId: user?.uid || "anonymous",
-        userEmail: user?.email || "",
-        subject: feedbackSubject,
         message: feedbackMessage.trim(),
+        subject: feedbackSubject,
+        uid: auth.currentUser?.uid ?? user?.uid ?? "anonymous",
+        email: auth.currentUser?.email ?? user?.email ?? "",
         read: false,
         createdAt: serverTimestamp(),
       });
-
-      // Also try Cloud Function (sends email) — failure is silent, Firestore already saved it
-      try {
-        const fn = callFunction("sendFeedback");
-        await fn({ subject: feedbackSubject, message: feedbackMessage.trim() });
-      } catch {
-        // Cloud Function optional — Firestore write already succeeded
-      }
-
       setFeedbackSent(true);
       setTimeout(() => {
         setShowFeedback(false);
@@ -163,9 +161,45 @@ export default function MeScreen() {
         setFeedbackSubject("General Feedback");
       }, 2000);
     } catch {
-      Alert.alert("Error", "Could not send feedback. Please email help@mypetdex.app directly.");
+      Alert.alert("Error", "Could not send feedback. Please email help@mypetdex.app");
+    } finally {
+      setFeedbackSending(false);
     }
-    setFeedbackSending(false);
+  }
+
+  async function handleChangePassword() {
+    if (newPassword.length < 8) {
+      Alert.alert("Error", "Password must be at least 8 characters.");
+      return;
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      Alert.alert("Error", 'Password must include at least one special character (e.g. @, #, !)');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match.");
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      const currentUser = auth.currentUser!;
+      const credential = EmailAuthProvider.credential(currentUser.email!, currentPassword);
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, newPassword);
+      Alert.alert("Success", "Your password has been updated.");
+      setShowChangePassword(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (e: any) {
+      if (e.code === "auth/wrong-password" || e.code === "auth/invalid-credential") {
+        Alert.alert("Error", "Current password is incorrect.");
+      } else {
+        Alert.alert("Error", "Could not update password. Please try again.");
+      }
+    } finally {
+      setPasswordSaving(false);
+    }
   }
 
   const planLabel = plan === "family" ? "Family Plan" : plan === "plus" ? "Plus Plan" : "Free Plan";
@@ -363,6 +397,9 @@ export default function MeScreen() {
           <Text style={styles.settingsSectionTitle}>Account</Text>
           <View style={styles.settingsCard}>
             {[
+              ...(isPasswordUser
+                ? [{ label: "Change Password", icon: "key-outline", onPress: () => setShowChangePassword(true) }]
+                : []),
               { label: "Privacy Policy", icon: "lock-closed-outline", onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/privacy.html") },
               { label: "Terms of Service", icon: "document-text-outline", onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/terms.html") },
               { label: "Rate MyPetDex", icon: "star-outline", onPress: () => Linking.openURL("https://apps.apple.com/app/mypetdex/id6772248051?action=write-review") },
@@ -469,6 +506,67 @@ export default function MeScreen() {
           </ScrollView>
         </View>
       </Modal>
+
+      <Modal
+        visible={showChangePassword}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowChangePassword(false)}
+      >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Change Password</Text>
+              <Pressable onPress={() => setShowChangePassword(false)}>
+                <Text style={styles.modalClose}>Cancel</Text>
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
+              <Text style={styles.modalLabel}>Current Password</Text>
+              <TextInput
+                style={styles.passwordInput}
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                placeholder="Enter current password"
+                placeholderTextColor="#aaa"
+                secureTextEntry
+                autoCapitalize="none"
+              />
+              <Text style={styles.modalLabel}>New Password</Text>
+              <TextInput
+                style={styles.passwordInput}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                placeholder="At least 8 characters + special character"
+                placeholderTextColor="#aaa"
+                secureTextEntry
+                autoCapitalize="none"
+              />
+              <Text style={styles.modalLabel}>Confirm New Password</Text>
+              <TextInput
+                style={styles.passwordInput}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Re-enter new password"
+                placeholderTextColor="#aaa"
+                secureTextEntry
+                autoCapitalize="none"
+              />
+              <Pressable
+                style={[styles.sendBtn, passwordSaving && { opacity: 0.6 }]}
+                onPress={handleChangePassword}
+                disabled={passwordSaving}
+              >
+                {passwordSaving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.sendBtnText}>Update Password</Text>
+                )}
+              </Pressable>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -564,6 +662,7 @@ const styles = StyleSheet.create({
   subjectChipText: { fontSize: 13, fontWeight: "600", color: TEXT2 },
   subjectChipTextActive: { color: BRAND },
   modalTextarea: { backgroundColor: "#fff", borderRadius: 16, borderWidth: 1.5, borderColor: "#E0E4F0", paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: TEXT, minHeight: 140, marginBottom: 8 },
+  passwordInput: { backgroundColor: "#fff", borderRadius: 16, borderWidth: 1.5, borderColor: "#E0E4F0", paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: TEXT, marginBottom: 4 },
   modalHint: { fontSize: 12, color: "#AAB4CC", textAlign: "center" },
   sendBtn: { backgroundColor: BRAND, borderRadius: 16, paddingVertical: 16, alignItems: "center", marginTop: 16, shadowColor: BRAND, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
   sendBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
