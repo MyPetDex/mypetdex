@@ -355,8 +355,9 @@ export default function ExploreScreen() {
     } catch {
       setLocalShelterPets([]);
     }
-    const petTypeParam = petType === "Dog" ? "dog" : "cat";
-    const url = `https://www.adoptapet.com/pet-adoption?zip=${zipCode}&petType=${petTypeParam}`;
+    const url = petType === "Dog"
+      ? `https://www.adoptapet.com/dog-adoption?zip=${zipCode}`
+      : `https://www.adoptapet.com/cat-adoption?zip=${zipCode}`;
     await WebBrowser.openBrowserAsync(url, {
       presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
       toolbarColor: "#4486F4",
