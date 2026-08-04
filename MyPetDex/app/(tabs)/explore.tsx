@@ -1,6 +1,7 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   TextInput, ActivityIndicator, Image, Linking, Modal, FlatList,
+  ImageBackground,
 } from "react-native";
 import { useState, useRef, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -393,15 +394,18 @@ export default function ExploreScreen() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false}>
 
           {/* Hero */}
-          <View style={styles.servicesHero}>
-            <View style={styles.servicesHeroInner}>
-              <Text style={styles.servicesHeroEmoji}>🛎️</Text>
+          <ImageBackground
+            source={{ uri: "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?w=800&h=400&fit=crop&auto=format" }}
+            style={styles.servicesHero}
+            imageStyle={{ borderRadius: 20 }}
+          >
+            <View style={styles.servicesHeroOverlay}>
               <Text style={styles.servicesHeroTitle}>Trusted Pet Care, Near You</Text>
               <Text style={styles.servicesHeroSub}>
                 Find groomers, vets, trainers & more in your area
               </Text>
             </View>
-          </View>
+          </ImageBackground>
 
           {/* Stats */}
           <View style={styles.adoptStatsRow}>
@@ -521,15 +525,18 @@ export default function ExploreScreen() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false}>
 
           {/* Hero */}
-          <View style={styles.adoptHero}>
-            <View style={styles.adoptHeroInner}>
-              <Text style={styles.adoptHeroEmoji}>🐾</Text>
+          <ImageBackground
+            source={{ uri: "https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=800&h=400&fit=crop&auto=format" }}
+            style={styles.adoptHero}
+            imageStyle={{ borderRadius: 20 }}
+          >
+            <View style={styles.adoptHeroOverlay}>
               <Text style={styles.adoptHeroTitle}>Every Rescue Deserves a Family</Text>
               <Text style={styles.adoptHeroSub}>
                 Search real adoptable {petType === "Dog" ? "dogs" : "cats"} from shelters near you
               </Text>
             </View>
-          </View>
+          </ImageBackground>
 
           {/* Stats row */}
           <View style={styles.adoptStatsRow}>
@@ -763,19 +770,20 @@ const styles = StyleSheet.create({
 
   // Services hero
   servicesHero: {
-    backgroundColor: "#10b981",
     borderRadius: 20,
     marginBottom: 12,
     overflow: "hidden",
+    height: 160,
   },
-  servicesHeroInner: {
-    padding: 24,
-    alignItems: "center",
-    gap: 6,
+  servicesHeroOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.42)",
+    padding: 20,
+    justifyContent: "flex-end",
+    gap: 5,
   },
-  servicesHeroEmoji: { fontSize: 40 },
-  servicesHeroTitle: { fontSize: 22, fontWeight: "800", color: "#fff", textAlign: "center" },
-  servicesHeroSub: { fontSize: 13, color: "#ffffff99", textAlign: "center", lineHeight: 19 },
+  servicesHeroTitle: { fontSize: 21, fontWeight: "800", color: "#fff" },
+  servicesHeroSub: { fontSize: 13, color: "rgba(255,255,255,0.82)", lineHeight: 19 },
 
   // Coming soon
   resultsSection: { marginTop: 8 },
@@ -831,19 +839,20 @@ const styles = StyleSheet.create({
 
   // Adopt hero
   adoptHero: {
-    backgroundColor: "#4486F4",
     borderRadius: 20,
     marginBottom: 12,
     overflow: "hidden",
+    height: 160,
   },
-  adoptHeroInner: {
-    padding: 24,
-    alignItems: "center",
-    gap: 6,
+  adoptHeroOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.42)",
+    padding: 20,
+    justifyContent: "flex-end",
+    gap: 5,
   },
-  adoptHeroEmoji: { fontSize: 40 },
-  adoptHeroTitle: { fontSize: 22, fontWeight: "800", color: "#fff", textAlign: "center" },
-  adoptHeroSub: { fontSize: 13, color: "#ffffff99", textAlign: "center", lineHeight: 19 },
+  adoptHeroTitle: { fontSize: 21, fontWeight: "800", color: "#fff" },
+  adoptHeroSub: { fontSize: 13, color: "rgba(255,255,255,0.82)", lineHeight: 19 },
 
   // Stats
   adoptStatsRow: {
