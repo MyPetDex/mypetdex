@@ -13,13 +13,13 @@ type Species = "dog" | "cat";
 const CATEGORIES = ["All", "Food", "Treats", "Toys", "Health", "Grooming", "Accessories", "Beds"];
 
 const CATEGORY_ICONS: Record<string, { icon: string; color: string }> = {
-  Food:        { icon: "restaurant-outline",      color: "#f59e0b" },
-  Treats:      { icon: "heart-outline",           color: "#ec4899" },
-  Toys:        { icon: "game-controller-outline", color: "#8b5cf6" },
-  Health:      { icon: "medkit-outline",          color: "#ef4444" },
+  Food:        { icon: "fast-food-outline",       color: "#f59e0b" },
+  Treats:      { icon: "gift-outline",            color: "#ec4899" },
+  Toys:        { icon: "basketball-outline",      color: "#8b5cf6" },
+  Health:      { icon: "medical-outline",         color: "#ef4444" },
   Grooming:    { icon: "cut-outline",             color: "#10b981" },
-  Accessories: { icon: "pricetag-outline",        color: "#3b82f6" },
-  Beds:        { icon: "moon-outline",            color: "#6366f1" },
+  Accessories: { icon: "bag-handle-outline",      color: "#3b82f6" },
+  Beds:        { icon: "bed-outline",             color: "#6366f1" },
 };
 
 interface Product {
@@ -109,12 +109,12 @@ const PRODUCT_CATALOG: Product[] = [
 ];
 
 function getAmazonUrl(search: string): string {
-  // Add your Amazon Associates tag here once approved: &tag=YOUR_TAG-20
-  return `https://www.amazon.com/s?k=${encodeURIComponent(search)}`;
+  return `https://www.amazon.com/s?k=${encodeURIComponent(search)}&tag=mypetdex20-20`;
 }
 
 function getChewyUrl(search: string): string {
-  return `https://www.chewy.com/s?query=${encodeURIComponent(search)}`;
+  const dest = encodeURIComponent(`https://www.chewy.com/s?query=${encodeURIComponent(search)}`);
+  return `https://chewy.sjv.io/c/7270969/2846786/32975?u=${dest}`;
 }
 
 export default function ShoppingScreen() {

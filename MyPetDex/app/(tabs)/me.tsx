@@ -513,7 +513,7 @@ export default function MeScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowChangePassword(false)}
       >
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Change Password</Text>
@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
   deleteBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
   version: { textAlign: "center", fontSize: 12, color: "#C0C8D8", marginTop: 16 },
   // ── Feedback modal ───────────────────────────────────────────────────
-  modalContainer: { flex: 1, backgroundColor: BG },
+  modalContainer: { flexGrow: 1, backgroundColor: BG },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, paddingTop: 24, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#F0F2F8" },
   modalTitle: { fontSize: 18, fontWeight: "700", color: TEXT },
   modalClose: { fontSize: 16, color: BRAND, fontWeight: "600" },

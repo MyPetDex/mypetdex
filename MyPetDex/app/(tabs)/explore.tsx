@@ -391,8 +391,35 @@ export default function ExploreScreen() {
       {/* ── Services Tab ── */}
       {activeTab === "services" && (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false}>
-          <Text style={styles.heading}>Find Pet Services Near You</Text>
-          <Text style={styles.subheading}>Vets, groomers, walkers & more</Text>
+
+          {/* Hero */}
+          <View style={styles.servicesHero}>
+            <View style={styles.servicesHeroInner}>
+              <Text style={styles.servicesHeroEmoji}>🛎️</Text>
+              <Text style={styles.servicesHeroTitle}>Trusted Pet Care, Near You</Text>
+              <Text style={styles.servicesHeroSub}>
+                Find groomers, vets, trainers & more in your area
+              </Text>
+            </View>
+          </View>
+
+          {/* Stats */}
+          <View style={styles.adoptStatsRow}>
+            <View style={styles.adoptStat}>
+              <Text style={styles.adoptStatNum}>500+</Text>
+              <Text style={styles.adoptStatLabel}>Providers</Text>
+            </View>
+            <View style={styles.adoptStatDivider} />
+            <View style={styles.adoptStat}>
+              <Text style={styles.adoptStatNum}>6</Text>
+              <Text style={styles.adoptStatLabel}>Service Types</Text>
+            </View>
+            <View style={styles.adoptStatDivider} />
+            <View style={styles.adoptStat}>
+              <Text style={styles.adoptStatNum}>All US</Text>
+              <Text style={styles.adoptStatLabel}>States</Text>
+            </View>
+          </View>
 
           {/* Search filters */}
           <View style={styles.filterRow}>
@@ -405,15 +432,18 @@ export default function ExploreScreen() {
               onChangeText={(text) => setServiceZip(text.replace(/\D/g, "").slice(0, 5))}
               keyboardType="numeric"
               maxLength={5}
-              onSubmitEditing={() => setSearched(true)}
+              onSubmitEditing={() => { if (!stateFilter) return; setSearched(true); searchProviders(); }}
             />
-            <Pressable style={[styles.searchBtn, !stateFilter && { opacity: 0.5 }]} onPress={() => { if (!stateFilter) return; setSearched(true); searchProviders(); }}>
+            <Pressable
+              style={[styles.searchBtn, !stateFilter && { opacity: 0.5 }]}
+              onPress={() => { if (!stateFilter) return; setSearched(true); searchProviders(); }}
+            >
               <Text style={styles.searchBtnText}>Search</Text>
             </Pressable>
           </View>
 
           {/* Service type grid */}
-          <Text style={styles.label}>Browse by Service</Text>
+          <Text style={styles.adoptSectionTitle}>Browse by Service</Text>
           <View style={styles.serviceGrid}>
             {SERVICE_TYPES.map((s) => (
               <Pressable
@@ -430,7 +460,9 @@ export default function ExploreScreen() {
                   if (stateFilter) searchProviders(next);
                 }}
               >
-                <Ionicons name={s.icon as any} size={24} color={s.color} style={{ marginBottom: 4 }} />
+                <View style={[styles.serviceIconCircle, { backgroundColor: s.color + "18" }]}>
+                  <Ionicons name={s.icon as any} size={22} color={s.color} />
+                </View>
                 <Text style={styles.serviceLabel}>{s.label}</Text>
                 <Text style={styles.serviceDesc}>{s.desc}</Text>
               </Pressable>
@@ -480,6 +512,7 @@ export default function ExploreScreen() {
               </View>
             )
           )}
+
         </ScrollView>
       )}
 
@@ -491,7 +524,7 @@ export default function ExploreScreen() {
           <View style={styles.adoptHero}>
             <View style={styles.adoptHeroInner}>
               <Text style={styles.adoptHeroEmoji}>🐾</Text>
-              <Text style={styles.adoptHeroTitle}>Find Your New Best Friend</Text>
+              <Text style={styles.adoptHeroTitle}>Every Rescue Deserves a Family</Text>
               <Text style={styles.adoptHeroSub}>
                 Search real adoptable {petType === "Dog" ? "dogs" : "cats"} from shelters near you
               </Text>
@@ -706,14 +739,43 @@ const styles = StyleSheet.create({
     width: "30%",
     backgroundColor: "#fff",
     borderRadius: 14,
-    padding: 12,
+    padding: 14,
     alignItems: "center",
     borderWidth: 1.5,
     borderColor: "#eee",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   serviceEmoji: { fontSize: 22, marginBottom: 4 },
   serviceLabel: { fontSize: 12, fontWeight: "700", color: "#1a1a1a", textAlign: "center" },
   serviceDesc: { fontSize: 10, color: "#888", textAlign: "center", marginTop: 2 },
+  serviceIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
+  },
+
+  // Services hero
+  servicesHero: {
+    backgroundColor: "#10b981",
+    borderRadius: 20,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  servicesHeroInner: {
+    padding: 24,
+    alignItems: "center",
+    gap: 6,
+  },
+  servicesHeroEmoji: { fontSize: 40 },
+  servicesHeroTitle: { fontSize: 22, fontWeight: "800", color: "#fff", textAlign: "center" },
+  servicesHeroSub: { fontSize: 13, color: "#ffffff99", textAlign: "center", lineHeight: 19 },
 
   // Coming soon
   resultsSection: { marginTop: 8 },

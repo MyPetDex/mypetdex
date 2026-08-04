@@ -123,7 +123,7 @@ export default function SettingsScreen() {
 
       {/* Feedback Modal */}
       <Modal visible={feedbackVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setFeedbackVisible(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Send Feedback</Text>
@@ -156,7 +156,7 @@ export default function SettingsScreen() {
 
       {/* Change Password Modal */}
       <Modal visible={showChangePassword} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowChangePassword(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Change Password</Text>
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   deleteBtnDisabled: { opacity: 0.6 },
   deleteText: { fontSize: 16, fontWeight: "700", color: "#fff" },
   version: { textAlign: "center", fontSize: 12, color: "#C0C8D8" },
-  modalContainer: { flex: 1, padding: 24, paddingTop: 32, backgroundColor: "#fff" },
+  modalContainer: { flexGrow: 1, padding: 24, paddingTop: 32, backgroundColor: "#fff" },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
   modalTitle: { fontSize: 22, fontWeight: "700", color: TEXT },
   modalClose: { fontSize: 20, color: TEXT2, padding: 4 },

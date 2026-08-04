@@ -224,8 +224,8 @@ export default function OnboardingScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
     >
     <View style={styles.root}>
       {/* Pinned header — always visible, never scrolls away, not blocked by loading */}
@@ -238,7 +238,13 @@ export default function OnboardingScreen() {
         </View>
       </SafeAreaView>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" bounces={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={true}
+        bounces={false}
+      >
       <View style={styles.inner}>
 
         {/* Logo */}

@@ -238,7 +238,7 @@ export default function ShelterProfile() {
       <Text style={s.version}>MyPetDex v1.0.0 · help@mypetdex.app</Text>
 
       <Modal visible={showFeedback} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowFeedback(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={s.modalContainer}>
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Send Feedback</Text>
@@ -313,7 +313,7 @@ const s = StyleSheet.create({
   deleteBtn: { backgroundColor: "#E53935", borderRadius: 14, padding: 16, alignItems: "center", marginTop: 10 },
   deleteBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   version: { textAlign: "center", fontSize: 12, color: "#94A3B8", marginTop: 16, marginBottom: 8 },
-  modalContainer: { flex: 1, padding: 20, paddingTop: 24, backgroundColor: "#F5F8FF" },
+  modalContainer: { flexGrow: 1, padding: 20, paddingTop: 24, backgroundColor: "#F5F8FF" },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   modalTitle: { fontSize: 18, fontWeight: "700", color: "#1E293B" },
   modalClose: { fontSize: 16, color: BRAND, fontWeight: "600" },

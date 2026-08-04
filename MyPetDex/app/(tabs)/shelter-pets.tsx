@@ -245,7 +245,7 @@ export default function ShelterPets() {
       </ScrollView>
 
       <Modal visible={editPet != null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setEditPet(null)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <ScrollView style={s.modalContainer} contentContainerStyle={s.modalContent} keyboardShouldPersistTaps="handled">
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Edit Pet</Text>
@@ -364,7 +364,7 @@ const s = StyleSheet.create({
   actionBtn: { flex: 1, minWidth: 100, backgroundColor: BRAND, borderRadius: 10, padding: 8, alignItems: "center" },
   actionBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   deleteBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" },
-  modalContainer: { flex: 1, backgroundColor: "#F5F8FF" },
+  modalContainer: { flexGrow: 1, backgroundColor: "#F5F8FF" },
   modalContent: { padding: 20, paddingBottom: 40 },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   modalTitle: { fontSize: 20, fontWeight: "800", color: "#1E293B" },

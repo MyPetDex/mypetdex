@@ -476,8 +476,8 @@ ${(pet.vaccines || []).length > 0 ? `
       {/* Edit Pet Modal */}
       <Modal visible={showEdit} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowEdit(false)}>
         <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flexShrink: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
         >
         <View style={styles.modalContainer}>
@@ -736,7 +736,7 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
       </Pressable>
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
         <KeyboardAvoidingView
-          style={{ flex: 1 }}
+          style={{ flexShrink: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
         >
@@ -773,7 +773,7 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
         onRequestClose={() => setShowVetModal(false)}
       >
         <KeyboardAvoidingView
-          style={{ flex: 1 }}
+          style={{ flexShrink: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
         >
@@ -1045,7 +1045,7 @@ function MedsTab({ pet, user }: { pet: any; user: any }) {
       </Pressable>
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
         <KeyboardAvoidingView
-          style={{ flex: 1 }}
+          style={{ flexShrink: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
         >
@@ -1275,7 +1275,7 @@ function RemindersTab({ pet, user }: { pet: any; user: any }) {
       </Pressable>
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
         <KeyboardAvoidingView
-          style={{ flex: 1 }}
+          style={{ flexShrink: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
         >
@@ -1456,7 +1456,7 @@ function CaloriesTab({ pet, user }: { pet: any; user: any }) {
         onRequestClose={() => setShowWeightModal(false)}
       >
         <KeyboardAvoidingView
-          style={{ flex: 1 }}
+          style={{ flexShrink: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
         >
@@ -2036,7 +2036,7 @@ const styles = StyleSheet.create({
   retryBtnText: { color: "#fff", fontWeight: "700" },
   addBtn: { backgroundColor: BRAND, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   addBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  modalContainer: { flex: 1, backgroundColor: "#f8f8f8" },
+  modalContainer: { flexGrow: 1, backgroundColor: "#f8f8f8" },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, paddingTop: 24, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#f0f0f0" },
   modalTitle: { fontSize: 18, fontWeight: "700", color: "#1a1a1a" },
   modalClose: { fontSize: 16, color: BLUE, fontWeight: "600" },
