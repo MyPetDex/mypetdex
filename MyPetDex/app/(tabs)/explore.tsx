@@ -1,7 +1,6 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   TextInput, ActivityIndicator, Image, Linking, Modal, FlatList,
-  ImageBackground,
 } from "react-native";
 import { useState, useRef, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -394,18 +393,19 @@ export default function ExploreScreen() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false}>
 
           {/* Hero */}
-          <ImageBackground
-            source={{ uri: "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?w=800&h=400&fit=crop&auto=format" }}
-            style={styles.servicesHero}
-            imageStyle={{ borderRadius: 20 }}
-          >
-            <View style={styles.servicesHeroOverlay}>
+          <View style={styles.servicesHeroCard}>
+            <Image
+              source={{ uri: "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?w=800&h=400&fit=crop&auto=format" }}
+              style={styles.servicesHeroImage}
+              resizeMode="cover"
+            />
+            <View style={styles.servicesHeroText}>
               <Text style={styles.servicesHeroTitle}>Trusted Pet Care, Near You</Text>
               <Text style={styles.servicesHeroSub}>
                 Find groomers, vets, trainers & more in your area
               </Text>
             </View>
-          </ImageBackground>
+          </View>
 
           {/* Stats */}
           <View style={styles.adoptStatsRow}>
@@ -525,18 +525,19 @@ export default function ExploreScreen() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false}>
 
           {/* Hero */}
-          <ImageBackground
-            source={{ uri: "https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=800&h=400&fit=crop&auto=format" }}
-            style={styles.adoptHero}
-            imageStyle={{ borderRadius: 20 }}
-          >
-            <View style={styles.adoptHeroOverlay}>
+          <View style={styles.adoptHeroCard}>
+            <Image
+              source={{ uri: "https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=800&h=400&fit=crop&auto=format" }}
+              style={styles.adoptHeroImage}
+              resizeMode="cover"
+            />
+            <View style={styles.adoptHeroText}>
               <Text style={styles.adoptHeroTitle}>Every Rescue Deserves a Family</Text>
               <Text style={styles.adoptHeroSub}>
                 Search real adoptable {petType === "Dog" ? "dogs" : "cats"} from shelters near you
               </Text>
             </View>
-          </ImageBackground>
+          </View>
 
           {/* Stats row */}
           <View style={styles.adoptStatsRow}>
@@ -769,21 +770,36 @@ const styles = StyleSheet.create({
   },
 
   // Services hero
-  servicesHero: {
+  servicesHeroCard: {
+    backgroundColor: "#fff",
     borderRadius: 20,
     marginBottom: 12,
     overflow: "hidden",
-    height: 160,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-  servicesHeroOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.42)",
-    padding: 20,
-    justifyContent: "flex-end",
-    gap: 5,
+  servicesHeroImage: {
+    width: "100%",
+    height: 155,
   },
-  servicesHeroTitle: { fontSize: 21, fontWeight: "800", color: "#fff" },
-  servicesHeroSub: { fontSize: 13, color: "rgba(255,255,255,0.82)", lineHeight: 19 },
+  servicesHeroText: {
+    padding: 16,
+    paddingBottom: 18,
+    gap: 4,
+  },
+  servicesHeroTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1a1a1a",
+  },
+  servicesHeroSub: {
+    fontSize: 13,
+    color: "#888",
+    lineHeight: 19,
+  },
 
   // Coming soon
   resultsSection: { marginTop: 8 },
@@ -838,21 +854,36 @@ const styles = StyleSheet.create({
   typeTextActive: { color: BRAND, fontWeight: "700" },
 
   // Adopt hero
-  adoptHero: {
+  adoptHeroCard: {
+    backgroundColor: "#fff",
     borderRadius: 20,
     marginBottom: 12,
     overflow: "hidden",
-    height: 160,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-  adoptHeroOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.42)",
-    padding: 20,
-    justifyContent: "flex-end",
-    gap: 5,
+  adoptHeroImage: {
+    width: "100%",
+    height: 155,
   },
-  adoptHeroTitle: { fontSize: 21, fontWeight: "800", color: "#fff" },
-  adoptHeroSub: { fontSize: 13, color: "rgba(255,255,255,0.82)", lineHeight: 19 },
+  adoptHeroText: {
+    padding: 16,
+    paddingBottom: 18,
+    gap: 4,
+  },
+  adoptHeroTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1a1a1a",
+  },
+  adoptHeroSub: {
+    fontSize: 13,
+    color: "#888",
+    lineHeight: 19,
+  },
 
   // Stats
   adoptStatsRow: {
