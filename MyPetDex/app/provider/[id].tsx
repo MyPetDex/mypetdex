@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
-  ActivityIndicator, Linking, Alert, KeyboardAvoidingView, Platform,
+  ActivityIndicator, Linking, Alert, KeyboardAvoidingView, Platform, Modal,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -99,6 +99,12 @@ export default function ProviderDetailScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
+  const [bookDate, setBookDate] = useState("");
+  const [bookTime, setBookTime] = useState("");
+  const [bookNotes, setBookNotes] = useState("");
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [bookingDone, setBookingDone] = useState(false);
 
   const {
     id, name, serviceType, city, state, zip,
@@ -167,6 +173,37 @@ export default function ProviderDetailScreen() {
     setSubmitting(false);
   }
 
+  async function submitBooking() {
+    if (!user || !bookDate.trim()) return;
+    setBookingSubmitting(true);
+    try {
+      // Strip "user_" prefix to get the actual Firebase UID of the provider
+      const providerUid = id.startsWith("user_") ? id.replace("user_", "") : id;
+      const clientName =
+        profile?.displayName || profile?.name || user.email?.split("@")[0] || "Pet Owner";
+      await addDoc(collection(db, "bookings"), {
+        providerId: providerUid,
+        providerName: name || "Provider",
+        clientId: user.uid,
+        clientName,
+        clientEmail: user.email || "",
+        service: serviceType || "Service",
+        date: bookDate.trim(),
+        time: bookTime.trim(),
+        notes: bookNotes.trim(),
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+      setBookingDone(true);
+      setBookDate("");
+      setBookTime("");
+      setBookNotes("");
+    } catch {
+      Alert.alert("Error", "Could not send booking request. Please try again.");
+    }
+    setBookingSubmitting(false);
+  }
+
   const avgRating =
     reviews.length > 0
       ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
@@ -203,6 +240,16 @@ export default function ProviderDetailScreen() {
             </View>
           ) : null}
           {bio ? <Text style={styles.heroBio}>{bio}</Text> : null}
+          {/* Book button — only for user-registered providers */}
+          {id.startsWith("user_") && user ? (
+            <Pressable
+              style={styles.bookBtn}
+              onPress={() => { setShowBooking(true); setBookingDone(false); }}
+            >
+              <Ionicons name="calendar-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={styles.bookBtnText}>Request Booking</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {/* Contact Details */}
@@ -350,6 +397,103 @@ export default function ProviderDetailScreen() {
         )}
 
       </ScrollView>
+
+      {/* Booking modal */}
+      <Modal
+        visible={showBooking}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowBooking(false)}
+      >
+        <View style={{ flex: 1 }}>
+          <KeyboardAvoidingView
+            style={{ flexShrink: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
+            <View style={styles.bookModal}>
+              {/* Header */}
+              <View style={styles.bookModalHeader}>
+                <Text style={styles.bookModalTitle}>Request Booking</Text>
+                <Pressable onPress={() => setShowBooking(false)}>
+                  <Text style={styles.bookModalClose}>Cancel</Text>
+                </Pressable>
+              </View>
+
+              {bookingDone ? (
+                /* Success state */
+                <View style={styles.bookSuccess}>
+                  <Ionicons name="checkmark-circle" size={56} color="#22C55E" />
+                  <Text style={styles.bookSuccessTitle}>Request Sent!</Text>
+                  <Text style={styles.bookSuccessSub}>
+                    {name || "The provider"} will confirm your booking shortly.
+                    You'll hear back within 24 hours.
+                  </Text>
+                  <Pressable style={styles.bookBtn} onPress={() => setShowBooking(false)}>
+                    <Text style={styles.bookBtnText}>Done</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                /* Form */
+                <ScrollView contentContainerStyle={styles.bookForm} keyboardShouldPersistTaps="handled">
+                  <Text style={styles.bookProviderName}>{name}</Text>
+                  <Text style={styles.bookServiceType}>{serviceType}</Text>
+
+                  <Text style={styles.bookLabel}>Preferred Date *</Text>
+                  <TextInput
+                    style={styles.bookInput}
+                    placeholder="e.g. July 15, 2026"
+                    placeholderTextColor="#bbb"
+                    value={bookDate}
+                    onChangeText={setBookDate}
+                    returnKeyType="next"
+                  />
+
+                  <Text style={styles.bookLabel}>Preferred Time</Text>
+                  <TextInput
+                    style={styles.bookInput}
+                    placeholder="e.g. 10:00 AM"
+                    placeholderTextColor="#bbb"
+                    value={bookTime}
+                    onChangeText={setBookTime}
+                    returnKeyType="next"
+                  />
+
+                  <Text style={styles.bookLabel}>Notes (optional)</Text>
+                  <TextInput
+                    style={[styles.bookInput, styles.bookNotesInput]}
+                    placeholder="Your pet's name, breed, any special requests..."
+                    placeholderTextColor="#bbb"
+                    value={bookNotes}
+                    onChangeText={setBookNotes}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+
+                  <Pressable
+                    style={[styles.bookSubmitBtn, (!bookDate.trim() || bookingSubmitting) && { opacity: 0.5 }]}
+                    onPress={submitBooking}
+                    disabled={!bookDate.trim() || bookingSubmitting}
+                  >
+                    {bookingSubmitting ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="send-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+                        <Text style={styles.bookBtnText}>Send Request</Text>
+                      </>
+                    )}
+                  </Pressable>
+
+                  <Text style={styles.bookDisclaimer}>
+                    This sends a booking request to the provider. They will contact you to confirm.
+                  </Text>
+                </ScrollView>
+              )}
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -535,4 +679,85 @@ const styles = StyleSheet.create({
   reviewAvatarText: { fontSize: 15, fontWeight: "700", color: BRAND },
   reviewerName: { fontSize: 14, fontWeight: "700", color: TEXT },
   reviewText: { fontSize: 14, color: TEXT2, lineHeight: 21 },
+
+  // Book button (shown in hero card)
+  bookBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BRAND,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginTop: 16,
+    alignSelf: "stretch",
+  },
+  bookBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+
+  // Booking modal
+  bookModal: {
+    flexGrow: 1,
+    backgroundColor: "#F5F8FF",
+  },
+  bookModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    paddingTop: 24,
+    backgroundColor: "#fff",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#eee",
+  },
+  bookModalTitle: { fontSize: 18, fontWeight: "700", color: "#1E293B" },
+  bookModalClose: { fontSize: 16, color: BRAND, fontWeight: "600" },
+
+  // Form
+  bookForm: { padding: 20, paddingBottom: 40 },
+  bookProviderName: { fontSize: 17, fontWeight: "700", color: "#1E293B", marginBottom: 2 },
+  bookServiceType: { fontSize: 13, color: BRAND, fontWeight: "600", marginBottom: 20 },
+  bookLabel: { fontSize: 13, fontWeight: "600", color: "#374151", marginBottom: 6, marginTop: 14 },
+  bookInput: {
+    backgroundColor: "#fff",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    padding: 13,
+    fontSize: 14,
+    color: "#1E293B",
+  },
+  bookNotesInput: { minHeight: 100, paddingTop: 12 },
+  bookSubmitBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BRAND,
+    borderRadius: 14,
+    paddingVertical: 15,
+    marginTop: 24,
+  },
+  bookDisclaimer: {
+    fontSize: 12,
+    color: "#94A3B8",
+    textAlign: "center",
+    marginTop: 12,
+    lineHeight: 17,
+  },
+
+  // Success state
+  bookSuccess: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 40,
+    gap: 12,
+  },
+  bookSuccessTitle: { fontSize: 22, fontWeight: "800", color: "#1E293B" },
+  bookSuccessSub: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 21,
+    marginBottom: 8,
+  },
 });
