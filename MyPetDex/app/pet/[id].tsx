@@ -67,7 +67,7 @@ function BreedDropdown({ value, options, onSelect }: { value: string; options: s
 }
 
 export default function PetProfileScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab: initialTab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const { user } = useAuth();
   const { plan, pdfExport } = usePlan();
   const router = useRouter();
@@ -75,7 +75,10 @@ export default function PetProfileScreen() {
 
   const [pet, setPet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("Records");
+  const validTabs = ["Records", "Reminders", "Meds", "Calories", "Recipes"];
+  const [activeTab, setActiveTab] = useState(
+    initialTab && validTabs.includes(initialTab) ? initialTab : "Records"
+  );
   const [showQR, setShowQR] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
 

@@ -14,7 +14,35 @@ import { collection, onSnapshot } from "firebase/firestore";
 const BRAND = "#4C6EF5";
 const AI_PROXY_URL = "https://us-central1-mypetdex-c4315.cloudfunctions.net/aiProxy";
 
-type Message = { role: "user" | "assistant"; text: string };
+type SmartAction = {
+  icon: "shield-checkmark-outline" | "medical-outline" | "calendar-outline" | "notifications-outline";
+  label: string;
+  tab: string;
+  color: string;
+};
+
+type Message = { role: "user" | "assistant"; text: string; action?: SmartAction };
+
+const GENERAL_SUGGESTIONS = [
+  "How often should I visit the vet?",
+  "Signs my pet is in pain?",
+  "Best foods to avoid giving pets?",
+  "How do I know if my pet is overweight?",
+  "How much exercise does my pet need?",
+];
+
+function detectSmartAction(text: string): SmartAction | null {
+  const t = text.toLowerCase();
+  if (/vaccin|booster|rabies|distemper|bordetella|parvo|shot/.test(t))
+    return { icon: "shield-checkmark-outline", label: "Save vaccine record", tab: "Records", color: "#10b981" };
+  if (/medic|medicine|dose|pill|tablet|prescription|flea|heartworm|deworm/.test(t))
+    return { icon: "medical-outline", label: "Log medication", tab: "Meds", color: "#ef4444" };
+  if (/vet visit|clinic|appointment|check.?up|annual exam|doctor visit/.test(t))
+    return { icon: "calendar-outline", label: "Log vet visit", tab: "Records", color: "#4C6EF5" };
+  if (/remind|schedule|don.?t forget|upcoming|next visit|next appointment/.test(t))
+    return { icon: "notifications-outline", label: "Set reminder", tab: "Reminders", color: "#f59e0b" };
+  return null;
+}
 
 // Strip markdown syntax to clean plain text
 function cleanMarkdown(text: string): string {
@@ -219,7 +247,8 @@ export default function AIVetScreen() {
       const data = await response.json();
       if (data.error) throw new Error(data.error);
       const reply = data.content?.[0]?.text || "Sorry, I couldn't get a response. Please try again.";
-      setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
+      const smartAction = detectSmartAction(reply);
+      setMessages((prev) => [...prev, { role: "assistant", text: reply, action: smartAction ?? undefined }]);
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", text: "Sorry, something went wrong. Please check your connection and try again." }]);
     } finally {
@@ -249,16 +278,39 @@ export default function AIVetScreen() {
 
       <ScrollView ref={scrollRef} style={styles.messages} contentContainerStyle={styles.messagesContent}>
         {messages.map((msg, i) => (
-          <View key={i} style={[styles.bubble, msg.role === "user" ? styles.userBubble : styles.aiBubble]}>
-            {msg.role === "assistant" && (
-              <View style={styles.aiLabelRow}>
-                <Ionicons name="paw-outline" size={11} color={BRAND} />
-                <Text style={styles.aiLabel}>MyPetDex Assistant</Text>
-              </View>
-            )}
-            <Text style={[styles.bubbleText, msg.role === "user" && styles.userText]}>
-              {msg.role === "assistant" ? cleanMarkdown(msg.text) : msg.text}
-            </Text>
+          <View key={i} style={{ gap: 8 }}>
+            <View style={[styles.bubble, msg.role === "user" ? styles.userBubble : styles.aiBubble]}>
+              {msg.role === "assistant" && (
+                <View style={styles.aiLabelRow}>
+                  <Ionicons name="paw-outline" size={11} color={BRAND} />
+                  <Text style={styles.aiLabel}>MyPetDex Assistant</Text>
+                </View>
+              )}
+              <Text style={[styles.bubbleText, msg.role === "user" && styles.userText]}>
+                {msg.role === "assistant" ? cleanMarkdown(msg.text) : msg.text}
+              </Text>
+            </View>
+
+            {msg.role === "assistant" && msg.action && selectedPet ? (
+              <Pressable
+                style={styles.smartCard}
+                onPress={() =>
+                  router.push({
+                    pathname: `/pet/${selectedPet.id}` as any,
+                    params: { tab: msg.action!.tab },
+                  })
+                }
+              >
+                <View style={[styles.smartIcon, { backgroundColor: msg.action.color + "18" }]}>
+                  <Ionicons name={msg.action.icon} size={18} color={msg.action.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.smartLabel}>Smart action detected</Text>
+                  <Text style={styles.smartAction}>{msg.action.label} for {selectedPet.name}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#aaa" />
+              </Pressable>
+            ) : null}
           </View>
         ))}
         {loading && (
@@ -273,14 +325,64 @@ export default function AIVetScreen() {
       </ScrollView>
 
       {showPicker ? (
-        <View style={styles.pickerSection}>
-          {pets.map((pet) => (
-            <Pressable key={pet.id} style={styles.petPickerBtn} onPress={() => selectPet(pet)}>
-              <Ionicons name="paw-outline" size={28} color={BRAND} />
-              <Text style={styles.petPickerName}>{pet.name || "Pet"}</Text>
-              <Text style={styles.petPickerMeta}>{petBreedLabel(pet)}</Text>
+        <View style={styles.pickerWrapper}>
+
+          <Text style={styles.pickerSectionTitle}>Quick Actions</Text>
+          <View style={styles.quickGrid}>
+            <Pressable style={styles.quickCard}
+              onPress={() => router.push({ pathname: `/pet/${pets[0]?.id}` as any, params: { tab: "Reminders" } })}>
+              <View style={[styles.quickIcon, { backgroundColor: "#EEF2FF" }]}>
+                <Ionicons name="calendar-outline" size={22} color={BRAND} />
+              </View>
+              <Text style={styles.quickCardTitle}>Vet Reminder</Text>
+              <Text style={styles.quickCardSub}>Schedule & track visits</Text>
             </Pressable>
-          ))}
+            <Pressable style={styles.quickCard}
+              onPress={() => router.push({ pathname: `/pet/${pets[0]?.id}` as any, params: { tab: "Meds" } })}>
+              <View style={[styles.quickIcon, { backgroundColor: "#FFF0F6" }]}>
+                <Ionicons name="medical-outline" size={22} color="#E91E8C" />
+              </View>
+              <Text style={styles.quickCardTitle}>Log Medication</Text>
+              <Text style={styles.quickCardSub}>Track doses & refills</Text>
+            </Pressable>
+            <Pressable style={styles.quickCard}
+              onPress={() => sendMessage("Give me 5 important general pet health tips every owner should know.")}>
+              <View style={[styles.quickIcon, { backgroundColor: "#F0FFF4" }]}>
+                <Ionicons name="heart-outline" size={22} color="#10b981" />
+              </View>
+              <Text style={styles.quickCardTitle}>Health Tips</Text>
+              <Text style={styles.quickCardSub}>Expert care advice</Text>
+            </Pressable>
+            <Pressable style={styles.quickCard}
+              onPress={() => sendMessage("What are the best and worst foods for dogs and cats?")}>
+              <View style={[styles.quickIcon, { backgroundColor: "#FFF8E1" }]}>
+                <Ionicons name="nutrition-outline" size={22} color="#f59e0b" />
+              </View>
+              <Text style={styles.quickCardTitle}>Nutrition Guide</Text>
+              <Text style={styles.quickCardSub}>Foods to give & avoid</Text>
+            </Pressable>
+          </View>
+
+          <Text style={styles.pickerSectionTitle}>Suggested Questions</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.generalChipsRow}>
+            {GENERAL_SUGGESTIONS.map((q, i) => (
+              <Pressable key={i} style={styles.generalChip} onPress={() => sendMessage(q)}>
+                <Text style={styles.generalChipText}>{q}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          <Text style={styles.pickerSectionTitle}>Select your pet</Text>
+          <View style={styles.pickerSection}>
+            {pets.map((pet) => (
+              <Pressable key={pet.id} style={styles.petPickerBtn} onPress={() => selectPet(pet)}>
+                <Ionicons name="paw-outline" size={28} color={BRAND} />
+                <Text style={styles.petPickerName}>{pet.name || "Pet"}</Text>
+                <Text style={styles.petPickerMeta}>{petBreedLabel(pet)}</Text>
+              </Pressable>
+            ))}
+          </View>
+
         </View>
       ) : null}
 
@@ -347,7 +449,83 @@ const styles = StyleSheet.create({
   aiLabel: { fontSize: 11, fontWeight: "600", color: BRAND },
   bubbleText: { fontSize: 15, color: "#1a1a1a", lineHeight: 22 },
   userText: { color: "#fff" },
-  pickerSection: { flexDirection: "row", flexWrap: "wrap", gap: 10, paddingHorizontal: 16, paddingBottom: 12 },
+
+  // Smart action card
+  smartCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#eee",
+    alignSelf: "flex-start",
+    maxWidth: "90%",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  smartIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  smartLabel: { fontSize: 11, color: "#aaa", fontWeight: "600", marginBottom: 2 },
+  smartAction: { fontSize: 13, fontWeight: "700", color: "#1a1a1a" },
+
+  // Quick start panel
+  pickerWrapper: { paddingHorizontal: 16, paddingBottom: 16, gap: 6 },
+  pickerSectionTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#aaa",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  quickCard: {
+    width: "47%",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#eee",
+    gap: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  quickIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 2,
+  },
+  quickCardTitle: { fontSize: 14, fontWeight: "700", color: "#1a1a1a" },
+  quickCardSub: { fontSize: 12, color: "#888", lineHeight: 16 },
+  generalChipsRow: { gap: 8, paddingVertical: 2 },
+  generalChip: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  generalChipText: { fontSize: 13, color: "#444", fontWeight: "500" },
+
+  pickerSection: { flexDirection: "row", flexWrap: "wrap", gap: 10, paddingBottom: 12 },
   petPickerBtn: {
     backgroundColor: "#fff",
     borderRadius: 14,
