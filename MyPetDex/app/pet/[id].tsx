@@ -1562,6 +1562,11 @@ function RecipesTab({ pet, canUseAI }: { pet: any; canUseAI: boolean }) {
 
   const allSelected = Object.values(selected).flat();
 
+  function cleanNutrition(text: string): string {
+    // Strip parenthetical math like "(104g × 4 ÷ 1126 × 100)"
+    return text.replace(/\s*\([^)]*×[^)]*\)/g, "");
+  }
+
   async function generateRecipe() {
     if (allSelected.length < 2 || !canUseAI) return;
     setLoading(true);
@@ -1675,7 +1680,7 @@ body { font-family:-apple-system,Helvetica,sans-serif; color:#0F172A; }
 </div>
 <div class="section">
   <div class="label">Nutrition Breakdown</div>
-  <div class="nutrition">${(recipe.nutritionBreakdown || "").replace(/\n/g, "<br/>")}</div>
+  <div class="nutrition">${cleanNutrition(recipe.nutritionBreakdown || "").replace(/\n/g, "<br/>")}</div>
 </div>
 ${recipe.breedNote ? `<div class="section"><div class="label">Breed Note</div><div class="breed">${recipe.breedNote}</div></div>` : ""}
 ${recipe.warning ? `<div class="section"><div class="label">Important</div><div class="warning">${recipe.warning}</div></div>` : ""}
@@ -1768,7 +1773,7 @@ ${recipe.warning ? `<div class="section"><div class="label">Important</div><div 
           {/* Nutrition */}
           <View style={styles.recipeSection}>
             <Text style={styles.recipeSectionLabel}>📊 Nutrition Breakdown</Text>
-            <Text style={styles.recipeSectionText}>{recipe.nutritionBreakdown}</Text>
+            <Text style={styles.recipeSectionText}>{cleanNutrition(recipe.nutritionBreakdown || "")}</Text>
           </View>
           {/* 2-Week Shopping List */}
           <View style={styles.recipeSection}>
