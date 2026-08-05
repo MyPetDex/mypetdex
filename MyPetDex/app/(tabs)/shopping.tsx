@@ -141,22 +141,56 @@ export default function ShoppingScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} bounces={false}>
 
-      {/* Store Toggle */}
-      <View style={styles.toggleRow}>
-        <Pressable
-          style={[styles.toggleBtn, shopTab === "amazon" && styles.toggleBtnAmazon]}
-          onPress={() => setShopTab("amazon")}
-        >
-          <Ionicons name="cube-outline" size={16} color={shopTab === "amazon" ? "#fff" : "#666"} />
-          <Text style={[styles.toggleText, shopTab === "amazon" && styles.toggleTextActive]}>Amazon</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.toggleBtn, shopTab === "chewy" && styles.toggleBtnChewy]}
-          onPress={() => setShopTab("chewy")}
-        >
-          <Ionicons name="cart-outline" size={16} color={shopTab === "chewy" ? "#fff" : "#666"} />
-          <Text style={[styles.toggleText, shopTab === "chewy" && styles.toggleTextActive]}>Chewy</Text>
-        </Pressable>
+      {/* Shop Hero */}
+      <View style={styles.shopHero}>
+        {/* Decorative background circles */}
+        <View style={[styles.heroBubble, { width: 160, height: 160, top: -50, left: -50 }]} />
+        <View style={[styles.heroBubble, { width: 100, height: 100, top: -10, right: -30 }]} />
+        <View style={[styles.heroBubble, { width: 70,  height: 70,  bottom: 20, left: 60 }]} />
+        <View style={[styles.heroBubble, { width: 120, height: 120, bottom: -40, right: -20 }]} />
+
+        {/* Floating pet emojis */}
+        <Text style={[styles.heroEmoji, { top: 14, left: 18 }]}>🐶</Text>
+        <Text style={[styles.heroEmoji, { top: 18, right: 20 }]}>🐱</Text>
+        <Text style={[styles.heroEmoji, { bottom: 54, left: 14 }]}>🐾</Text>
+        <Text style={[styles.heroEmoji, { bottom: 56, right: 16 }]}>🦴</Text>
+
+        {/* Title */}
+        <View style={styles.heroTitleRow}>
+          <Text style={styles.heroTitle}>Shop</Text>
+          <Text style={{ fontSize: 28, marginLeft: 6 }}>🐾</Text>
+        </View>
+        <Text style={styles.heroSub}>Amazon & Chewy, curated for your pet</Text>
+
+        {/* Store tabs */}
+        <View style={styles.heroTabRow}>
+          <Pressable
+            style={[styles.heroTab, shopTab === "amazon" && styles.heroTabActive]}
+            onPress={() => setShopTab("amazon")}
+          >
+            <Ionicons
+              name="cube-outline"
+              size={15}
+              color={shopTab === "amazon" ? BRAND : "rgba(255,255,255,0.85)"}
+            />
+            <Text style={[styles.heroTabText, shopTab === "amazon" && styles.heroTabTextActive]}>
+              Amazon
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.heroTab, shopTab === "chewy" && styles.heroTabActive]}
+            onPress={() => setShopTab("chewy")}
+          >
+            <Ionicons
+              name="cart-outline"
+              size={15}
+              color={shopTab === "chewy" ? BRAND : "rgba(255,255,255,0.85)"}
+            />
+            <Text style={[styles.heroTabText, shopTab === "chewy" && styles.heroTabTextActive]}>
+              Chewy
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* Species Toggle */}
@@ -261,33 +295,81 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8f8f8" },
   content: { paddingBottom: 40 },
 
-  toggleRow: {
+  // ── Shop hero ──────────────────────────────────────────────
+  shopHero: {
+    backgroundColor: BRAND,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 0,
+    alignItems: "center",
+    overflow: "hidden",
+    position: "relative",
+  },
+  heroBubble: {
+    position: "absolute",
+    borderRadius: 999,
+    backgroundColor: "#fff",
+    opacity: 0.1,
+  },
+  heroEmoji: {
+    position: "absolute",
+    fontSize: 20,
+    opacity: 0.3,
+  },
+  heroTitleRow: {
     flexDirection: "row",
-    margin: 16,
-    marginBottom: 8,
-    backgroundColor: "#F0F0F0",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  heroTitle: {
+    fontSize: 38,
+    fontWeight: "900",
+    color: "#fff",
+    letterSpacing: -1,
+  },
+  heroSub: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.75)",
+    marginTop: 4,
+    marginBottom: 18,
+    textAlign: "center",
+  },
+  heroTabRow: {
+    flexDirection: "row",
+    backgroundColor: "rgba(0,0,0,0.18)",
     borderRadius: 14,
     padding: 4,
     gap: 4,
+    width: "100%",
+    marginBottom: 0,
   },
-  toggleBtn: {
+  heroTab: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 11,
+    paddingVertical: 13,
     borderRadius: 10,
     gap: 6,
   },
-  toggleBtnAmazon: { backgroundColor: "#FF9900" },
-  toggleBtnChewy:  { backgroundColor: "#1B75BC" },
-  toggleText: { fontSize: 14, fontWeight: "600", color: "#666" },
-  toggleTextActive: { color: "#fff", fontWeight: "700" },
+  heroTabActive: {
+    backgroundColor: "#fff",
+  },
+  heroTabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.85)",
+  },
+  heroTabTextActive: {
+    color: BRAND,
+    fontWeight: "700",
+  },
 
   speciesRow: {
     flexDirection: "row",
     gap: 10,
     marginHorizontal: 16,
+    marginTop: 14,
     marginBottom: 8,
   },
   speciesBtn: {

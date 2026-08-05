@@ -395,7 +395,7 @@ export default function ExploreScreen() {
           {/* Hero */}
           <View style={styles.servicesHeroCard}>
             <Image
-              source={{ uri: "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?w=800&h=400&fit=crop&auto=format" }}
+              source={require("../../assets/images/hero-services.jpg")}
               style={styles.servicesHeroImage}
               resizeMode="cover"
             />
@@ -527,7 +527,7 @@ export default function ExploreScreen() {
           {/* Hero */}
           <View style={styles.adoptHeroCard}>
             <Image
-              source={{ uri: "https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=800&h=400&fit=crop&auto=format" }}
+              source={require("../../assets/images/hero-adopt.jpg")}
               style={styles.adoptHeroImage}
               resizeMode="cover"
             />
