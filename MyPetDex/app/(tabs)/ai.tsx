@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, ScrollView, TextInput, Pressable,
-  KeyboardAvoidingView, Platform, ActivityIndicator,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useState, useRef, useEffect, useMemo } from "react";
@@ -112,6 +112,8 @@ export default function AIVetScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [chatStarted, setChatStarted] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ tab: string; label: string } | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const initRef = useRef(false);
 
@@ -172,8 +174,8 @@ export default function AIVetScreen() {
       ]
     : [];
 
-  const showPicker = !petsLoading && pets.length >= 2 && !selectedPet;
-  const showChatInput = pets.length === 0 || pets.length === 1 || selectedPet !== null;
+  const showPicker = !petsLoading && pets.length >= 2 && !selectedPet && !chatStarted;
+  const showChatInput = pets.length === 0 || pets.length === 1 || selectedPet !== null || chatStarted;
 
   // Show upgrade wall for free users
   if (!planLoading && !aiAssistant) {
@@ -216,6 +218,7 @@ export default function AIVetScreen() {
 
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return;
+    setChatStarted(true);
     const userMsg: Message = { role: "user", text };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
@@ -266,7 +269,11 @@ export default function AIVetScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+    >
       {selectedPet && pets.length >= 2 ? (
         <View style={styles.switchRow}>
           <Text style={styles.switchLabel}>Helping: {selectedPet.name}</Text>
@@ -330,7 +337,13 @@ export default function AIVetScreen() {
           <Text style={styles.pickerSectionTitle}>Quick Actions</Text>
           <View style={styles.quickGrid}>
             <Pressable style={styles.quickCard}
-              onPress={() => router.push({ pathname: `/pet/${pets[0]?.id}` as any, params: { tab: "Reminders" } })}>
+              onPress={() => {
+                if (pets.length === 1) {
+                  router.push({ pathname: `/pet/${pets[0].id}` as any, params: { tab: "Reminders" } });
+                } else {
+                  setPendingAction({ tab: "Reminders", label: "Vet Reminder" });
+                }
+              }}>
               <View style={[styles.quickIcon, { backgroundColor: "#EEF2FF" }]}>
                 <Ionicons name="calendar-outline" size={22} color={BRAND} />
               </View>
@@ -338,7 +351,13 @@ export default function AIVetScreen() {
               <Text style={styles.quickCardSub}>Schedule & track visits</Text>
             </Pressable>
             <Pressable style={styles.quickCard}
-              onPress={() => router.push({ pathname: `/pet/${pets[0]?.id}` as any, params: { tab: "Meds" } })}>
+              onPress={() => {
+                if (pets.length === 1) {
+                  router.push({ pathname: `/pet/${pets[0].id}` as any, params: { tab: "Meds" } });
+                } else {
+                  setPendingAction({ tab: "Meds", label: "Log Medication" });
+                }
+              }}>
               <View style={[styles.quickIcon, { backgroundColor: "#FFF0F6" }]}>
                 <Ionicons name="medical-outline" size={22} color="#E91E8C" />
               </View>
@@ -413,6 +432,47 @@ export default function AIVetScreen() {
           </Pressable>
         </View>
       ) : null}
+
+      {/* Pet picker for quick actions */}
+      <Modal
+        visible={pendingAction !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setPendingAction(null)}
+      >
+        <View style={styles.actionPickerModal}>
+          <View style={styles.actionPickerHeader}>
+            <Text style={styles.actionPickerTitle}>{pendingAction?.label}</Text>
+            <Pressable onPress={() => setPendingAction(null)}>
+              <Text style={styles.actionPickerCancel}>Cancel</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.actionPickerSub}>Which pet is this for?</Text>
+          <View style={styles.actionPickerList}>
+            {pets.map((pet) => (
+              <Pressable
+                key={pet.id}
+                style={styles.actionPickerPet}
+                onPress={() => {
+                  const tab = pendingAction!.tab;
+                  setPendingAction(null);
+                  router.push({ pathname: `/pet/${pet.id}` as any, params: { tab } });
+                }}
+              >
+                <View style={styles.actionPickerAvatar}>
+                  <Ionicons name="paw-outline" size={22} color={BRAND} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.actionPickerPetName}>{pet.name || "Pet"}</Text>
+                  <Text style={styles.actionPickerPetBreed}>{petBreedLabel(pet)}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#ccc" />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      </Modal>
+
     </KeyboardAvoidingView>
   );
 }
@@ -555,4 +615,56 @@ const styles = StyleSheet.create({
   upgradeBtn: { backgroundColor: BRAND, borderRadius: 14, paddingVertical: 16, paddingHorizontal: 28, width: "100%", alignItems: "center", marginBottom: 12 },
   upgradeBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   upgradeNote: { fontSize: 13, color: "#aaa" },
+
+  // Pet picker modal for quick actions
+  actionPickerModal: {
+    flex: 1,
+    backgroundColor: "#f8f8f8",
+  },
+  actionPickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    paddingTop: 24,
+    backgroundColor: "#fff",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#eee",
+  },
+  actionPickerTitle: { fontSize: 18, fontWeight: "700", color: "#1E293B" },
+  actionPickerCancel: { fontSize: 16, color: BRAND, fontWeight: "600" },
+  actionPickerSub: {
+    fontSize: 13,
+    color: "#888",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+    fontWeight: "500",
+  },
+  actionPickerList: { paddingHorizontal: 16, gap: 10 },
+  actionPickerPet: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    gap: 14,
+    borderWidth: 1,
+    borderColor: "#eee",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  actionPickerAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: BRAND + "15",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionPickerPetName: { fontSize: 16, fontWeight: "700", color: "#1a1a1a" },
+  actionPickerPetBreed: { fontSize: 13, color: "#888", marginTop: 2 },
 });

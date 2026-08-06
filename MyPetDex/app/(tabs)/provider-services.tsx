@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from "react-native";
 import { webDb } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
@@ -96,7 +96,11 @@ export default function ProviderServices() {
 
       {/* Edit Modal */}
       <Modal visible={editMode} animationType="slide" presentationStyle="pageSheet">
-        <ScrollView style={s.modal} contentContainerStyle={s.modalContent}>
+        <KeyboardAvoidingView
+          style={{ flexShrink: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+        <ScrollView style={s.modal} contentContainerStyle={s.modalContent} keyboardShouldPersistTaps="handled">
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>Edit Services</Text>
             <TouchableOpacity onPress={() => setEditMode(false)}>
@@ -141,6 +145,7 @@ export default function ProviderServices() {
             {saving ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnText}>Save Changes</Text>}
           </TouchableOpacity>
         </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );

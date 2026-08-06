@@ -245,15 +245,13 @@ export default function ShoppingScreen() {
 
       {/* Disclaimer */}
       <View style={styles.section}>
-        {shopTab === "amazon" && (
-          <View style={styles.disclaimer}>
-            <Ionicons name="heart-circle-outline" size={24} color="#2d7a52" />
-            <View style={styles.disclaimerTextWrap}>
-              <Text style={styles.disclaimerBold}>You pay the exact same price!</Text>
-              <Text style={styles.disclaimerText}>MyPetDex may earn a small commission on purchases at no extra cost to you.</Text>
-            </View>
+        <View style={styles.disclaimer}>
+          <Ionicons name="heart-circle-outline" size={24} color="#2d7a52" />
+          <View style={styles.disclaimerTextWrap}>
+            <Text style={styles.disclaimerBold}>You pay the exact same price!</Text>
+            <Text style={styles.disclaimerText}>MyPetDex may earn a small commission on purchases at no extra cost to you.</Text>
           </View>
-        )}
+        </View>
 
         {/* Product List */}
         {visible.length === 0 ? (

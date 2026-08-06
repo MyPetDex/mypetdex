@@ -242,7 +242,6 @@ export default function OnboardingScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets={true}
         bounces={false}
       >
       <View style={styles.inner}>

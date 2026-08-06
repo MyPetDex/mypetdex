@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Image, Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { webDb, storage } from "@/lib/firebase";
@@ -104,7 +105,12 @@ export default function ShelterAddPet() {
   }
 
   return (
-    <ScrollView style={s.container} contentContainerStyle={s.content}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+    >
+    <ScrollView style={s.container} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
       <Text style={s.title}>Add a Pet</Text>
 
       {/* Photo */}
@@ -193,6 +199,7 @@ export default function ShelterAddPet() {
         )}
       </TouchableOpacity>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
