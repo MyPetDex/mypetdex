@@ -122,7 +122,7 @@ function AuthGuard() {
     const inExplore = segments.some(s => s === "explore");
 
     // Admin always bypasses onboarding and email verification
-    const isAdmin = user?.email === "mypetdexapp@gmail.com";
+    const isAdmin = user?.email === "mypetdexapp@gmail.com" || user?.email === "demo@mypetdex.app";
     // User has completed onboarding if they have city, businessName, or shelterName
     const hasCompletedOnboarding = isAdmin || !!(profile?.city || profile?.businessName || profile?.shelterName || profile?.onboardingComplete);
     const needsEmailVerification = !isAdmin && !emailVerified;
