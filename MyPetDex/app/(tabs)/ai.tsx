@@ -104,6 +104,7 @@ export default function AIVetScreen() {
   const { profile, loading: profileLoading } = useUserProfile();
   const { user } = useAuth();
   const router = useRouter();
+  const isDemo = !!profile?.isDemo;
 
   const firstName = useMemo(() => getFirstName(profile), [profile]);
   const [pets, setPets] = useState<Pet[]>([]);
@@ -177,7 +178,34 @@ export default function AIVetScreen() {
   const showPicker = !petsLoading && pets.length >= 2 && !selectedPet && !chatStarted;
   const showChatInput = pets.length === 0 || pets.length === 1 || selectedPet !== null || chatStarted;
 
-  // Show upgrade wall for free users
+  // Show upgrade wall for free users / demo subscribe lock
+  if (!planLoading && !profileLoading && isDemo) {
+    return (
+      <View style={styles.demoLock}>
+        <View style={styles.demoLockIcon}>
+          <Ionicons name="sparkles" size={36} color={BRAND} />
+        </View>
+        <Text style={styles.demoLockTitle}>AI Pet Assistant</Text>
+        <Text style={styles.demoLockSub}>
+          Get instant answers about your pet's health, nutrition, and behavior — personalized to their breed, age, and weight.
+        </Text>
+        <Pressable
+          style={styles.demoLockBtn}
+          onPress={() => router.push("/settings/subscription")}
+        >
+          <Ionicons name="star" size={16} color="#fff" />
+          <Text style={styles.demoLockBtnText}>Subscribe to Unlock</Text>
+        </Pressable>
+        <Text style={styles.demoLockFeatures}>
+          ✦ Personalized health advice{"\n"}
+          ✦ Vaccine & medication guidance{"\n"}
+          ✦ Smart record saving{"\n"}
+          ✦ Nutrition & recipe help
+        </Text>
+      </View>
+    );
+  }
+
   if (!planLoading && !aiAssistant) {
     return (
       <View style={styles.upgradeWall}>
@@ -667,4 +695,30 @@ const styles = StyleSheet.create({
   },
   actionPickerPetName: { fontSize: 16, fontWeight: "700", color: "#1a1a1a" },
   actionPickerPetBreed: { fontSize: 13, color: "#888", marginTop: 2 },
+  demoLock: {
+    flex: 1, alignItems: "center", justifyContent: "center",
+    paddingHorizontal: 32, gap: 16, backgroundColor: "#f8f8f8",
+  },
+  demoLockIcon: {
+    width: 80, height: 80, borderRadius: 24,
+    backgroundColor: "#EEF2FF",
+    alignItems: "center", justifyContent: "center",
+    marginBottom: 8,
+  },
+  demoLockTitle: {
+    fontSize: 24, fontWeight: "800", color: "#1a1a1a", textAlign: "center",
+  },
+  demoLockSub: {
+    fontSize: 15, color: "#666", textAlign: "center", lineHeight: 22,
+  },
+  demoLockBtn: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: BRAND, borderRadius: 16,
+    paddingHorizontal: 28, paddingVertical: 14,
+    marginTop: 4,
+  },
+  demoLockBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
+  demoLockFeatures: {
+    fontSize: 14, color: "#888", lineHeight: 26, textAlign: "center",
+  },
 });

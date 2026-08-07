@@ -8,22 +8,21 @@
 
 const { initializeApp, cert } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-const { getAuth } = require("firebase-admin/auth");
 const serviceAccount = require("/Users/john/Downloads/mypetdex-c4315-firebase-adminsdk-fbsvc-9ce96b1a62.json");
 
-initializeApp({ credential: cert(serviceAccount) });
+const app = initializeApp({
+  credential: cert(serviceAccount),
+  projectId: serviceAccount.project_id,
+});
 
-const db = getFirestore();
-const auth = getAuth();
+const db = getFirestore(app);
 
-const DEMO_EMAIL = "demo@mypetdex.app";
+// UID from Firebase Console (Auth API blocked — hardcoded from Firestore screenshot)
+const DEMO_UID = "COBBqYiSr6ciaC6UrYMtXNAluNh1";
 
 async function seed() {
-  // ── 1. Get demo user UID + force email verified ───────────────────────────
-  const user = await auth.getUserByEmail(DEMO_EMAIL);
-  const uid = user.uid;
-  await auth.updateUser(uid, { emailVerified: true });
-  console.log(`✅ Demo user found + email verified: ${uid}`);
+  const uid = DEMO_UID;
+  console.log(`✅ Using hardcoded demo UID: ${uid}`);
 
   // ── 2. Create pet document ────────────────────────────────────────────────
   const petsRef = db.collection("users").doc(uid).collection("pets");
@@ -157,7 +156,7 @@ async function seed() {
   // ── 4. Set user plan to "plus" so all features are visible ───────────────
   await db.collection("users").doc(uid).set(
     {
-      email: DEMO_EMAIL,
+      email: "demo@mypetdex.app",
       plan: "plus",
       displayName: "Demo User",
       role: "owner",
@@ -182,5 +181,7 @@ async function seed() {
 
 seed().catch((e) => {
   console.error("❌ Seed failed:", e.message);
+  console.error("   Code:", e.code);
+  console.error("   Full error:", e);
   process.exit(1);
 });

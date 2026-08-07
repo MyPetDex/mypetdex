@@ -14,6 +14,7 @@ export interface UserProfile {
   businessName?: string;
   shelterName?: string;
   onboardingComplete?: boolean;
+  isDemo?: boolean;
   createdAt?: any;
   [key: string]: any;
 }

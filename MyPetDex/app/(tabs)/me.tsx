@@ -9,6 +9,7 @@ import { useRouter } from "expo-router";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { db, auth, webAuth, webDb } from "@/lib/firebase";
 import { collection, onSnapshot, doc, deleteDoc, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
@@ -28,6 +29,8 @@ export default function MeScreen() {
   const [activeTab, setActiveTab] = useState<MeTab>("pets");
   const { user, signOut } = useAuth();
   const { plan, maxPets } = usePlan();
+  const { profile } = useUserProfile();
+  const isDemo = !!profile?.isDemo;
   const router = useRouter();
 
   async function handleSignOut() {
@@ -237,6 +240,16 @@ export default function MeScreen() {
         </Pressable>
       </View>
 
+      {isDemo ? (
+        <View style={styles.demoCard}>
+          <Ionicons name="sparkles-outline" size={20} color="#6366f1" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.demoCardTitle}>You're in Demo Mode</Text>
+            <Text style={styles.demoCardSub}>Sign up to unlock all features and create your own account.</Text>
+          </View>
+        </View>
+      ) : null}
+
       {activeTab === "pets" && (
         <View style={{ flex: 1 }}>
           <View style={styles.searchBar}>
@@ -293,9 +306,11 @@ export default function MeScreen() {
                   </Pressable>
                 ))
               )}
-              <Pressable style={styles.addBtn} onPress={handleAddPet}>
-                <Text style={styles.addBtnText}>+ Add New Pet</Text>
-              </Pressable>
+              {!isDemo ? (
+                <Pressable style={styles.addBtn} onPress={handleAddPet}>
+                  <Text style={styles.addBtnText}>+ Add New Pet</Text>
+                </Pressable>
+              ) : null}
             </ScrollView>
           )}
         </View>
@@ -397,7 +412,7 @@ export default function MeScreen() {
           <Text style={styles.settingsSectionTitle}>Account</Text>
           <View style={styles.settingsCard}>
             {[
-              ...(isPasswordUser
+              ...(!isDemo && isPasswordUser
                 ? [{ label: "Change Password", icon: "key-outline", onPress: () => setShowChangePassword(true) }]
                 : []),
               { label: "Privacy Policy", icon: "lock-closed-outline", onPress: () => WebBrowser.openBrowserAsync("https://home.mypetdex.app/privacy.html") },
@@ -430,13 +445,15 @@ export default function MeScreen() {
             <Text style={styles.signOutText}>Sign Out</Text>
           </Pressable>
 
-          <Pressable
-            style={[styles.deleteBtn, deleting && { opacity: 0.6 }]}
-            onPress={handleDeleteAccount}
-            disabled={deleting}
-          >
-            <Text style={styles.deleteBtnText}>{deleting ? "Deleting…" : "Delete Account"}</Text>
-          </Pressable>
+          {!isDemo ? (
+            <Pressable
+              style={[styles.deleteBtn, deleting && { opacity: 0.6 }]}
+              onPress={handleDeleteAccount}
+              disabled={deleting}
+            >
+              <Text style={styles.deleteBtnText}>{deleting ? "Deleting…" : "Delete Account"}</Text>
+            </Pressable>
+          ) : null}
 
           <Text style={styles.version}>MyPetDex v1.0.0 · help@mypetdex.app</Text>
         </ScrollView>
@@ -649,6 +666,14 @@ const styles = StyleSheet.create({
   deleteBtn: { backgroundColor: "#E53935", borderRadius: 16, padding: 16, alignItems: "center", marginTop: 10 },
   deleteBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
   version: { textAlign: "center", fontSize: 12, color: "#C0C8D8", marginTop: 16 },
+  demoCard: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: "#eef2ff", borderRadius: 16,
+    padding: 16, marginHorizontal: 16, marginBottom: 8, marginTop: 4,
+    borderWidth: 1, borderColor: "#c7d2fe",
+  },
+  demoCardTitle: { fontSize: 14, fontWeight: "700", color: "#4f46e5" },
+  demoCardSub: { fontSize: 12, color: "#6366f1", marginTop: 2, lineHeight: 16 },
   // ── Feedback modal ───────────────────────────────────────────────────
   modalContainer: { flexGrow: 1, backgroundColor: BG },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, paddingTop: 24, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#F0F2F8" },

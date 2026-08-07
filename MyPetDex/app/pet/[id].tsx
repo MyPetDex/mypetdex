@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { db, uploadPetPhoto, auth } from "@/lib/firebase";
 import {
   doc, onSnapshot, updateDoc, deleteDoc, arrayUnion, arrayRemove,
@@ -70,6 +71,8 @@ export default function PetProfileScreen() {
   const { id, tab: initialTab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const { user } = useAuth();
   const { plan, pdfExport } = usePlan();
+  const { profile } = useUserProfile();
+  const isDemo = !!profile?.isDemo;
   const router = useRouter();
   const navigation = useNavigation();
 
@@ -119,22 +122,23 @@ export default function PetProfileScreen() {
     return unsub;
   }, [user, id]);
 
-  // Wire header right button — Edit + Delete
+  // Wire header right button — Edit + Delete (hidden in demo)
   useEffect(() => {
     if (!pet) return;
     navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: "row", gap: 12, marginRight: 4 }}>
-          <Pressable onPress={openEdit} hitSlop={8}>
-            <Text style={{ fontSize: 15, color: BRAND, fontWeight: "600" }}>✏️ Edit</Text>
-          </Pressable>
-          <Pressable onPress={handleDeletePet} hitSlop={8}>
-            <Text style={{ fontSize: 15, color: "#E53935", fontWeight: "600" }}>🗑️</Text>
-          </Pressable>
-        </View>
-      ),
+      headerRight: () =>
+        isDemo ? null : (
+          <View style={{ flexDirection: "row", gap: 12, marginRight: 4 }}>
+            <Pressable onPress={openEdit} hitSlop={8}>
+              <Text style={{ fontSize: 15, color: BRAND, fontWeight: "600" }}>✏️ Edit</Text>
+            </Pressable>
+            <Pressable onPress={handleDeletePet} hitSlop={8}>
+              <Text style={{ fontSize: 15, color: "#E53935", fontWeight: "600" }}>🗑️</Text>
+            </Pressable>
+          </View>
+        ),
     });
-  }, [pet]);
+  }, [pet, isDemo]);
 
   function openEdit() {
     if (!pet) return;
@@ -583,7 +587,7 @@ ${(pet.vaccines || []).length > 0 ? `
         {activeTab === "Reminders" && <RemindersTab pet={pet} user={user} />}
         {activeTab === "Meds" && <MedsTab pet={pet} user={user} />}
         {activeTab === "Calories" && <CaloriesTab pet={pet} user={user} />}
-        {activeTab === "Recipes" && <RecipesTab pet={pet} canUseAI={canUseAI} />}
+        {activeTab === "Recipes" && <RecipesTab pet={pet} canUseAI={canUseAI && !isDemo} />}
       </ScrollView>
     </View>
   );
@@ -591,6 +595,8 @@ ${(pet.vaccines || []).length > 0 ? `
 
 // ── Records Tab ───────────────────────────────────────────────────────────────
 function RecordsTab({ pet, user }: { pet: any; user: any }) {
+  const { profile } = useUserProfile();
+  const isDemo = !!profile?.isDemo;
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ title: "", type: "Vet Visit", date: "", note: "" });
@@ -657,6 +663,13 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
 
   return (
     <View style={styles.tabContent}>
+      {isDemo ? (
+        <View style={styles.demoBanner}>
+          <Ionicons name="eye-outline" size={15} color="#6366f1" />
+          <Text style={styles.demoBannerText}>Demo mode — records are view only</Text>
+        </View>
+      ) : null}
+
       {/* Vet Contact Card */}
       <View style={styles.vetCard}>
         <View style={styles.vetCardHeader}>
@@ -664,9 +677,11 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
             <Ionicons name="business-outline" size={16} color="#1a1a1a" />
             <Text style={styles.vetCardTitle}>My Vet</Text>
           </View>
-          <Pressable onPress={openVetEdit} style={styles.vetAddBtn}>
-            <Text style={styles.vetAddBtnText}>{pet.vet?.name ? "Edit" : "+ Add Vet"}</Text>
-          </Pressable>
+          {!isDemo ? (
+            <Pressable onPress={openVetEdit} style={styles.vetAddBtn}>
+              <Text style={styles.vetAddBtnText}>{pet.vet?.name ? "Edit" : "+ Add Vet"}</Text>
+            </Pressable>
+          ) : null}
         </View>
         {pet.vet?.name ? (
           <View style={styles.vetCardBody}>
@@ -718,7 +733,7 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
         </View>
       ) : (
         vaccines.map((r: any) => (
-          <Pressable key={r.id} style={styles.recordCard} onLongPress={() => deleteRecord(r.id)}>
+          <Pressable key={r.id} style={styles.recordCard} onLongPress={isDemo ? undefined : () => deleteRecord(r.id)}>
             <View style={[styles.recordBar, { backgroundColor: TYPE_COLORS[r.type] || BRAND }]} />
             <View style={styles.recordContent}>
               <View style={styles.recordHeader}>
@@ -728,15 +743,19 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
               <Text style={styles.recordType}>{r.type}</Text>
               {r.note ? <Text style={styles.recordNote}>{r.note}</Text> : null}
             </View>
-            <Pressable onPress={() => deleteRecord(r.id)} hitSlop={8} style={{ padding: 8 }}>
-              <Text style={{ fontSize: 16 }}>🗑️</Text>
-            </Pressable>
+            {!isDemo ? (
+              <Pressable onPress={() => deleteRecord(r.id)} hitSlop={8} style={{ padding: 8 }}>
+                <Text style={{ fontSize: 16 }}>🗑️</Text>
+              </Pressable>
+            ) : null}
           </Pressable>
         ))
       )}
-      <Pressable style={styles.addBtn} onPress={() => setShowModal(true)}>
-        <Text style={styles.addBtnText}>+ Add Record</Text>
-      </Pressable>
+      {!isDemo ? (
+        <Pressable style={styles.addBtn} onPress={() => setShowModal(true)}>
+          <Text style={styles.addBtnText}>+ Add Record</Text>
+        </Pressable>
+      ) : null}
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
         <KeyboardAvoidingView
           style={{ flexShrink: 1 }}
@@ -910,6 +929,8 @@ function RecordsTab({ pet, user }: { pet: any; user: any }) {
 
 // ── Meds Tab ──────────────────────────────────────────────────────────────────
 function MedsTab({ pet, user }: { pet: any; user: any }) {
+  const { profile } = useUserProfile();
+  const isDemo = !!profile?.isDemo;
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -999,21 +1020,23 @@ function MedsTab({ pet, user }: { pet: any; user: any }) {
             {m.note ? <Text style={styles.medNote}>{m.note}</Text> : null}
           </View>
           {/* Action bar */}
-          <View style={styles.medActionBar}>
-            <Pressable style={styles.medActionBtn} onPress={() => openEdit(m)}>
-              <Text style={styles.medActionEdit}>Edit</Text>
-            </Pressable>
-            <View style={styles.medActionDivider} />
-            <Pressable style={[styles.medActionBtn, { flex: 2 }]} onPress={() => toggleActive(m.id)}>
-              <Text style={styles.medActionToggle}>
-                {isActive ? "▼ Mark as stopped" : "▲ Mark as active"}
-              </Text>
-            </Pressable>
-            <View style={styles.medActionDivider} />
-            <Pressable style={styles.medActionBtn} onPress={() => deleteMed(m.id)}>
-              <Text style={styles.medActionDelete}>Delete</Text>
-            </Pressable>
-          </View>
+          {!isDemo ? (
+            <View style={styles.medActionBar}>
+              <Pressable style={styles.medActionBtn} onPress={() => openEdit(m)}>
+                <Text style={styles.medActionEdit}>Edit</Text>
+              </Pressable>
+              <View style={styles.medActionDivider} />
+              <Pressable style={[styles.medActionBtn, { flex: 2 }]} onPress={() => toggleActive(m.id)}>
+                <Text style={styles.medActionToggle}>
+                  {isActive ? "▼ Mark as stopped" : "▲ Mark as active"}
+                </Text>
+              </Pressable>
+              <View style={styles.medActionDivider} />
+              <Pressable style={styles.medActionBtn} onPress={() => deleteMed(m.id)}>
+                <Text style={styles.medActionDelete}>Delete</Text>
+              </Pressable>
+            </View>
+          ) : null}
         </View>
       </View>
     );
@@ -1043,9 +1066,11 @@ function MedsTab({ pet, user }: { pet: any; user: any }) {
           )}
         </>
       )}
-      <Pressable style={styles.addBtn} onPress={openAdd}>
-        <Text style={styles.addBtnText}>+ Add Medication</Text>
-      </Pressable>
+      {!isDemo ? (
+        <Pressable style={styles.addBtn} onPress={openAdd}>
+          <Text style={styles.addBtnText}>+ Add Medication</Text>
+        </Pressable>
+      ) : null}
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
         <KeyboardAvoidingView
           style={{ flexShrink: 1 }}
@@ -1151,6 +1176,8 @@ function WeightChart({ data }: { data: any[] }) {
 
 // ── Reminders Tab ─────────────────────────────────────────────────────────────
 function RemindersTab({ pet, user }: { pet: any; user: any }) {
+  const { profile } = useUserProfile();
+  const isDemo = !!profile?.isDemo;
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1237,7 +1264,7 @@ function RemindersTab({ pet, user }: { pet: any; user: any }) {
               <Text style={styles.sectionLabel}>Upcoming</Text>
               {pending.map((r: any) => (
                 <View key={r.id} style={[styles.reminderCard, isOverdue(r.due) && styles.reminderOverdue]}>
-                  <Pressable onPress={() => toggleDone(r.id)}>
+                  <Pressable onPress={isDemo ? undefined : () => toggleDone(r.id)}>
                     <View style={styles.checkbox} />
                   </Pressable>
                   <View style={styles.reminderInfo}>
@@ -1246,8 +1273,12 @@ function RemindersTab({ pet, user }: { pet: any; user: any }) {
                     {r.repeat !== "None" && r.repeat ? <Text style={styles.reminderRepeat}>🔁 Repeats {r.repeat}</Text> : null}
                   </View>
                   <View style={styles.reminderActions}>
-                    <Pressable style={styles.iconBtn} onPress={() => openEdit(r)}><Text style={styles.iconBtnEdit}>✏️</Text></Pressable>
-                    <Pressable style={styles.iconBtn} onPress={() => deleteReminder(r.id)}><Text style={styles.iconBtnDelete}>🗑️</Text></Pressable>
+                    {!isDemo ? (
+                      <>
+                        <Pressable style={styles.iconBtn} onPress={() => openEdit(r)}><Text style={styles.iconBtnEdit}>✏️</Text></Pressable>
+                        <Pressable style={styles.iconBtn} onPress={() => deleteReminder(r.id)}><Text style={styles.iconBtnDelete}>🗑️</Text></Pressable>
+                      </>
+                    ) : null}
                   </View>
                 </View>
               ))}
@@ -1258,7 +1289,7 @@ function RemindersTab({ pet, user }: { pet: any; user: any }) {
               <Text style={styles.sectionLabel}>Completed</Text>
               {done.map((r: any) => (
                 <View key={r.id} style={[styles.reminderCard, { opacity: 0.5 }]}>
-                  <Pressable onPress={() => toggleDone(r.id)}>
+                  <Pressable onPress={isDemo ? undefined : () => toggleDone(r.id)}>
                     <View style={[styles.checkbox, styles.checkboxDone]}>
                       <Text style={styles.checkboxTick}>✓</Text>
                     </View>
@@ -1266,16 +1297,20 @@ function RemindersTab({ pet, user }: { pet: any; user: any }) {
                   <View style={styles.reminderInfo}>
                     <Text style={[styles.reminderTitle, { textDecorationLine: "line-through" }]}>{r.title}</Text>
                   </View>
-                  <Pressable style={styles.iconBtn} onPress={() => deleteReminder(r.id)}><Text style={styles.iconBtnDelete}>🗑️</Text></Pressable>
+                  {!isDemo ? (
+                    <Pressable style={styles.iconBtn} onPress={() => deleteReminder(r.id)}><Text style={styles.iconBtnDelete}>🗑️</Text></Pressable>
+                  ) : null}
                 </View>
               ))}
             </>
           )}
         </>
       )}
-      <Pressable style={styles.addBtn} onPress={openAdd}>
-        <Text style={styles.addBtnText}>+ Add Reminder</Text>
-      </Pressable>
+      {!isDemo ? (
+        <Pressable style={styles.addBtn} onPress={openAdd}>
+          <Text style={styles.addBtnText}>+ Add Reminder</Text>
+        </Pressable>
+      ) : null}
       <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowModal(false)}>
         <KeyboardAvoidingView
           style={{ flexShrink: 1 }}
@@ -2186,4 +2221,10 @@ const styles = StyleSheet.create({
   vetEmptyText: { fontSize: 13, color: "#aaa", textAlign: "center", paddingVertical: 8 },
   vetAddBtn: { backgroundColor: "#4486F4", borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8 },
   vetAddBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  demoBanner: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: "#eef2ff", borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12,
+  },
+  demoBannerText: { fontSize: 13, color: "#6366f1", fontWeight: "600" },
 });
