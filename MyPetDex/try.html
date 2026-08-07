@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Try MyPetDex Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f4ff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 40px 32px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 8px 40px rgba(68,134,244,0.12);
+    }
+    .paw { font-size: 52px; margin-bottom: 12px; }
+    h1 { font-size: 26px; font-weight: 800; color: #1a1a1a; margin-bottom: 8px; }
+    .sub { font-size: 15px; color: #666; line-height: 1.5; margin-bottom: 32px; }
+    .btn-primary {
+      display: block;
+      background: #4486F4;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px 24px;
+      border-radius: 14px;
+      text-decoration: none;
+      margin-bottom: 12px;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-secondary {
+      display: block;
+      background: #f3f4f6;
+      color: #444;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 14px 24px;
+      border-radius: 14px;
+      text-decoration: none;
+      margin-bottom: 24px;
+    }
+    .divider {
+      font-size: 12px;
+      color: #aaa;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .creds {
+      background: #f8faff;
+      border: 1px solid #e0e8ff;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: left;
+    }
+    .cred-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .cred-row:last-child { margin-bottom: 0; }
+    .cred-label { font-size: 12px; color: #888; font-weight: 600; text-transform: uppercase; }
+    .cred-value { font-size: 14px; color: #1a1a1a; font-weight: 700; font-family: monospace; }
+    .note { font-size: 12px; color: #aaa; margin-top: 20px; line-height: 1.5; }
+    #status { font-size: 14px; color: #4486F4; font-weight: 600; margin-bottom: 16px; min-height: 20px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="paw">🐾</div>
+    <h1>Try MyPetDex</h1>
+    <p class="sub">Explore all features with a pre-loaded demo account — no sign-up needed.</p>
+
+    <div id="status"></div>
+
+    <a class="btn-primary" id="openApp" href="mypetdex://demo-login">
+      Open Demo in App
+    </a>
+    <a class="btn-secondary" href="https://apps.apple.com/app/mypetdex/id6772248051" id="storeLink">
+      Download on the App Store
+    </a>
+
+    <div class="divider">or scan the QR code</div>
+    <img
+      src="https://home.mypetdex.app/images/demo-qr.png"
+      alt="QR code — scan to open MyPetDex demo"
+      width="180"
+      height="180"
+      style="border-radius:12px;margin-bottom:24px;"
+    />
+
+    <div class="divider">or sign in manually</div>
+    <div class="creds">
+      <div class="cred-row">
+        <span class="cred-label">Email</span>
+        <span class="cred-value">demo@mypetdex.app</span>
+      </div>
+      <div class="cred-row">
+        <span class="cred-label">Password</span>
+        <span class="cred-value">Demo1234!</span>
+      </div>
+    </div>
+
+    <p class="note">iOS only · Free to explore · No account required</p>
+  </div>
+
+  <script>
+    // If app is installed, mypetdex://demo-login opens it instantly.
+    // If not, fall back gracefully to the App Store link.
+    const openBtn = document.getElementById("openApp");
+    const status = document.getElementById("status");
+
+    openBtn.addEventListener("click", function(e) {
+      e.preventDefault();
+      status.textContent = "Opening MyPetDex…";
+
+      // Try to open the app
+      window.location = "mypetdex://demo-login";
+
+      // After 2s, if still here, app isn't installed — go to App Store
+      setTimeout(function() {
+        status.textContent = "App not found — redirecting to App Store…";
+        window.location = "https://apps.apple.com/app/mypetdex/id6772248051";
+      }, 2000);
+    });
+  </script>
+</body>
+</html>

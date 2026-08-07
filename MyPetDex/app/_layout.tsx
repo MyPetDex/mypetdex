@@ -120,6 +120,7 @@ function AuthGuard() {
     const inOnboarding = segments.some(s => s === "onboarding");
     const inCheckEmail = segments.some(s => s === "check-email");
     const inExplore = segments.some(s => s === "explore");
+    const inDemoLogin = (segments as string[]).includes("demo-login");
 
     // Admin always bypasses onboarding and email verification
     const isAdmin = user?.email === "mypetdexapp@gmail.com" || user?.email === "demo@mypetdex.app";
@@ -135,6 +136,9 @@ function AuthGuard() {
       return "/onboarding" as const;
     })();
     const homeHref = tabsHomeHref(profile, getPendingRole());
+
+    // Let demo-login finish auto sign-in before redirecting
+    if (inDemoLogin) return;
 
     if (!user && !inAuthGroup && !inExplore) {
       router.replace("/(auth)/sign-in");
@@ -199,6 +203,7 @@ export default Sentry.wrap(function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)/sign-in" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="demo-login" options={{ headerShown: false }} />
         <Stack.Screen
           name="pet/[id]"
           options={{
