@@ -5,7 +5,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
+import { WebView } from "react-native-webview";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
@@ -323,6 +323,7 @@ export default function ExploreScreen() {
   const [petType, setPetType] = useState<"Dog" | "Cat">("Dog");
   const [zipCode, setZipCode] = useState("");
   const [localShelterPets, setLocalShelterPets] = useState<LocalShelterPet[]>([]);
+  const [adoptUrl, setAdoptUrl] = useState<string | null>(null);
 
   async function fetchLocalShelterPets(zip: string, species: string): Promise<LocalShelterPet[]> {
     const snap = await getDocs(query(
@@ -358,10 +359,7 @@ export default function ExploreScreen() {
     const url = petType === "Dog"
       ? `https://www.adoptapet.com/dog-adoption?zip=${zipCode}`
       : `https://www.adoptapet.com/cat-adoption?zip=${zipCode}`;
-    await WebBrowser.openBrowserAsync(url, {
-      presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
-      toolbarColor: "#4486F4",
-    });
+    setAdoptUrl(url);
   };
 
   return (
@@ -683,12 +681,71 @@ export default function ExploreScreen() {
 
         </ScrollView>
       )}
+
+      {/* Adoption WebView — locked to adoptapet.com */}
+      <Modal
+        visible={!!adoptUrl}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setAdoptUrl(null)}
+      >
+        <View style={styles.adoptWebWrap}>
+          <View style={styles.adoptWebHeader}>
+            <Text style={styles.adoptWebTitle}>Adopt-a-Pet</Text>
+            <Pressable onPress={() => setAdoptUrl(null)} hitSlop={12}>
+              <Text style={styles.adoptWebClose}>Done</Text>
+            </Pressable>
+          </View>
+          {adoptUrl ? (
+            <WebView
+              source={{ uri: adoptUrl }}
+              style={styles.adoptWebView}
+              startInLoadingState={true}
+              renderLoading={() => (
+                <ActivityIndicator
+                  size="large"
+                  color="#4486F4"
+                  style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+                />
+              )}
+              onShouldStartLoadWithRequest={(request) => {
+                const url = request.url;
+                // Allow adoptapet.com and blank/about pages
+                if (
+                  url.startsWith("https://www.adoptapet.com") ||
+                  url.startsWith("https://adoptapet.com") ||
+                  url.startsWith("about:blank") ||
+                  url === "about:blank"
+                ) {
+                  return true; // allow inside WebView
+                }
+                // Everything else opens in Safari
+                Linking.openURL(url).catch(() => {});
+                return false; // block inside WebView
+              }}
+            />
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8f8f8" },
+  adoptWebWrap: { flex: 1, backgroundColor: "#fff" },
+  adoptWebHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#e5e5e5",
+  },
+  adoptWebTitle: { fontSize: 17, fontWeight: "700", color: "#1a1a1a" },
+  adoptWebClose: { fontSize: 16, fontWeight: "600", color: BRAND },
+  adoptWebView: { flex: 1 },
 
   // Toggle
   toggleRow: {
