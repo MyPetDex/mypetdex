@@ -12,7 +12,8 @@ import { usePlan } from "@/hooks/usePlan";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { db, auth, webAuth, webDb } from "@/lib/firebase";
-import { collection, onSnapshot, doc, deleteDoc, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, onSnapshot, doc, deleteDoc, getDocs } from "firebase/firestore";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import * as WebBrowser from "expo-web-browser";
 
 const BRAND = "#4C6EF5";
@@ -148,14 +149,9 @@ export default function MeScreen() {
     }
     setFeedbackSending(true);
     try {
-      await addDoc(collection(db, "feedback"), {
-        message: feedbackMessage.trim(),
-        subject: feedbackSubject,
-        uid: auth.currentUser?.uid ?? user?.uid ?? "anonymous",
-        email: auth.currentUser?.email ?? user?.email ?? "",
-        read: false,
-        createdAt: serverTimestamp(),
-      });
+      const functions = getFunctions();
+      const sendFeedbackFn = httpsCallable(functions, "sendFeedback");
+      await sendFeedbackFn({ subject: feedbackSubject, message: feedbackMessage.trim() });
       setFeedbackSent(true);
       setTimeout(() => {
         setShowFeedback(false);
@@ -163,7 +159,7 @@ export default function MeScreen() {
         setFeedbackMessage("");
         setFeedbackSubject("General Feedback");
       }, 2000);
-    } catch {
+    } catch (err: any) {
       Alert.alert("Error", "Could not send feedback. Please email help@mypetdex.app");
     } finally {
       setFeedbackSending(false);
