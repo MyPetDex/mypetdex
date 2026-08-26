@@ -7,6 +7,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { usePlan } from "@/hooks/usePlan";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
+import { useResponsive } from "@/hooks/useResponsive";
 import { useRouter } from "expo-router";
 import { auth, db } from "@/lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
@@ -103,6 +104,7 @@ export default function AIVetScreen() {
   const { aiAssistant, loading: planLoading } = usePlan();
   const { profile, loading: profileLoading } = useUserProfile();
   const { user } = useAuth();
+  const { isTablet, contentWidth } = useResponsive();
   const router = useRouter();
   const isDemo = !!profile?.isDemo;
 
@@ -181,7 +183,8 @@ export default function AIVetScreen() {
   // Show upgrade wall for free users / demo subscribe lock
   if (!planLoading && !profileLoading && isDemo) {
     return (
-      <View style={styles.demoLock}>
+      <View style={{ flex: 1, alignItems: isTablet ? "center" : "stretch", backgroundColor: "#f8f8f8" }}>
+      <View style={[styles.demoLock, isTablet && { width: contentWidth }]}>
         <View style={styles.demoLockIcon}>
           <Ionicons name="sparkles" size={36} color={BRAND} />
         </View>
@@ -203,12 +206,14 @@ export default function AIVetScreen() {
           ✦ Nutrition & recipe help
         </Text>
       </View>
+      </View>
     );
   }
 
   if (!planLoading && !aiAssistant) {
     return (
-      <View style={styles.upgradeWall}>
+      <View style={{ flex: 1, alignItems: isTablet ? "center" : "stretch", backgroundColor: "#f8f8f8" }}>
+      <View style={[styles.upgradeWall, isTablet && { width: contentWidth }]}>
         <Ionicons name="sparkles-outline" size={64} color={BRAND} style={{ marginBottom: 16 }} />
         <Text style={styles.upgradeTitle}>MyPetDex Assistant</Text>
         <Text style={styles.upgradeDesc}>
@@ -218,6 +223,7 @@ export default function AIVetScreen() {
           <Text style={styles.upgradeBtnText}>Upgrade to Plus — $2.99/mo</Text>
         </Pressable>
         <Text style={styles.upgradeNote}>Included in Plus and Family plans</Text>
+      </View>
       </View>
     );
   }
@@ -297,8 +303,9 @@ export default function AIVetScreen() {
   }
 
   return (
+    <View style={{ flex: 1, backgroundColor: "#f8f8f8", alignItems: isTablet ? "center" : "stretch" }}>
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, isTablet && { width: contentWidth }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
@@ -502,6 +509,7 @@ export default function AIVetScreen() {
       </Modal>
 
     </KeyboardAvoidingView>
+    </View>
   );
 }
 

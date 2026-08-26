@@ -4,6 +4,7 @@ import {
 } from "react-native";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { useResponsive } from "@/hooks/useResponsive";
 
 const BRAND = "#4486F4";
 
@@ -122,6 +123,7 @@ export default function ShoppingScreen() {
   const [species, setSpecies]       = useState<Species>("dog");
   const [selected, setSelected]     = useState("All");
   const [search, setSearch]         = useState("");
+  const { isTablet, contentWidth, numColumns } = useResponsive();
 
   const visible = PRODUCT_CATALOG.filter(p => {
     if (p.species !== "all" && p.species !== species) return false;
@@ -139,7 +141,12 @@ export default function ShoppingScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} bounces={false}>
+    <View style={{ flex: 1, backgroundColor: "#f8f8f8", alignItems: isTablet ? "center" : "stretch" }}>
+    <ScrollView
+      style={[styles.container, isTablet && { width: contentWidth }]}
+      contentContainerStyle={styles.content}
+      bounces={false}
+    >
 
       {/* Shop Hero */}
       <View style={styles.shopHero}>
@@ -261,10 +268,18 @@ export default function ShoppingScreen() {
             <Text style={styles.emptySub}>Try a different search or category.</Text>
           </View>
         ) : (
-          visible.map(product => {
+          <View
+            key={numColumns}
+            style={numColumns > 1 ? styles.productGrid : undefined}
+          >
+          {visible.map(product => {
             const meta = CATEGORY_ICONS[product.category];
             return (
-              <Pressable key={product.id} style={styles.productCard} onPress={() => openProduct(product)}>
+              <Pressable
+                key={product.id}
+                style={[styles.productCard, numColumns > 1 && styles.productCardHalf]}
+                onPress={() => openProduct(product)}
+              >
                 <View style={[styles.productIcon, { backgroundColor: (meta?.color || "#888") + "20" }]}>
                   <Ionicons
                     name={(meta?.icon as any) || "pricetag-outline"}
@@ -282,10 +297,12 @@ export default function ShoppingScreen() {
                 </Text>
               </Pressable>
             );
-          })
+          })}
+          </View>
         )}
       </View>
     </ScrollView>
+    </View>
   );
 }
 
@@ -441,6 +458,15 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
+  },
+  productGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  productCardHalf: {
+    width: "48%",
+    flexGrow: 1,
   },
   productIcon: {
     width: 52,

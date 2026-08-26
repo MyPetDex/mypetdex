@@ -14,6 +14,7 @@ import {
   doc, setDoc, addDoc, collection, serverTimestamp,
   GoogleAuthProvider, signInWithCredential, callFunction,
 } from "@/lib/firebase";
+import { useResponsive } from "@/hooks/useResponsive";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -35,6 +36,7 @@ const WEB_CLIENT_ID = "209772699227-ilqlulmvqp12fau8bbvmq5ufvnbkoguc.apps.google
 
 export default function SignInScreen() {
   const { signInWithGoogle, setGooglePrompt, signInWithApple, signUpWithEmail, signInWithEmail, appleAvailable, user, loading: authLoading, setPendingRole } = useAuth();
+  const { isTablet } = useResponsive();
   const [screen, setScreen] = useState<Screen>("landing");
   const [role, setRole] = useState<Role>("owner");
   const [step, setStep] = useState(1);
@@ -248,7 +250,7 @@ export default function SignInScreen() {
   if (screen === "landing") {
     return (
       <SafeAreaView style={styles.safeContainer}>
-        <View style={styles.container}>
+        <View style={[styles.container, isTablet && { width: 480, alignSelf: "center" }]}>
           <View style={styles.hero}>
             <Image source={require("../../assets/images/logo-transparent.png")} style={styles.logoImage} resizeMode="contain" />
             <Text style={styles.title}>MyPetDex</Text>
@@ -286,7 +288,7 @@ export default function SignInScreen() {
       <SafeAreaView style={styles.safeContainer}>
         <BackHeader onBack={() => setScreen("landing")} />
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}>
-          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" bounces={false}>
+          <ScrollView contentContainerStyle={[styles.scrollContent, isTablet && { width: 480, alignSelf: "center" }]} keyboardShouldPersistTaps="handled" bounces={false}>
             <Image source={require("../../assets/images/logo-transparent.png")} style={styles.logoSmall} resizeMode="contain" />
             <Text style={styles.title}>Welcome back 👋</Text>
             {error ? <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View> : null}
@@ -332,7 +334,7 @@ export default function SignInScreen() {
     <SafeAreaView style={styles.safeContainer}>
       <BackHeader onBack={() => step === 1 ? setScreen("landing") : setStep(1)} label={step === 1 ? "Back" : "Previous step"} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" bounces={false}>
+        <ScrollView contentContainerStyle={[styles.scrollContent, isTablet && { width: 480, alignSelf: "center" }]} keyboardShouldPersistTaps="handled" bounces={false}>
           <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 8 }}>
             <Pressable onPress={() => setScreen("login")}><Text style={styles.linkText}>Already have an account? <Text style={{ color: BLUE }}>Sign In</Text></Text></Pressable>
           </View>

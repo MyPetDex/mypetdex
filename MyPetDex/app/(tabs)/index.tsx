@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
+import { useResponsive } from "@/hooks/useResponsive";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, doc, getDoc } from "firebase/firestore";
@@ -21,6 +22,7 @@ const TEXT2 = "#64748B";
 export default function HomeScreen() {
   const { user } = useAuth();
   const { maxPets, plan } = usePlan();
+  const { isTablet, contentWidth } = useResponsive();
 
   const planLabel = plan === "plus" ? "Plus Plan" : plan === "family" ? "Family Plan" : null;
   const planIcon: any = plan === "plus" ? "star" : plan === "family" ? "diamond-outline" : null;
@@ -93,7 +95,12 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} bounces={false}>
+    <View style={{ flex: 1, backgroundColor: BG, alignItems: isTablet ? "center" : "stretch" }}>
+    <ScrollView
+      style={[styles.container, isTablet && { width: contentWidth }]}
+      contentContainerStyle={styles.content}
+      bounces={false}
+    >
       <UpgradePrompt
         visible={showUpgrade}
         onClose={() => setShowUpgrade(false)}
@@ -323,6 +330,7 @@ export default function HomeScreen() {
         </Pressable>
       </Modal>
     </ScrollView>
+    </View>
   );
 }
 

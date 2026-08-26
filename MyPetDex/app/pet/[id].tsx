@@ -8,6 +8,7 @@ import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useResponsive } from "@/hooks/useResponsive";
 import { db, uploadPetPhoto, auth } from "@/lib/firebase";
 import {
   doc, onSnapshot, updateDoc, deleteDoc, arrayUnion, arrayRemove,
@@ -72,6 +73,7 @@ export default function PetProfileScreen() {
   const { user } = useAuth();
   const { plan, pdfExport } = usePlan();
   const { profile } = useUserProfile();
+  const { isTablet, contentWidth } = useResponsive();
   const isDemo = !!profile?.isDemo;
   const router = useRouter();
   const navigation = useNavigation();
@@ -360,7 +362,8 @@ ${(pet.vaccines || []).length > 0 ? `
   const displayPhoto = editPhotoUri || pet.photoURL;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isTablet && { alignItems: "center" }]}>
+      <View style={{ flex: 1, width: isTablet ? contentWidth : "100%" }}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatar}>
@@ -589,6 +592,7 @@ ${(pet.vaccines || []).length > 0 ? `
         {activeTab === "Calories" && <CaloriesTab pet={pet} user={user} />}
         {activeTab === "Recipes" && <RecipesTab pet={pet} canUseAI={canUseAI && !isDemo} />}
       </ScrollView>
+      </View>
     </View>
   );
 }

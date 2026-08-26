@@ -10,6 +10,7 @@ import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useResponsive } from "@/hooks/useResponsive";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { db, auth, webAuth, webDb } from "@/lib/firebase";
 import { collection, onSnapshot, doc, deleteDoc, getDocs } from "firebase/firestore";
@@ -31,6 +32,7 @@ export default function MeScreen() {
   const { user, signOut } = useAuth();
   const { plan, maxPets } = usePlan();
   const { profile } = useUserProfile();
+  const { isTablet, contentWidth } = useResponsive();
   const isDemo = !!profile?.isDemo;
   const router = useRouter();
 
@@ -208,6 +210,8 @@ export default function MeScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={{ flex: 1, alignItems: isTablet ? "center" : "stretch" }}>
+      <View style={{ flex: 1, width: isTablet ? contentWidth : "100%" }}>
       <UpgradePrompt
         visible={showUpgrade}
         onClose={() => setShowUpgrade(false)}
@@ -454,6 +458,8 @@ export default function MeScreen() {
           <Text style={styles.version}>MyPetDex v1.0.0 · help@mypetdex.app</Text>
         </ScrollView>
       )}
+      </View>
+      </View>
 
       <Modal
         visible={showFeedback}

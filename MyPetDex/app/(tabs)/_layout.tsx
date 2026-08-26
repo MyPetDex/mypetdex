@@ -3,12 +3,14 @@ import { Platform, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
+import { useResponsive } from "@/hooks/useResponsive";
 
 const BRAND = "#4C6EF5";
 
 export default function TabLayout() {
   const { user } = useAuth();
   const { profile } = useUserProfile();
+  const { isTablet } = useResponsive();
 
   // Determine role: admin email always gets admin, otherwise from profile
   const role = user?.email === "mypetdexapp@gmail.com"
@@ -31,8 +33,8 @@ export default function TabLayout() {
           backgroundColor: "#fff",
           borderTopColor: "#EEF0F8",
           borderTopWidth: 1,
-          paddingBottom: Platform.OS === "ios" ? 22 : 8,
-          height: Platform.OS === "ios" ? 86 : 64,
+          paddingBottom: isTablet ? 20 : Platform.OS === "ios" ? 22 : 8,
+          height: isTablet ? 80 : Platform.OS === "ios" ? 86 : 64,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.06,
