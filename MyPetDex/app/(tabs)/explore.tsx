@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { WebView } from "react-native-webview";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useResponsive } from "@/hooks/useResponsive";
 import { webDb } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 
@@ -217,6 +218,7 @@ function ProviderCard({
 
 export default function ExploreScreen() {
   const { profile } = useUserProfile();
+  const { isTablet, contentWidth } = useResponsive();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [activeTab, setActiveTab] = useState<ExploreTab>("services");
 
@@ -363,7 +365,8 @@ export default function ExploreScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isTablet && { alignItems: "center" }]}>
+      <View style={{ flex: 1, width: isTablet ? contentWidth : "100%" }}>
       {/* Toggle */}
       <View style={styles.toggleRow}>
         <Pressable
@@ -394,7 +397,7 @@ export default function ExploreScreen() {
           <View style={styles.servicesHeroCard}>
             <Image
               source={require("../../assets/images/hero-services.jpg")}
-              style={styles.servicesHeroImage}
+              style={[styles.servicesHeroImage, isTablet && { height: 220 }]}
               resizeMode="cover"
             />
             <View style={styles.servicesHeroText}>
@@ -526,7 +529,7 @@ export default function ExploreScreen() {
           <View style={styles.adoptHeroCard}>
             <Image
               source={require("../../assets/images/hero-adopt.jpg")}
-              style={styles.adoptHeroImage}
+              style={[styles.adoptHeroImage, isTablet && { height: 220 }]}
               resizeMode="cover"
             />
             <View style={styles.adoptHeroText}>
@@ -727,6 +730,7 @@ export default function ExploreScreen() {
           ) : null}
         </View>
       </Modal>
+      </View>
     </View>
   );
 }
