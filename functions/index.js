@@ -658,6 +658,10 @@ exports.sendVerifiedEmail = onRequest(
   { cors: true, secrets: [resendKey] },
   async (req, res) => {
     if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+
+    const uid = await verifyToken(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
     const { role, email, name, profile } = req.body;
     console.log("sendVerifiedEmail called with:", { email, role, plan: profile?.plan });
     if (!email || !role) { res.status(400).send("Missing email or role"); return; }
@@ -924,8 +928,15 @@ const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 
 exports.createCheckoutSession = onRequest({ secrets: [stripeSecretKey, resendKey], cors: true }, async (req, res) => {
   if (req.method !== "POST") { res.status(405).send("Method not allowed"); return; }
+
+  const uid = await verifyToken(req);
+  if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
   const { priceId, userId, email, plan, billing } = req.body;
   if (!priceId || !userId || !email) { res.status(400).send("Missing required fields"); return; }
+
+  if (userId !== uid) return res.status(403).json({ error: "Forbidden" });
+
   try {
     const stripe = require("stripe")(stripeSecretKey.value());
     const session = await stripe.checkout.sessions.create({
@@ -1039,11 +1050,13 @@ exports.stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecr
 // ─── Stripe Customer Portal ───────────────────────────────────────────────────
 exports.createPortalSession = onRequest({ secrets: [stripeSecretKey], cors: true }, async (req, res) => {
   if (req.method !== "POST") { res.status(405).send("Method not allowed"); return; }
-  const { userId } = req.body;
-  if (!userId) { res.status(400).send("Missing userId"); return; }
+
+  const uid = await verifyToken(req);
+  if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
   try {
     const stripe = require("stripe")(stripeSecretKey.value());
-    const userDoc = await db.collection("users").doc(userId).get();
+    const userDoc = await db.collection("users").doc(uid).get();
     const customerId = userDoc.data()?.stripeCustomerId;
     if (!customerId) { res.status(400).json({ error: "No subscription found" }); return; }
     const session = await stripe.billingPortal.sessions.create({
