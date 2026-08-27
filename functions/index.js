@@ -9,7 +9,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 const resendKey = defineSecret("RESEND_API_KEY");
-const anthropicKey = defineSecret("ANTHROPIC_API_KEY");
+const geminiKey = defineSecret("GEMINI_API_KEY");
 const usdaKey = defineSecret("USDA_API_KEY");
 
 const FROM_EMAIL = "help@mypetdex.app";
@@ -195,10 +195,14 @@ RULES:
 - Keep answers friendly, clear, and concise (3-5 sentences max unless a detailed list is needed).`;
 }
 
-// ─── AI Proxy — routes Anthropic calls through server so key is never in app ──
+// ─── AI Proxy — Gemini Flash (free tier); key never in app ───────────────────
 exports.aiProxy = onRequest(
-  { cors: true, secrets: [anthropicKey] },
+  { cors: true, secrets: [geminiKey] },
   async (req, res) => {
+    if (req.method !== "POST") {
+      return res.status(405).send("Method Not Allowed");
+    }
+
     // 1. Verify Firebase Auth token
     const uid = await verifyToken(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
@@ -210,29 +214,49 @@ exports.aiProxy = onRequest(
     }
 
     try {
-      const body = req.body;
+      const body = req.body || {};
       const petContext = body.petContext || {};
       const PET_SYSTEM = buildPetSystemPrompt(petContext);
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": anthropicKey.value(),
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 600,
-          system: PET_SYSTEM,
-          messages: body.messages || [],
-        }),
+      // App sends Anthropic-style { messages: [{ role, content }] }; also accept { message }
+      const rawMessages = Array.isArray(body.messages) ? body.messages : [];
+      const lastUser =
+        body.message ||
+        [...rawMessages].reverse().find((m) => m.role === "user")?.content ||
+        "";
+      if (!lastUser) return res.status(400).json({ error: "Missing message" });
+
+      const { GoogleGenerativeAI } = require("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(geminiKey.value());
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.0-flash",
+        systemInstruction: PET_SYSTEM,
       });
-      const data = await response.json();
-      res.json(data);
+
+      // Convert chat history for Gemini (roles: user | model)
+      const history = rawMessages
+        .slice(0, -1)
+        .filter((m) => m.content)
+        .map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: String(m.content) }],
+        }));
+
+      // Gemini requires history to start with a user turn
+      while (history.length && history[0].role !== "user") history.shift();
+
+      const chat = model.startChat({ history });
+      const result = await chat.sendMessage(String(lastUser));
+      const reply = result.response.text();
+
+      // Keep Anthropic-shaped payload so app/(tabs)/ai.tsx needs no changes
+      return res.status(200).json({
+        reply,
+        content: [{ type: "text", text: reply }],
+      });
     } catch (err) {
-      console.error("aiProxy error:", err);
-      res.status(500).json({ error: "AI request failed" });
+      console.error("Gemini error:", err);
+      return res.status(500).json({ error: "AI service error. Please try again." });
     }
   }
 );
@@ -517,7 +541,7 @@ function calculateRecipeNutrition(dailyCalories, ingredients, nutritionData) {
 }
 
 exports.getRecipe = onRequest(
-  { cors: true, secrets: [anthropicKey, usdaKey] },
+  { cors: true, secrets: [geminiKey, usdaKey] },
   async (req, res) => {
     const uid = await verifyToken(req);
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
@@ -599,21 +623,12 @@ Write ONLY the following JSON fields (do not invent or change any numbers):
 
 Return ONLY a raw JSON object — no markdown, no explanation, no code fences.`;
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": anthropicKey.value(),
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 1500,
-          messages: [{ role: "user", content: presentationPrompt }],
-        }),
-      });
-      const data = await response.json();
-      const text = data.content?.[0]?.text || "{}";
+      const { GoogleGenerativeAI } = require("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(geminiKey.value());
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      const result = await model.generateContent(presentationPrompt);
+      const text = result.response.text() || "{}";
       let recipe;
       try {
         recipe = JSON.parse(text);
@@ -1586,6 +1601,137 @@ exports.notifyAdminNewProvider = onDocumentCreated("users/{uid}", async (event) 
     });
   } catch (e) { console.error("notifyAdminNewProvider error:", e); }
 });
+
+// ─── Push notification when a new chat message is created ─────────────────────
+exports.onNewMessage = onDocumentCreated(
+  "conversations/{convId}/messages/{msgId}",
+  async (event) => {
+    const message = event.data?.data();
+    if (!message) return;
+    const convId = event.params.convId;
+
+    try {
+      const convDoc = await db.collection("conversations").doc(convId).get();
+      const conv = convDoc.data();
+      if (!conv?.participants) return;
+
+      const receiverId = conv.participants.find((p) => p !== message.senderId);
+      if (!receiverId) return;
+
+      const receiverDoc = await db.collection("users").doc(receiverId).get();
+      const expoPushToken = receiverDoc.data()?.expoPushToken;
+      if (!expoPushToken || !String(expoPushToken).startsWith("ExponentPushToken")) return;
+
+      const pushRes = await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          to: expoPushToken,
+          title: message.senderName || "New message",
+          body: message.text || "",
+          sound: "default",
+          data: {
+            type: "new_message",
+            convId,
+            senderName: message.senderName || "",
+            senderId: message.senderId || "",
+          },
+        }),
+      });
+      const pushResult = await pushRes.json();
+      if (pushResult.data?.status === "error") {
+        console.error("onNewMessage Expo push error:", pushResult.data.message);
+      }
+    } catch (e) {
+      console.error("onNewMessage error:", e);
+    }
+  }
+);
+
+// ─── Notify provider when a new booking is created ───────────────────────────
+exports.onNewBooking = onDocumentCreated(
+  "bookings/{bookingId}",
+  async (event) => {
+    const booking = event.data?.data();
+    if (!booking?.providerId) return;
+
+    try {
+      const providerDoc = await db.collection("users").doc(booking.providerId).get();
+      const expoPushToken = providerDoc.data()?.expoPushToken;
+      if (!expoPushToken || !String(expoPushToken).startsWith("ExponentPushToken")) return;
+
+      const ownerName = booking.ownerName || booking.clientName || "A pet owner";
+      const time = booking.timeSlot || booking.time || "";
+      await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          to: expoPushToken,
+          title: "New Booking Request 📅",
+          body: `${ownerName} wants to book ${booking.service || "a service"} on ${booking.date || ""}${time ? ` at ${time}` : ""}`,
+          sound: "default",
+          data: {
+            type: "new_booking",
+            bookingId: event.params.bookingId,
+            screen: "provider_bookings",
+          },
+        }),
+      });
+    } catch (e) {
+      console.error("onNewBooking error:", e);
+    }
+  }
+);
+
+// ─── Notify owner when booking status changes ────────────────────────────────
+exports.onBookingStatusChange = onDocumentUpdated(
+  "bookings/{bookingId}",
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!before || !after || before.status === after.status) return;
+
+    const ownerId = after.ownerId || after.uid || after.clientId;
+    if (!ownerId) return;
+
+    try {
+      const ownerDoc = await db.collection("users").doc(ownerId).get();
+      const expoPushToken = ownerDoc.data()?.expoPushToken;
+      if (!expoPushToken || !String(expoPushToken).startsWith("ExponentPushToken")) return;
+
+      const time = after.timeSlot || after.time || "";
+      const statusMessages = {
+        confirmed: `Your booking for ${after.service} on ${after.date}${time ? ` at ${time}` : ""} has been confirmed! ✅`,
+        declined: `Your booking request for ${after.service} on ${after.date} was declined.`,
+        cancelled: `Your booking for ${after.service} on ${after.date} has been cancelled.`,
+        completed: `Your ${after.service} session has been marked as completed. Leave a review!`,
+      };
+      const body = statusMessages[after.status];
+      if (!body) return;
+
+      await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          to: expoPushToken,
+          title: "Booking Update",
+          body,
+          sound: "default",
+          data: {
+            type: "booking_status_change",
+            bookingId: event.params.bookingId,
+            status: after.status,
+          },
+        }),
+      });
+    } catch (e) {
+      console.error("onBookingStatusChange error:", e);
+    }
+  }
+);
 
 // ─── Email provider on approval or rejection ──────────────────────────────────
 exports.notifyProviderStatusChange = onDocumentUpdated(

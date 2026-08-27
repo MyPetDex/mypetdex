@@ -232,6 +232,26 @@ export default Sentry.wrap(function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="booking/new"
+          options={{
+            headerShown: true,
+            title: "Book Service",
+          }}
+        />
+        <Stack.Screen
+          name="messages/[id]"
+          options={{
+            headerShown: true,
+            title: "Chat",
+          }}
+        />
+        <Stack.Screen
+          name="provider/[id]"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
           name="onboarding"
           options={{ headerShown: false }}
         />

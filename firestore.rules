@@ -66,13 +66,29 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && resource.data.uid == request.auth.uid);
     }
 
-    // Bookings: created by pet owner (uid), readable/updatable by both owner and provider
-    match /bookings/{docId} {
-      allow create: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.resource.data.uid == request.auth.uid);
-      allow read, update: if isAdmin()
-        || ((isEmailVerified() || isDemoAccount()) && resource.data.uid == request.auth.uid)
-        || ((isEmailVerified() || isDemoAccount()) && resource.data.providerId == request.auth.uid);
-      allow delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && resource.data.uid == request.auth.uid);
+    // Bookings: owner creates; owner + provider can read/update
+    match /bookings/{bookingId} {
+      allow create: if isSignedIn() && (
+        request.auth.uid == request.resource.data.ownerId ||
+        request.auth.uid == request.resource.data.uid ||
+        request.auth.uid == request.resource.data.clientId
+      );
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.ownerId ||
+        request.auth.uid == resource.data.uid ||
+        request.auth.uid == resource.data.clientId ||
+        request.auth.uid == resource.data.providerId
+      );
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.providerId ||
+        request.auth.uid == resource.data.ownerId ||
+        request.auth.uid == resource.data.uid ||
+        request.auth.uid == resource.data.clientId
+      );
+      allow delete: if isAdmin() || (isSignedIn() && (
+        request.auth.uid == resource.data.ownerId ||
+        request.auth.uid == resource.data.uid
+      ));
     }
 
     // Reviews: any verified user can create their own review only, provider can read their own, admin manages all
@@ -110,6 +126,24 @@ service cloud.firestore {
     match /stats/{docId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // Conversations: only participants can read/write
+    match /conversations/{convId} {
+      allow create: if isSignedIn()
+        && request.auth.uid in request.resource.data.participants;
+      allow read: if isSignedIn()
+        && request.auth.uid in resource.data.participants;
+      allow update: if isSignedIn()
+        && request.auth.uid in resource.data.participants;
+
+      match /messages/{msgId} {
+        allow read: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participants;
+        allow create: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participants
+          && request.resource.data.senderId == request.auth.uid;
+      }
     }
 
     // Deny everything else by default (covers any other paths)

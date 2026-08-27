@@ -10,7 +10,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { db } from "@/lib/firebase";
 import {
   collection, query, where, orderBy, getDocs,
-  addDoc, serverTimestamp,
+  addDoc, serverTimestamp, getDoc, setDoc, doc,
 } from "firebase/firestore";
 
 const BRAND = "#4486F4";
@@ -113,6 +113,44 @@ export default function ProviderDetailScreen() {
 
   const location = [city, state, zip].filter(Boolean).join(", ");
   const accentColor = color || BRAND;
+  const isAppProvider = !!id?.startsWith("user_");
+  const providerUid = isAppProvider ? id.slice(5) : "";
+
+  async function openChat() {
+    if (!user?.uid || !providerUid) return;
+    const participants = [user.uid, providerUid].sort();
+    const convId = participants.join("_");
+    const convRef = doc(db, "conversations", convId);
+    const existing = await getDoc(convRef);
+
+    if (!existing.exists()) {
+      await setDoc(convRef, {
+        participants,
+        participantNames: {
+          [user.uid]: profile?.displayName || "Pet Owner",
+          [providerUid]: name || "Provider",
+        },
+        participantRoles: {
+          [user.uid]: profile?.role || "owner",
+          [providerUid]: "provider",
+        },
+        participantPhotos: {
+          [user.uid]: "",
+          [providerUid]: "",
+        },
+        lastMessage: "",
+        lastMessageTime: serverTimestamp(),
+        lastMessageSenderId: "",
+        unreadCount: { [user.uid]: 0, [providerUid]: 0 },
+        createdAt: serverTimestamp(),
+      });
+    }
+
+    router.push({
+      pathname: "/messages/[id]" as any,
+      params: { id: convId, otherName: name || "Provider", otherUid: providerUid },
+    });
+  }
 
   useEffect(() => {
     if (id) loadReviews();
@@ -240,15 +278,32 @@ export default function ProviderDetailScreen() {
             </View>
           ) : null}
           {bio ? <Text style={styles.heroBio}>{bio}</Text> : null}
-          {/* Book button — only for user-registered providers */}
-          {id.startsWith("user_") && user ? (
-            <Pressable
-              style={styles.bookBtn}
-              onPress={() => { setShowBooking(true); setBookingDone(false); }}
-            >
-              <Ionicons name="calendar-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
-              <Text style={styles.bookBtnText}>Request Booking</Text>
-            </Pressable>
+          {/* Book / Message — only for user-registered providers */}
+          {isAppProvider && user ? (
+            <View style={styles.actionRow}>
+              {(profile?.role === "owner" || !profile?.role) ? (
+                <Pressable
+                  style={[styles.bookBtn, { flex: 1 }]}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/booking/new" as any,
+                      params: {
+                        providerId: providerUid,
+                        providerName: name || "Provider",
+                        serviceType: serviceType || "",
+                      },
+                    })
+                  }
+                >
+                  <Ionicons name="calendar-outline" size={16} color="#fff" />
+                  <Text style={styles.bookBtnText}>Book Now</Text>
+                </Pressable>
+              ) : null}
+              <Pressable onPress={openChat} style={[styles.messageBtn, (profile?.role === "owner" || !profile?.role) ? undefined : { flex: 1 }]}>
+                <Ionicons name="chatbubble-outline" size={16} color="#fff" />
+                <Text style={styles.messageBtnText}>Message</Text>
+              </Pressable>
+            </View>
           ) : null}
         </View>
 
@@ -681,18 +736,35 @@ const styles = StyleSheet.create({
   reviewText: { fontSize: 14, color: TEXT2, lineHeight: 21 },
 
   // Book button (shown in hero card)
+  actionRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 16,
+    alignSelf: "stretch",
+  },
   bookBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
     backgroundColor: BRAND,
     borderRadius: 14,
     paddingVertical: 12,
-    paddingHorizontal: 24,
-    marginTop: 16,
+    paddingHorizontal: 16,
     alignSelf: "stretch",
   },
-  bookBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  bookBtnText: { color: "#fff", fontWeight: "800", fontSize: 15 },
+  messageBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#0F172A",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  messageBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
 
   // Booking modal
   bookModal: {

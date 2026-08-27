@@ -31,7 +31,7 @@ export default function ProviderBookings() {
   }
 
   async function updateStatus(id: string, status: string) {
-    await updateDoc(doc(webDb, "bookings", id), { status });
+    await updateDoc(doc(webDb, "bookings", id), { status, updatedAt: new Date() });
     setBookings(b => b.map(x => x.id === id ? { ...x, status } : x));
   }
 
@@ -63,8 +63,8 @@ export default function ProviderBookings() {
           <View key={b.id} style={s.card}>
             <View style={s.cardHeader}>
               <View>
-                <Text style={s.clientName}>{b.clientName || b.clientEmail || "Pet Owner"}</Text>
-                <Text style={s.service}>{b.service || "Service"}</Text>
+                <Text style={s.clientName}>{b.ownerName || b.clientName || b.clientEmail || "Pet Owner"}</Text>
+                <Text style={s.service}>{b.service || "Service"}{b.petName ? ` · ${b.petName}` : ""}</Text>
               </View>
               <View style={[s.statusBadge, { backgroundColor: STATUS_COLORS[b.status] || "#94A3B8" }]}>
                 <Text style={s.statusText}>{b.status || "pending"}</Text>
@@ -72,7 +72,7 @@ export default function ProviderBookings() {
             </View>
             <View style={s.cardMeta}>
               <Ionicons name="calendar-outline" size={14} color="#64748B" />
-              <Text style={s.metaText}>{b.date || "—"} {b.time ? `at ${b.time}` : ""}</Text>
+              <Text style={s.metaText}>{b.date || "—"} {(b.timeSlot || b.time) ? `at ${b.timeSlot || b.time}` : ""}</Text>
             </View>
             {b.notes ? <Text style={s.notes}>{b.notes}</Text> : null}
 
