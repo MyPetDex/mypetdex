@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { webDb, storage } from "@/lib/firebase";
-import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,7 +31,22 @@ type PetRecord = {
   status?: string;
   photoURL?: string;
   photoUri?: string;
+  expiresAt?: any;
 };
+
+function daysUntilExpiry(expiresAt: any): number | null {
+  if (!expiresAt?.seconds) return null;
+  const ms = expiresAt.seconds * 1000 - Date.now();
+  return Math.ceil(ms / (1000 * 60 * 60 * 24));
+}
+
+function expiryLabel(days: number | null): { text: string; color: string } | null {
+  if (days === null) return null;
+  if (days <= 0) return { text: "Listing expired", color: "#EF4444" };
+  if (days <= 7) return { text: `Expires in ${days}d`, color: "#F5A623" };
+  if (days <= 14) return { text: `Expires in ${days}d`, color: "#94A3B8" };
+  return null;
+}
 
 const emptyEditForm = {
   name: "", breed: "", age: "", weight: "", gender: "Male",
@@ -159,6 +174,13 @@ export default function ShelterPets() {
     }
   }
 
+  async function refreshListing(petId: string) {
+    if (!user) return;
+    const newExpiry = Timestamp.fromDate(new Date(Date.now() + 45 * 24 * 60 * 60 * 1000));
+    await updateDoc(doc(webDb, "shelter_pets", petId), { expiresAt: newExpiry });
+    setPets((prev) => prev.map((p) => (p.id === petId ? { ...p, expiresAt: newExpiry } : p)));
+  }
+
   function deletePet(id: string, name: string) {
     Alert.alert("Remove Pet", `Remove ${name} from listings?`, [
       { text: "Cancel", style: "cancel" },
@@ -217,6 +239,33 @@ export default function ShelterPets() {
                   <Text style={s.statusText}>{pet.status}</Text>
                 </View>
               </View>
+
+              {(() => {
+                const days = daysUntilExpiry(pet.expiresAt);
+                const label = expiryLabel(days);
+                if (!label) return null;
+                return (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 }}>
+                    <Ionicons name="time-outline" size={13} color={label.color} />
+                    <Text style={{ fontSize: 12, color: label.color, fontWeight: "600" }}>{label.text}</Text>
+                    {days !== null && days <= 7 ? (
+                      <TouchableOpacity
+                        onPress={() => Alert.alert(
+                          "Still Available?",
+                          "This will refresh the listing for another 45 days.",
+                          [
+                            { text: "Cancel", style: "cancel" },
+                            { text: "Refresh", onPress: () => refreshListing(pet.id) },
+                          ]
+                        )}
+                        style={{ marginLeft: 6, backgroundColor: "#4486F4", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12 }}
+                      >
+                        <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>Still Available</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                );
+              })()}
 
               {pet.description ? <Text style={s.desc} numberOfLines={2}>{pet.description}</Text> : null}
 

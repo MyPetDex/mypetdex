@@ -6,7 +6,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { webDb, storage } from "@/lib/firebase";
-import { collection, addDoc, doc, getDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
@@ -89,6 +89,8 @@ export default function ShelterAddPet() {
           photoURL: photoURL || null,
           status: form.status.toLowerCase(),
           createdAt: serverTimestamp(),
+          listedAt: serverTimestamp(),
+          expiresAt: Timestamp.fromDate(new Date(Date.now() + 45 * 24 * 60 * 60 * 1000)),
         });
         Alert.alert("✅ Pet Added", `${form.name} has been added to your listings!`);
         setForm({

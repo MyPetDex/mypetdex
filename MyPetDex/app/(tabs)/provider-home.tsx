@@ -12,7 +12,7 @@ export default function ProviderHome() {
   const { user } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
-  const [stats, setStats] = useState({ bookings: 0, reviews: 0, rating: 0 });
+  const [stats, setStats] = useState({ bookings: 0, reviews: 0, rating: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,13 +28,17 @@ export default function ProviderHome() {
       const bookingsSnap = await getDocs(
         query(collection(webDb, "bookings"), where("providerId", "==", user.uid))
       );
+      let pendingCount = 0;
+      bookingsSnap.forEach((d) => {
+        if (d.data().status === "pending") pendingCount++;
+      });
       const reviewsSnap = await getDocs(
         query(collection(webDb, "reviews"), where("providerId", "==", user.uid), where("published", "==", true))
       );
       let totalRating = 0;
       reviewsSnap.forEach((d) => { totalRating += d.data().rating || 0; });
       const avgRating = reviewsSnap.size > 0 ? totalRating / reviewsSnap.size : 0;
-      setStats({ bookings: bookingsSnap.size, reviews: reviewsSnap.size, rating: avgRating });
+      setStats({ bookings: bookingsSnap.size, reviews: reviewsSnap.size, rating: avgRating, pending: pendingCount });
     } catch (e) {
       console.error(e);
     } finally {
@@ -78,7 +82,11 @@ export default function ProviderHome() {
       <View style={s.statsRow}>
         <View style={s.statCard}>
           <Text style={s.statNum}>{stats.bookings}</Text>
-          <Text style={s.statLabel}>Bookings</Text>
+          <Text style={s.statLabel}>Total</Text>
+        </View>
+        <View style={[s.statCard, stats.pending > 0 && s.statCardPending]}>
+          <Text style={[s.statNum, stats.pending > 0 && { color: "#F5A623" }]}>{stats.pending}</Text>
+          <Text style={s.statLabel}>Pending</Text>
         </View>
         <View style={s.statCard}>
           <Text style={s.statNum}>{stats.reviews}</Text>
@@ -86,9 +94,22 @@ export default function ProviderHome() {
         </View>
         <View style={s.statCard}>
           <Text style={s.statNum}>{stats.rating > 0 ? stats.rating.toFixed(1) : "—"}</Text>
-          <Text style={s.statLabel}>Avg Rating</Text>
+          <Text style={s.statLabel}>Rating</Text>
         </View>
       </View>
+
+      {stats.pending > 0 && (
+        <TouchableOpacity
+          style={s.pendingAlert}
+          onPress={() => router.push("/(tabs)/provider-bookings" as any)}
+        >
+          <Ionicons name="notifications-outline" size={18} color="#fff" />
+          <Text style={s.pendingAlertText}>
+            {stats.pending} booking request{stats.pending > 1 ? "s" : ""} waiting for your response
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.8)" />
+        </TouchableOpacity>
+      )}
 
       {/* Quick links */}
       <Text style={s.sectionTitle}>Quick Actions</Text>
@@ -133,8 +154,15 @@ const s = StyleSheet.create({
   alertText: { flex: 1, color: "#92400E", fontSize: 13, lineHeight: 19 },
   statsRow: { flexDirection: "row", gap: 12, marginBottom: 24 },
   statCard: { flex: 1, backgroundColor: "#fff", borderRadius: 14, padding: 16, alignItems: "center", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  statCardPending: { borderWidth: 1.5, borderColor: "rgba(245,166,35,0.4)" },
   statNum: { fontSize: 26, fontWeight: "800", color: "#1E293B" },
   statLabel: { fontSize: 12, color: "#64748B", marginTop: 2 },
+  pendingAlert: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#F5A623", borderRadius: 14, padding: 14,
+    marginBottom: 16,
+  },
+  pendingAlertText: { flex: 1, color: "#fff", fontWeight: "700", fontSize: 14 },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1E293B", marginBottom: 12 },
   actionRow: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
   actionIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(76,175,130,0.1)", alignItems: "center", justifyContent: "center" },

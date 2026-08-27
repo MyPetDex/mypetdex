@@ -7,6 +7,20 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const BRAND = "#4486F4";
 const SERVICE_TYPES = ["Grooming", "Dog Walking", "Veterinary", "Training", "Boarding", "Daycare", "Pet Sitting", "Photography", "Other"];
+const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const DAY_LABELS: Record<string, string> = {
+  monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday",
+  thursday: "Thursday", friday: "Friday", saturday: "Saturday", sunday: "Sunday",
+};
+const SLOT_OPTIONS = [30, 60, 90];
+
+function defaultAvailability() {
+  const avail: Record<string, any> = {};
+  DAYS.forEach((d) => {
+    avail[d] = { closed: d === "sunday", open: "09:00", close: "17:00", slotMinutes: 60 };
+  });
+  return avail;
+}
 
 export default function ProviderServices() {
   const { user } = useAuth();
@@ -14,6 +28,9 @@ export default function ProviderServices() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [availability, setAvailability] = useState<Record<string, any>>({});
+  const [editAvail, setEditAvail] = useState(false);
+  const [availForm, setAvailForm] = useState<Record<string, any>>({});
   const [form, setForm] = useState({
     businessName: "", serviceType: "", priceRange: "", phone: "",
     website: "", bio: "", googleReviewUrl: "", city: "", state: "",
@@ -30,6 +47,8 @@ export default function ProviderServices() {
       if (snap.exists()) {
         const d = snap.data();
         setProfile(d);
+        setAvailability(d.availability || defaultAvailability());
+        setAvailForm(d.availability || defaultAvailability());
         setForm({
           businessName: d.businessName || "",
           serviceType: d.serviceType || "",
@@ -54,6 +73,18 @@ export default function ProviderServices() {
       setEditMode(false);
     } catch (e) {
       Alert.alert("Error", "Failed to save. Please try again.");
+    } finally { setSaving(false); }
+  }
+
+  async function saveAvailability() {
+    if (!user) return;
+    setSaving(true);
+    try {
+      await updateDoc(doc(webDb, "users", user!.uid), { availability: availForm });
+      setAvailability(availForm);
+      setEditAvail(false);
+    } catch {
+      Alert.alert("Error", "Failed to save availability.");
     } finally { setSaving(false); }
   }
 
@@ -92,6 +123,29 @@ export default function ProviderServices() {
         ) : (
           <Text style={s.empty}>No Google Review link added. Tap Edit to add yours.</Text>
         )}
+      </View>
+
+      <View style={s.card}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <Text style={s.cardTitle}>📅 Availability & Booking Slots</Text>
+          <TouchableOpacity style={s.editBtn} onPress={() => setEditAvail(true)}>
+            <Ionicons name="pencil" size={14} color="#fff" />
+            <Text style={s.editBtnText}>Edit</Text>
+          </TouchableOpacity>
+        </View>
+        {DAYS.map((day) => {
+          const a = availability[day] || { closed: true, open: "09:00", close: "17:00", slotMinutes: 60 };
+          return (
+            <View key={day} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: "#F1F5F9" }}>
+              <Text style={{ fontSize: 13, color: a.closed ? "#CBD5E1" : "#1E293B", fontWeight: "600", width: 90 }}>{DAY_LABELS[day]}</Text>
+              {a.closed ? (
+                <Text style={{ fontSize: 13, color: "#CBD5E1" }}>Closed</Text>
+              ) : (
+                <Text style={{ fontSize: 13, color: "#64748B" }}>{a.open} – {a.close} · {a.slotMinutes}min slots</Text>
+              )}
+            </View>
+          );
+        })}
       </View>
 
       {/* Edit Modal */}
@@ -146,6 +200,84 @@ export default function ProviderServices() {
           </TouchableOpacity>
         </ScrollView>
         </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={editAvail} animationType="slide" presentationStyle="pageSheet">
+        <ScrollView style={s.modal} contentContainerStyle={s.modalContent}>
+          <View style={s.modalHeader}>
+            <Text style={s.modalTitle}>Availability</Text>
+            <TouchableOpacity onPress={() => setEditAvail(false)}>
+              <Ionicons name="close" size={24} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+          <Text style={{ fontSize: 13, color: "#64748B", marginBottom: 20, lineHeight: 19 }}>
+            Set the days and hours you accept bookings. Pet owners will only see available slots when booking.
+          </Text>
+
+          {DAYS.map((day) => {
+            const a = availForm[day] || { closed: false, open: "09:00", close: "17:00", slotMinutes: 60 };
+            function updateDay(patch: Record<string, any>) {
+              setAvailForm((f) => ({ ...f, [day]: { ...a, ...patch } }));
+            }
+            return (
+              <View key={day} style={{ backgroundColor: "#fff", borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: a.closed ? "#E2E8F0" : "#4486F4" }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: a.closed ? 0 : 12 }}>
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: "#1E293B" }}>{DAY_LABELS[day]}</Text>
+                  <TouchableOpacity
+                    style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: a.closed ? "#F1F5F9" : "#4486F4", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
+                    onPress={() => updateDay({ closed: !a.closed })}
+                  >
+                    <Ionicons name={a.closed ? "close-circle-outline" : "checkmark-circle"} size={14} color={a.closed ? "#94A3B8" : "#fff"} />
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: a.closed ? "#94A3B8" : "#fff" }}>{a.closed ? "Closed" : "Open"}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {!a.closed && (
+                  <>
+                    <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.label}>Opens</Text>
+                        <TextInput
+                          style={s.input}
+                          value={a.open}
+                          onChangeText={(v) => updateDay({ open: v })}
+                          placeholder="09:00"
+                          keyboardType="numbers-and-punctuation"
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.label}>Closes</Text>
+                        <TextInput
+                          style={s.input}
+                          value={a.close}
+                          onChangeText={(v) => updateDay({ close: v })}
+                          placeholder="17:00"
+                          keyboardType="numbers-and-punctuation"
+                        />
+                      </View>
+                    </View>
+                    <Text style={s.label}>Slot Duration</Text>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      {SLOT_OPTIONS.map((min) => (
+                        <TouchableOpacity
+                          key={min}
+                          style={[s.chip, a.slotMinutes === min && s.chipActive, { flex: 1, justifyContent: "center", marginRight: 0 }]}
+                          onPress={() => updateDay({ slotMinutes: min })}
+                        >
+                          <Text style={[s.chipText, a.slotMinutes === min && s.chipTextActive]}>{min} min</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </>
+                )}
+              </View>
+            );
+          })}
+
+          <TouchableOpacity style={s.saveBtn} onPress={saveAvailability} disabled={saving}>
+            {saving ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnText}>Save Availability</Text>}
+          </TouchableOpacity>
+        </ScrollView>
       </Modal>
     </ScrollView>
   );
