@@ -13,7 +13,25 @@ import * as ImagePicker from "expo-image-picker";
 const BRAND = "#4486F4";
 
 const SPECIES = ["dog", "cat"];
-const ACTIVITY_LEVELS = ["sedentary", "indoor", "active", "very active"];
+const LIFE_STAGE_ACTIVITY = [
+  "adult_low",
+  "adult_moderate",
+  "adult_high",
+  "senior",
+  "puppy",
+  "pregnant",
+  "nursing",
+];
+
+const LIFE_STAGE_LABELS: Record<string, string> = {
+  adult_low:      "🏠 Adult — Low (indoor)",
+  adult_moderate: "🚶 Adult — Moderate",
+  adult_high:     "🏃 Adult — High (sport)",
+  senior:         "🦴 Senior (7+ yrs)",
+  puppy:          "🐾 Puppy / Kitten",
+  pregnant:       "🤰 Pregnant",
+  nursing:        "🍼 Nursing",
+};
 const BREEDS_DOG = ['Affenpinscher','Afghan Hound','Airedale Terrier','Akita','Alaskan Malamute','American Bulldog','American Eskimo','American Pit Bull Terrier','American Staffordshire Terrier','Australian Shepherd','Basenji','Basset Hound','Beagle','Belgian Malinois','Bernese Mountain Dog','Bichon Frise','Border Collie','Border Terrier','Boston Terrier','Boxer','Boykin Spaniel','Brittany','Bulldog','Bullmastiff','Cairn Terrier','Cane Corso','Cavalier King Charles Spaniel','Chihuahua','Chinese Shar-Pei','Chow Chow','Cocker Spaniel','Collie','Dachshund','Dalmatian','Doberman Pinscher','English Setter','English Springer Spaniel','French Bulldog','German Shepherd','German Shorthaired Pointer','Golden Retriever','Great Dane','Great Pyrenees','Greyhound','Havanese','Irish Setter','Irish Wolfhound','Italian Greyhound','Jack Russell Terrier','Labrador Retriever','Lhasa Apso','Maltese','Mastiff','Miniature Pinscher','Miniature Schnauzer','Newfoundland','Norwegian Elkhound','Old English Sheepdog','Papillon','Pekingese','Pembroke Welsh Corgi','Pit Bull','Pointer','Pomeranian','Poodle','Portuguese Water Dog','Pug','Rhodesian Ridgeback','Rottweiler','Saint Bernard','Samoyed','Schipperke','Scottish Terrier','Shetland Sheepdog','Shiba Inu','Shih Tzu','Siberian Husky','Soft Coated Wheaten Terrier','Staffordshire Bull Terrier','Standard Schnauzer','Toy Fox Terrier','Vizsla','Weimaraner','West Highland White Terrier','Whippet','Wire Fox Terrier','Yorkshire Terrier','Mixed/Other'];
 const BREEDS_CAT = ['Abyssinian','American Bobtail','American Curl','American Shorthair','Balinese','Bengal','Birman','Bombay','British Longhair','British Shorthair','Burmese','Burmilla','Chartreux','Chausie','Cornish Rex','Devon Rex','Egyptian Mau','Exotic Shorthair','Havana Brown','Himalayan','Japanese Bobtail','Khao Manee','Korat','LaPerm','Maine Coon','Manx','Munchkin','Nebelung','Norwegian Forest Cat','Ocicat','Oriental Shorthair','Persian','Peterbald','Pixiebob','Ragamuffin','Ragdoll','Russian Blue','Savannah','Scottish Fold','Selkirk Rex','Siamese','Siberian','Singapura','Snowshoe','Somali','Sphynx','Thai','Tonkinese','Toyger','Turkish Angora','Turkish Van','Mixed/Other'];
 
@@ -87,7 +105,8 @@ export default function AddPetScreen() {
   const [weightUnit, setWeightUnit] = useState("lbs");
   const [sex, setSex] = useState("male");
   const [neutered, setNeutered] = useState(false);
-  const [activityLevel, setActivityLevel] = useState("active");
+  const [activityLevel, setActivityLevel] = useState("adult_moderate");
+  const [bcs, setBcs] = useState(5);
   const [licenseNumber, setLicenseNumber] = useState("");
 
   const breeds = species === "dog" ? BREEDS_DOG : BREEDS_CAT;
@@ -152,6 +171,7 @@ export default function AddPetScreen() {
         weightUnit,
         sex,
         neutered,
+        bcs,
         activityLevel,
         createdAt: serverTimestamp(),
       };
@@ -321,21 +341,62 @@ export default function AddPetScreen() {
         </View>
       </View>
 
-      {/* Activity */}
+      {/* Body Condition Score */}
       <View style={styles.section}>
-        <Text style={styles.label}>Activity Level *</Text>
-        <View style={styles.activityGrid}>
-          {ACTIVITY_LEVELS.map((a) => (
+        <Text style={styles.label}>Body Condition Score (BCS) *</Text>
+        <Text style={{ fontSize: 12, color: "#94A3B8", marginBottom: 10 }}>
+          1 = Very thin · 5 = Ideal · 9 = Obese
+        </Text>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
+          {[1,2,3,4,5,6,7,8,9].map((n) => (
             <Pressable
-              key={a}
-              style={[styles.activityChip, activityLevel === a && styles.activityChipActive]}
-              onPress={() => setActivityLevel(a)}
+              key={n}
+              onPress={() => setBcs(n)}
+              style={{
+                width: 32, height: 32, borderRadius: 16,
+                backgroundColor: bcs === n ? BRAND
+                  : n <= 2 ? "#FEF9C3"
+                  : n <= 4 ? "#F0FDF4"
+                  : n === 5 ? "#DCFCE7"
+                  : n <= 7 ? "#FEF3C7"
+                  : "#FEE2E2",
+                alignItems: "center", justifyContent: "center",
+                borderWidth: bcs === n ? 0 : 1,
+                borderColor: "#E2E8F0",
+              }}
             >
-              <Text style={[styles.activityText, activityLevel === a && styles.activityTextActive]}>
-                {a === "sedentary" ? "😴 Sedentary"
-                  : a === "indoor" ? "🏠 Indoor"
-                  : a === "active" ? "🏃 Active"
-                  : "⚡ Very Active"}
+              <Text style={{
+                fontSize: 13, fontWeight: "700",
+                color: bcs === n ? "#fff"
+                  : n <= 2 ? "#854D0E"
+                  : n === 5 ? "#166534"
+                  : n >= 8 ? "#991B1B"
+                  : "#64748B"
+              }}>{n}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={{ fontSize: 12, color: "#64748B", textAlign: "center" }}>
+          {bcs <= 2 ? "⚠️ Very thin — may need more calories"
+            : bcs <= 4 ? "Below ideal weight"
+            : bcs === 5 ? "✅ Ideal weight"
+            : bcs <= 7 ? "Above ideal weight — reduce portions"
+            : "⚠️ Obese — consult your vet"}
+        </Text>
+      </View>
+
+      {/* Life Stage & Activity */}
+      <View style={styles.section}>
+        <Text style={styles.label}>Life Stage & Activity *</Text>
+        <View style={styles.activityGrid}>
+          {LIFE_STAGE_ACTIVITY.map((key) => (
+            <Pressable
+              key={key}
+              style={[styles.activityChip, activityLevel === key && styles.activityChipActive]}
+              onPress={() => setActivityLevel(key)}
+            >
+              <Text style={[styles.activityText, activityLevel === key && styles.activityTextActive]}>
+                {LIFE_STAGE_LABELS[key]}
               </Text>
             </Pressable>
           ))}

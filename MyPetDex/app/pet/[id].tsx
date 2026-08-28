@@ -29,7 +29,49 @@ const TABS = ["Records", "Reminders", "Meds", "Calories", "Recipes"];
 
 const BREEDS_DOG = ['Affenpinscher','Afghan Hound','Airedale Terrier','Akita','Alaskan Malamute','American Bulldog','American Eskimo','American Pit Bull Terrier','American Staffordshire Terrier','Australian Shepherd','Basenji','Basset Hound','Beagle','Belgian Malinois','Bernese Mountain Dog','Bichon Frise','Border Collie','Border Terrier','Boston Terrier','Boxer','Boykin Spaniel','Brittany','Bulldog','Bullmastiff','Cairn Terrier','Cane Corso','Cavalier King Charles Spaniel','Chihuahua','Chinese Shar-Pei','Chow Chow','Cocker Spaniel','Collie','Dachshund','Dalmatian','Doberman Pinscher','English Setter','English Springer Spaniel','French Bulldog','German Shepherd','German Shorthaired Pointer','Golden Retriever','Great Dane','Great Pyrenees','Greyhound','Havanese','Irish Setter','Irish Wolfhound','Italian Greyhound','Jack Russell Terrier','Labrador Retriever','Lhasa Apso','Maltese','Mastiff','Miniature Pinscher','Miniature Schnauzer','Newfoundland','Norwegian Elkhound','Old English Sheepdog','Papillon','Pekingese','Pembroke Welsh Corgi','Pit Bull','Pointer','Pomeranian','Poodle','Portuguese Water Dog','Pug','Rhodesian Ridgeback','Rottweiler','Saint Bernard','Samoyed','Schipperke','Scottish Terrier','Shetland Sheepdog','Shiba Inu','Shih Tzu','Siberian Husky','Soft Coated Wheaten Terrier','Staffordshire Bull Terrier','Standard Schnauzer','Toy Fox Terrier','Vizsla','Weimaraner','West Highland White Terrier','Whippet','Wire Fox Terrier','Yorkshire Terrier','Mixed/Other'];
 const BREEDS_CAT = ['Abyssinian','American Bobtail','American Curl','American Shorthair','Balinese','Bengal','Birman','Bombay','British Longhair','British Shorthair','Burmese','Burmilla','Chartreux','Chausie','Cornish Rex','Devon Rex','Egyptian Mau','Exotic Shorthair','Havana Brown','Himalayan','Japanese Bobtail','Khao Manee','Korat','LaPerm','Maine Coon','Manx','Munchkin','Nebelung','Norwegian Forest Cat','Ocicat','Oriental Shorthair','Persian','Peterbald','Pixiebob','Ragamuffin','Ragdoll','Russian Blue','Savannah','Scottish Fold','Selkirk Rex','Siamese','Siberian','Singapura','Snowshoe','Somali','Sphynx','Thai','Tonkinese','Toyger','Turkish Angora','Turkish Van','Mixed/Other'];
-const ACTIVITY_LEVELS = ["sedentary", "indoor", "active", "very active"];
+const LIFE_STAGE_ACTIVITY = [
+  "adult_low", "adult_moderate", "adult_high",
+  "senior", "puppy", "pregnant", "nursing",
+];
+
+const LIFE_STAGE_LABELS: Record<string, string> = {
+  adult_low:      "🏠 Adult — Low (indoor)",
+  adult_moderate: "🚶 Adult — Moderate",
+  adult_high:     "🏃 Adult — High (sport)",
+  senior:         "🦴 Senior (7+ yrs)",
+  puppy:          "🐾 Puppy / Kitten",
+  pregnant:       "🤰 Pregnant",
+  nursing:        "🍼 Nursing",
+};
+
+// Life stage + activity combined factor — matches home.mypetdex.app/calorie-guide exactly
+function getLifeStageFactor(activityLevel: string, neutered: boolean, weightKg: number): number {
+  const key = activityLevel || "adult_moderate";
+  if (key === "puppy") {
+    return weightKg < 2 ? 3.0 : weightKg <= 10 ? 2.5 : 2.0;
+  }
+  if (key === "pregnant") return 2.0;
+  if (key === "nursing") return 3.0;
+  const table: Record<string, [number, number]> = {
+    adult_low:      [1.2, 1.4],
+    adult_moderate: [1.4, 1.6],
+    adult_high:     [1.6, 1.8],
+    senior:         [1.2, 1.4],
+    sedentary:      [1.2, 1.4],
+    indoor:         [1.2, 1.4],
+    moderate:       [1.4, 1.6],
+    active:         [1.4, 1.6],
+    "very active":  [1.6, 1.8],
+  };
+  const [nFactor, iFactor] = table[key] || [1.4, 1.6];
+  return neutered ? nFactor : iFactor;
+}
+
+const BCS_MULT: Record<number, number> = {
+  1: 1.3, 2: 1.2, 3: 1.1, 4: 1.05,
+  5: 1.0,
+  6: 0.9, 7: 0.8, 8: 0.7, 9: 0.6,
+};
 
 // ── Breed Dropdown ─────────────────────────────────────────────────────────────
 function BreedDropdown({ value, options, onSelect }: { value: string; options: string[]; onSelect: (v: string) => void }) {
@@ -96,7 +138,8 @@ export default function PetProfileScreen() {
   const [editWeightUnit, setEditWeightUnit] = useState("lbs");
   const [editSex, setEditSex] = useState("male");
   const [editNeutered, setEditNeutered] = useState(false);
-  const [editActivity, setEditActivity] = useState("active");
+  const [editActivity, setEditActivity] = useState("adult_moderate");
+  const [editBcs, setEditBcs] = useState(5);
   const [editLicense, setEditLicense] = useState("");
   const [editPhotoUri, setEditPhotoUri] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
@@ -152,7 +195,8 @@ export default function PetProfileScreen() {
     setEditWeightUnit(pet.weightUnit || "lbs");
     setEditSex(pet.sex || "male");
     setEditNeutered(!!pet.neutered);
-    setEditActivity(pet.activityLevel || "active");
+    setEditActivity(pet.activityLevel || "adult_moderate");
+    setEditBcs(pet.bcs ?? 5);
     setEditLicense(pet.licenseNumber || "");
     setEditPhotoUri(null);
     setShowEdit(true);
@@ -214,6 +258,7 @@ export default function PetProfileScreen() {
         sex: editSex,
         neutered: editNeutered,
         activityLevel: editActivity,
+        bcs: editBcs,
         licenseNumber: editLicense.trim() || null,
       };
 
@@ -563,12 +608,37 @@ ${(pet.vaccines || []).length > 0 ? `
               <Switch value={editNeutered} onValueChange={setEditNeutered} trackColor={{ true: BRAND }} />
             </View>
 
-            <Text style={styles.modalLabel}>Activity Level</Text>
+            <Text style={styles.modalLabel}>Body Condition Score (BCS)</Text>
+            <Text style={{ fontSize: 12, color: "#94A3B8", marginBottom: 8 }}>1 = Very thin · 5 = Ideal · 9 = Obese</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
+              {[1,2,3,4,5,6,7,8,9].map((n) => (
+                <Pressable
+                  key={n}
+                  onPress={() => setEditBcs(n)}
+                  style={{
+                    width: 32, height: 32, borderRadius: 16,
+                    backgroundColor: editBcs === n ? BRAND : "#F1F5F9",
+                    alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: editBcs === n ? "#fff" : "#64748B" }}>{n}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={{ fontSize: 12, color: "#64748B", textAlign: "center", marginBottom: 12 }}>
+              {editBcs === 5 ? "✅ Ideal weight" : editBcs < 5 ? "Below ideal" : "Above ideal"}
+            </Text>
+
+            <Text style={styles.modalLabel}>Life Stage & Activity</Text>
             <View style={styles.activityGrid}>
-              {ACTIVITY_LEVELS.map((a) => (
-                <Pressable key={a} style={[styles.activityChip, editActivity === a && styles.activityChipActive]} onPress={() => setEditActivity(a)}>
-                  <Text style={[styles.activityText, editActivity === a && styles.activityTextActive]}>
-                    {a === "sedentary" ? "😴 Sedentary" : a === "indoor" ? "🏠 Indoor" : a === "active" ? "🏃 Active" : "⚡ Very Active"}
+              {LIFE_STAGE_ACTIVITY.map((key) => (
+                <Pressable
+                  key={key}
+                  style={[styles.activityChip, editActivity === key && styles.activityChipActive]}
+                  onPress={() => setEditActivity(key)}
+                >
+                  <Text style={[styles.activityText, editActivity === key && styles.activityTextActive]}>
+                    {LIFE_STAGE_LABELS[key]}
                   </Text>
                 </Pressable>
               ))}
@@ -1395,9 +1465,10 @@ function CaloriesTab({ pet, user }: { pet: any; user: any }) {
   const weight = parseFloat(pet.weight) || 0;
   const weightKg = (pet.weightUnit === "lbs" || !pet.weightUnit) ? weight * 0.453592 : weight;
   const rer = weightKg > 0 ? Math.round(70 * Math.pow(weightKg, 0.75)) : 0;
-  const factors: Record<string, number> = { sedentary: 1.2, indoor: 1.2, low: 1.2, moderate: 1.4, active: 1.4, "very active": 1.6, high: 1.6 };
-  const factor = factors[pet.activityLevel?.toLowerCase()] || 1.4;
-  const der = Math.round(rer * factor * (pet.neutered ? 0.9 : 1.0));
+  const petBcs = pet.bcs ?? 5;
+  const lsFactor = getLifeStageFactor(pet.activityLevel, !!pet.neutered, weightKg);
+  const bcsFactor = BCS_MULT[petBcs] ?? 1.0;
+  const der = Math.round(rer * lsFactor * bcsFactor);
   const protein = Math.round(weightKg * (pet.species === "cat" ? 6 : 5));
   const fat = Math.round(der * 0.18 / 9);
 
@@ -1427,8 +1498,8 @@ function CaloriesTab({ pet, user }: { pet: any; user: any }) {
         <Text style={styles.infoTitle}>How we calculate this</Text>
         <Text style={styles.infoText}>• RER = 70 × (weight kg)^0.75</Text>
         <Text style={styles.infoText}>• Weight: {weightKg.toFixed(1)} kg ({weight} {pet.weightUnit || "lbs"})</Text>
-        <Text style={styles.infoText}>• Activity factor: {factor}x ({pet.activityLevel || "moderate"})</Text>
-        <Text style={styles.infoText}>• Neutered adjustment: {pet.neutered ? "−10%" : "none"}</Text>
+        <Text style={styles.infoText}>• Life stage factor: {lsFactor}x ({LIFE_STAGE_LABELS[pet.activityLevel] || pet.activityLevel || "adult_moderate"})</Text>
+        <Text style={styles.infoText}>• BCS adjustment: {bcsFactor}x (score {petBcs})</Text>
         <Text style={styles.infoText}>• Source: AAFCO 2023, WSAVA, USDA FoodData</Text>
       </View>
 
@@ -1583,8 +1654,10 @@ function RecipesTab({ pet, canUseAI }: { pet: any; canUseAI: boolean }) {
   const weight = parseFloat(pet.weight) || 0;
   const weightKg = (pet.weightUnit === "lbs" || !pet.weightUnit) ? weight * 0.453592 : weight;
   const rer = weightKg > 0 ? Math.round(70 * Math.pow(weightKg, 0.75)) : 0;
-  const actMult: Record<string, number> = { sedentary: 1.2, indoor: 1.2, low: 1.2, moderate: 1.4, active: 1.4, "very active": 1.6, high: 1.6 };
-  const der = Math.round(rer * (actMult[pet.activityLevel?.toLowerCase()] || 1.4) * (pet.neutered ? 0.9 : 1.0));
+  const petBcs = pet.bcs ?? 5;
+  const lsFactor = getLifeStageFactor(pet.activityLevel, !!pet.neutered, weightKg);
+  const bcsFactor = BCS_MULT[petBcs] ?? 1.0;
+  const der = Math.round(rer * lsFactor * bcsFactor);
 
   const INGREDIENTS: Record<string, string[]> = {
     "🥩 Protein": ["Chicken", "Turkey", "Beef", "Salmon", "Sardines", "Eggs", "Lamb", "Venison", "Duck", "Tuna", "Shrimp"],
@@ -1635,8 +1708,9 @@ function RecipesTab({ pet, canUseAI }: { pet: any; canUseAI: boolean }) {
           age: pet.age,
           weight: pet.weight,
           weightUnit: pet.weightUnit || "lbs",
-          activityLevel: pet.activityLevel || "moderate",
+          activityLevel: pet.activityLevel || "adult_moderate",
           neutered: pet.neutered || false,
+          bcs: pet.bcs ?? 5,
           dailyCalories: der,
           ingredients: allSelected,
         }),
@@ -1941,7 +2015,10 @@ ${recipe.warning ? `<div class="section"><div class="label">Important</div><div 
       <View style={styles.recipeIntro}>
         <Text style={styles.recipeIntroTitle}>Build {pet.name}'s Recipe</Text>
         <Text style={styles.recipeIntroDesc}>
-          Select ingredients you have at home. We'll generate a personalized recipe based on {pet.name}'s breed, age, weight and {der} kcal/day calorie need.
+          Select ingredients you have at home. We'll generate a personalized recipe based on {pet.name}'s breed, age, and weight.
+        </Text>
+        <Text style={{ fontSize: 13, color: "#64748B", textAlign: "center", marginTop: 4 }}>
+          RER {rer} kcal × {(lsFactor * bcsFactor).toFixed(2)} factor = <Text style={{ fontWeight: "800", color: BRAND }}>{der} kcal/day</Text>
         </Text>
       </View>
       {Object.entries(INGREDIENTS).map(([category, items]) => (
