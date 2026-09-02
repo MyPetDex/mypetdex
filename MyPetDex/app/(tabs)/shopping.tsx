@@ -65,7 +65,7 @@ export default function ShoppingScreen() {
             title: data.title || "",
             description: data.description || "",
             category: data.category || "Other",
-            species: "all" as const,
+            species: (data.species || "all") as "dog" | "cat" | "all",
             url: data.url,
             store: data.store,
           };
