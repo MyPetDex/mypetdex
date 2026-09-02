@@ -273,6 +273,9 @@ export default Sentry.wrap(function RootLayout() {
           name="provider/[id]"
           options={{
             headerShown: false,
+            headerBackTitle: " ",
+            headerBackTitleVisible: false,
+            title: " ",
           }}
         />
         <Stack.Screen
