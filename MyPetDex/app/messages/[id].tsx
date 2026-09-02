@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import {
   collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc,
-  serverTimestamp, increment, getDocs, where,
+  serverTimestamp, increment, getDocs, where, getDoc,
 } from "firebase/firestore";
 import { db, webDb } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,16 +49,14 @@ export default function ChatScreen() {
       getDocs(query(collection(webDb, "bookings"),
         where("ownerId", "==", otherUid),
         where("providerId", "==", user.uid))),
-    ]).then(([snap1, snap2]) => {
+      convId ? getDoc(doc(webDb, "conversations", convId)) : Promise.resolve(null),
+    ]).then(([snap1, snap2, convSnap]) => {
       const all = [
         ...snap1.docs.map((d) => ({ id: d.id, ...d.data() as any })),
         ...snap2.docs.map((d) => ({ id: d.id, ...d.data() as any })),
       ];
-
-      if (all.length === 0) {
-        setChatStatus("no_booking");
-        return;
-      }
+      const convExists = convSnap?.exists() ?? false;
+      const convEnded = convSnap?.exists() ? convSnap.data()?.ended === true : false;
 
       // Active booking (pending/confirmed and upcoming)?
       const active = all.find((b) =>
@@ -76,9 +74,15 @@ export default function ChatScreen() {
         if (hoursSince < 24) { setChatStatus("active"); return; }
       }
 
+      // Stale or missing conversation with no active booking
+      if (!convExists || convEnded) {
+        setChatStatus("no_booking");
+        return;
+      }
+
       setChatStatus("ended");
     }).catch(() => setChatStatus("active")); // fail open — don't block on error
-  }, [user?.uid, otherUid]);
+  }, [user?.uid, otherUid, convId]);
 
   // Add trash icon to header
   useLayoutEffect(() => {

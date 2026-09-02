@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Linking, Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
+import * as Updates from "expo-updates";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import * as WebBrowser from "expo-web-browser";
@@ -317,6 +318,7 @@ export default function SettingsScreen() {
       </Pressable>
 
       <Text style={styles.version}>MyPetDex v1.0.0</Text>
+      <Text style={styles.version}>Update: {Updates.updateId?.slice(0, 8) ?? "local"}</Text>
     </ScrollView>
   );
 }

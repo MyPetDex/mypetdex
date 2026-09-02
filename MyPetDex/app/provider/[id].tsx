@@ -3,14 +3,14 @@ import {
   ActivityIndicator, Linking, Alert, KeyboardAvoidingView, Platform, Modal, Image,
 } from "react-native";
 import { useState, useEffect } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { db } from "@/lib/firebase";
 import {
   collection, query, where, orderBy, getDocs,
-  addDoc, serverTimestamp, setDoc, doc, getDoc,
+  addDoc, serverTimestamp, setDoc, doc, getDoc, deleteDoc,
 } from "firebase/firestore";
 
 const BRAND = "#4486F4";
@@ -139,6 +139,7 @@ export default function ProviderDetailScreen() {
       return;
     }
     // Must have an active booking to start a chat
+    let hasActive = false;
     try {
       const bookingQ = query(
         collection(db, "bookings"),
@@ -146,7 +147,7 @@ export default function ProviderDetailScreen() {
         where("providerId", "==", providerUid),
       );
       const bookingSnap = await getDocs(bookingQ);
-      const hasActive = bookingSnap.docs.some(d => {
+      hasActive = bookingSnap.docs.some(d => {
         const s = d.data().status;
         return s === "pending" || s === "confirmed";
       });
@@ -164,12 +165,30 @@ export default function ProviderDetailScreen() {
       );
       return;
     }
+
     try {
       const chatName = providerDisplayName || name || "Provider";
 
       const participants = [user.uid, providerUid].sort();
       const convId = participants.join("_");
       const convRef = doc(db, "conversations", convId);
+
+      const existingSnap = await getDoc(convRef);
+      if (existingSnap.exists()) {
+        const existing = existingSnap.data();
+        if (existing.ended === true && !hasActive) {
+          Alert.alert(
+            "Booking Required",
+            "Please book a service with this provider before you can message them."
+          );
+          return;
+        }
+        const msgsSnap = await getDocs(collection(db, "conversations", convId, "messages"));
+        const hasMessages = !msgsSnap.empty || Boolean(existing.lastMessage);
+        if (!hasMessages) {
+          await deleteDoc(convRef);
+        }
+      }
 
       const convData: Record<string, any> = {
         participants,
@@ -185,6 +204,7 @@ export default function ProviderDetailScreen() {
         lastMessageTime: serverTimestamp(),
         lastMessageSenderId: "",
         unreadCount: { [user.uid]: 0, [providerUid]: 0 },
+        ended: false,
       };
       convData[`hiddenBy.${user.uid}`] = false;
 
@@ -297,6 +317,8 @@ export default function ProviderDetailScreen() {
       : 0;
 
   return (
+    <>
+      <Stack.Screen options={{ headerBackTitle: " ", headerBackTitleVisible: false, title: " " } as any} />
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -608,6 +630,7 @@ export default function ProviderDetailScreen() {
         </View>
       </Modal>
     </KeyboardAvoidingView>
+    </>
   );
 }
 
