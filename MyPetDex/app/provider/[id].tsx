@@ -138,6 +138,25 @@ export default function ProviderDetailScreen() {
       Alert.alert("Unavailable", "Chat is only available with registered providers.");
       return;
     }
+    // Must have an active booking to start a chat
+    try {
+      const bookingQ = query(
+        collection(db, "bookings"),
+        where("ownerId", "==", user.uid),
+        where("providerId", "==", providerUid),
+        where("status", "in", ["pending", "confirmed"]),
+      );
+      const bookingSnap = await getDocs(bookingQ);
+      if (bookingSnap.empty) {
+        Alert.alert(
+          "Booking Required",
+          "Please book a service with this provider before you can message them."
+        );
+        return;
+      }
+    } catch {
+      // If the check fails, fall through and let the chat status handle it
+    }
     try {
       const chatName = providerDisplayName || name || "Provider";
 

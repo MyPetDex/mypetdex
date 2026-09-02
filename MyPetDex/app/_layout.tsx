@@ -200,7 +200,7 @@ export default Sentry.wrap(function RootLayout() {
     <AuthProvider>
       <AuthGuard />
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, headerBackTitle: " " }}>
+      <Stack screenOptions={{ headerShown: false, headerBackTitle: " ", headerBackTitleVisible: false }}>
         <Stack.Screen name="(auth)/sign-in" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="demo-login" options={{ headerShown: false }} />
