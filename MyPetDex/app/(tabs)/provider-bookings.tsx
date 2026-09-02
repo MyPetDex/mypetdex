@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity, Alert,
+} from "react-native";
+import { useFocusEffect } from "expo-router";
 import { webDb } from "@/lib/firebase";
-import { collection, query, where, getDocs, orderBy, updateDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatMedications } from "@/lib/bookingStatus";
 
 const BRAND = "#4486F4";
 const STATUS_COLORS: Record<string, string> = {
@@ -16,10 +20,12 @@ export default function ProviderBookings() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
-  useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    loadBookings();
-  }, [user]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) { setLoading(false); return; }
+      loadBookings();
+    }, [user?.uid])
+  );
 
   async function loadBookings() {
     try {
@@ -31,8 +37,25 @@ export default function ProviderBookings() {
   }
 
   async function updateStatus(id: string, status: string) {
-    await updateDoc(doc(webDb, "bookings", id), { status, updatedAt: new Date() });
-    setBookings(b => b.map(x => x.id === id ? { ...x, status } : x));
+    try {
+      const updates: Record<string, unknown> = { status, updatedAt: serverTimestamp() };
+      if (status === "completed") updates.completedAt = serverTimestamp();
+      if (status === "cancelled") {
+        updates.cancelledAt = serverTimestamp();
+        updates.cancelledBy = "provider";
+      }
+      await updateDoc(doc(webDb, "bookings", id), updates);
+      setBookings(b => b.map(x => x.id === id ? { ...x, status } : x));
+    } catch {
+      Alert.alert("Error", "Could not update booking. Please try again.");
+    }
+  }
+
+  function confirmCancel(id: string) {
+    Alert.alert("Cancel Booking", "Cancel this confirmed appointment?", [
+      { text: "Keep", style: "cancel" },
+      { text: "Cancel Booking", style: "destructive", onPress: () => updateStatus(id, "cancelled") },
+    ]);
   }
 
   const filtered = filter === "all" ? bookings : bookings.filter(b => b.status === filter);
@@ -76,6 +99,52 @@ export default function ProviderBookings() {
             </View>
             {b.notes ? <Text style={s.notes}>{b.notes}</Text> : null}
 
+            {(b.petBreed || b.petAge || b.petWeight) ? (
+              <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#F1F5F9" }}>
+                {[
+                  ["Breed", b.petBreed],
+                  ["Age", b.petAge],
+                  ["Weight", b.petWeight ? `${b.petWeight} ${b.petWeightUnit || "lbs"}` : ""],
+                  ["Species", b.petSpecies],
+                ].filter(([, v]) => v).map(([label, value]) => (
+                  <View key={label as string} style={{ flexDirection: "row", marginBottom: 4 }}>
+                    <Text style={{ fontSize: 12, color: "#64748B", width: 70 }}>{label}</Text>
+                    <Text style={{ fontSize: 12, color: "#1E293B", flex: 1 }}>{value as string}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            {(b.petProfileShared || b.petProfile) && b.petProfile && (
+              <View style={{
+                backgroundColor: "#F8FAFC",
+                borderRadius: 12,
+                padding: 14,
+                marginTop: 12,
+                borderWidth: 1,
+                borderColor: "#E2E8F0",
+              }}>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: "#1E293B", marginBottom: 10 }}>
+                  🐾 {b.petProfile.name}'s Profile
+                </Text>
+                {[
+                  ["Species", b.petProfile.species],
+                  ["Breed", b.petProfile.breed],
+                  ["Age", b.petProfile.age],
+                  ["Weight", b.petProfile.weight ? `${b.petProfile.weight} ${b.petProfile.weightUnit}` : ""],
+                  ["Neutered/Spayed", b.petProfile.neutered ? "Yes" : "No"],
+                  ["Allergies", b.petProfile.allergies],
+                  ["Medications", formatMedications(b.petProfile.medications)],
+                  ["Health Notes", b.petProfile.healthNotes],
+                ].filter(([, v]) => v).map(([label, value]) => (
+                  <View key={label as string} style={{ flexDirection: "row", marginBottom: 6 }}>
+                    <Text style={{ fontSize: 13, color: "#64748B", width: 110 }}>{label}</Text>
+                    <Text style={{ fontSize: 13, color: "#1E293B", flex: 1, fontWeight: "500" }}>{value as string}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
             {b.status === "pending" && (
               <View style={s.actions}>
                 <TouchableOpacity style={s.confirmBtn} onPress={() => updateStatus(b.id, "confirmed")}>
@@ -87,9 +156,14 @@ export default function ProviderBookings() {
               </View>
             )}
             {b.status === "confirmed" && (
-              <TouchableOpacity style={s.completeBtn} onPress={() => updateStatus(b.id, "completed")}>
-                <Text style={s.confirmText}>Mark as Completed</Text>
-              </TouchableOpacity>
+              <View style={s.actions}>
+                <TouchableOpacity style={s.completeBtn} onPress={() => updateStatus(b.id, "completed")}>
+                  <Text style={s.confirmText}>Mark as Completed</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.cancelBtn} onPress={() => confirmCancel(b.id)}>
+                  <Text style={s.cancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         ))
@@ -123,7 +197,7 @@ const s = StyleSheet.create({
   actions: { flexDirection: "row", gap: 10, marginTop: 8 },
   confirmBtn: { flex: 1, backgroundColor: BRAND, borderRadius: 10, padding: 10, alignItems: "center" },
   cancelBtn: { flex: 1, backgroundColor: "#FEE2E2", borderRadius: 10, padding: 10, alignItems: "center" },
-  completeBtn: { backgroundColor: "#3B82F6", borderRadius: 10, padding: 10, alignItems: "center", marginTop: 8 },
+  completeBtn: { flex: 1, backgroundColor: "#3B82F6", borderRadius: 10, padding: 10, alignItems: "center" },
   confirmText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   cancelText: { color: "#EF4444", fontWeight: "700", fontSize: 14 },
 });

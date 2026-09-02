@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { webDb } from "@/lib/firebase";
-import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, onSnapshot } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 
 const BRAND = "#4486F4";
 
@@ -18,6 +18,48 @@ export default function ProviderHome() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     loadData();
+  }, [user]);
+
+  // Real-time pending bookings count
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(webDb, "bookings"),
+      where("providerId", "==", user.uid),
+      where("status", "==", "pending")
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setStats((prev) => ({ ...prev, pending: snap.size }));
+    }, () => {});
+    return unsub;
+  }, [user]);
+
+  // Re-check approval status whenever this tab comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      getDoc(doc(webDb, "users", user.uid)).then((snap) => {
+        if (snap.exists()) {
+          setProfile((prev: any) => ({ ...prev, ...snap.data() }));
+        }
+      }).catch(() => {});
+    }, [user])
+  );
+
+  // Real-time listener: detect when admin approves or rejects this account
+  useEffect(() => {
+    if (!user) return;
+    const userRef = doc(webDb, "users", user.uid);
+    const unsub = onSnapshot(userRef, (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const newRole = data.role;
+      if (newRole === "rejected_provider") {
+        router.replace("/(tabs)/pending-provider" as any);
+      }
+      setProfile((prev: any) => ({ ...prev, ...data }));
+    });
+    return unsub;
   }, [user]);
 
   async function loadData() {
@@ -49,7 +91,7 @@ export default function ProviderHome() {
   if (loading) return <View style={s.center}><ActivityIndicator color={BRAND} size="large" /></View>;
 
   const name = profile?.businessName || profile?.displayName || "Provider";
-  const isVerified = profile?.verified === true;
+  const isVerified = profile?.approved === true;
 
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>

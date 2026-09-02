@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
-  ActivityIndicator, Linking, Alert, KeyboardAvoidingView, Platform, Modal,
+  ActivityIndicator, Linking, Alert, KeyboardAvoidingView, Platform, Modal, Image,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -10,7 +10,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { db } from "@/lib/firebase";
 import {
   collection, query, where, orderBy, getDocs,
-  addDoc, serverTimestamp, getDoc, setDoc, doc,
+  addDoc, serverTimestamp, setDoc, doc, getDoc,
 } from "firebase/firestore";
 
 const BRAND = "#4486F4";
@@ -92,6 +92,11 @@ export default function ProviderDetailScreen() {
   const { user } = useAuth();
   const { profile } = useUserProfile();
 
+  const {
+    id, name, serviceType, city, state, zip,
+    phone, website, address, bio, priceRange, color,
+  } = params;
+
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [myRating, setMyRating] = useState(0);
@@ -105,51 +110,68 @@ export default function ProviderDetailScreen() {
   const [bookNotes, setBookNotes] = useState("");
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [bookingDone, setBookingDone] = useState(false);
-
-  const {
-    id, name, serviceType, city, state, zip,
-    phone, website, address, bio, priceRange, color,
-  } = params;
+  const [providerDisplayName, setProviderDisplayName] = useState(name || "");
+  const [providerPhoto, setProviderPhoto] = useState("");
 
   const location = [city, state, zip].filter(Boolean).join(", ");
   const accentColor = color || BRAND;
   const isAppProvider = !!id?.startsWith("user_");
   const providerUid = isAppProvider ? id.slice(5) : "";
 
-  async function openChat() {
-    if (!user?.uid || !providerUid) return;
-    const participants = [user.uid, providerUid].sort();
-    const convId = participants.join("_");
-    const convRef = doc(db, "conversations", convId);
-    const existing = await getDoc(convRef);
+  useEffect(() => {
+    if (!providerUid) return;
+    getDoc(doc(db, "users", providerUid)).then((snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      setProviderDisplayName((prev) => {
+        if (!prev || prev === "Provider") {
+          return data.businessName || data.displayName || name || "Provider";
+        }
+        return prev;
+      });
+      setProviderPhoto(data.photoURL || data.profilePhoto || "");
+    }).catch(() => {});
+  }, [providerUid, name]);
 
-    if (!existing.exists()) {
-      await setDoc(convRef, {
+  async function openChat() {
+    if (!user?.uid || !providerUid) {
+      Alert.alert("Unavailable", "Chat is only available with registered providers.");
+      return;
+    }
+    try {
+      const chatName = providerDisplayName || name || "Provider";
+
+      const participants = [user.uid, providerUid].sort();
+      const convId = participants.join("_");
+      const convRef = doc(db, "conversations", convId);
+
+      const convData: Record<string, any> = {
         participants,
         participantNames: {
-          [user.uid]: profile?.displayName || "Pet Owner",
-          [providerUid]: name || "Provider",
+          [user.uid]: profile?.displayName || user?.displayName || "Pet Owner",
+          [providerUid]: chatName,
         },
         participantRoles: {
-          [user.uid]: profile?.role || "owner",
+          [user.uid]: "owner",
           [providerUid]: "provider",
-        },
-        participantPhotos: {
-          [user.uid]: "",
-          [providerUid]: "",
         },
         lastMessage: "",
         lastMessageTime: serverTimestamp(),
         lastMessageSenderId: "",
         unreadCount: { [user.uid]: 0, [providerUid]: 0 },
-        createdAt: serverTimestamp(),
-      });
-    }
+      };
+      convData[`hiddenBy.${user.uid}`] = false;
 
-    router.push({
-      pathname: "/messages/[id]" as any,
-      params: { id: convId, otherName: name || "Provider", otherUid: providerUid },
-    });
+      await setDoc(convRef, convData, { merge: true });
+
+      router.push({
+        pathname: "/messages/[id]" as any,
+        params: { id: convId, otherName: chatName, otherUid: providerUid },
+      });
+    } catch (e: any) {
+      console.error("Chat error:", e);
+      Alert.alert("Error", "Could not open chat. Please try again.");
+    }
   }
 
   useEffect(() => {
@@ -192,10 +214,11 @@ export default function ProviderDetailScreen() {
       const clientName =
         profile?.displayName || profile?.name || user.email?.split("@")[0] || "Pet Owner";
       await addDoc(collection(db, "reviews"), {
+        uid: user.uid,
         userId: user.uid,
         clientName,
         providerId: id,
-        providerName: name || "Provider",
+        providerName: providerDisplayName || "Provider",
         rating: myRating,
         text: myText.trim(),
         published: false,
@@ -221,7 +244,7 @@ export default function ProviderDetailScreen() {
         profile?.displayName || profile?.name || user.email?.split("@")[0] || "Pet Owner";
       await addDoc(collection(db, "bookings"), {
         providerId: providerUid,
-        providerName: name || "Provider",
+        providerName: providerDisplayName || "Provider",
         clientId: user.uid,
         clientName,
         clientEmail: user.email || "",
@@ -257,7 +280,7 @@ export default function ProviderDetailScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
           <Ionicons name="arrow-back" size={20} color={TEXT} />
         </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>{name || "Provider"}</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>{providerDisplayName || "Provider"}</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -265,10 +288,19 @@ export default function ProviderDetailScreen() {
 
         {/* Provider Hero Card */}
         <View style={styles.heroCard}>
-          <View style={[styles.heroAvatar, { backgroundColor: accentColor + "20" }]}>
-            <Ionicons name="business-outline" size={32} color={accentColor} />
-          </View>
-          <Text style={styles.heroName}>{name || "Provider"}</Text>
+          {providerPhoto ? (
+            <Image
+              source={{ uri: providerPhoto }}
+              style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 12 }}
+            />
+          ) : (
+            <View style={[styles.heroAvatar, { backgroundColor: accentColor + "22" }]}>
+              <Text style={{ fontSize: 32, fontWeight: "800", color: accentColor }}>
+                {(providerDisplayName || "P")[0]?.toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <Text style={styles.heroName}>{providerDisplayName || "Provider"}</Text>
           {serviceType ? (
             <Text style={[styles.heroType, { color: accentColor }]}>{serviceType}</Text>
           ) : null}
@@ -289,7 +321,7 @@ export default function ProviderDetailScreen() {
                       pathname: "/booking/new" as any,
                       params: {
                         providerId: providerUid,
-                        providerName: name || "Provider",
+                        providerName: providerDisplayName || "Provider",
                         serviceType: serviceType || "",
                       },
                     })
@@ -480,7 +512,7 @@ export default function ProviderDetailScreen() {
                   <Ionicons name="checkmark-circle" size={56} color="#22C55E" />
                   <Text style={styles.bookSuccessTitle}>Request Sent!</Text>
                   <Text style={styles.bookSuccessSub}>
-                    {name || "The provider"} will confirm your booking shortly.
+                    {providerDisplayName || "The provider"} will confirm your booking shortly.
                     You'll hear back within 24 hours.
                   </Text>
                   <Pressable style={styles.bookBtn} onPress={() => setShowBooking(false)}>

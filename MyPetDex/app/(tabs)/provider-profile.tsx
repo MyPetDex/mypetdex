@@ -4,7 +4,7 @@ import {
   Share, Linking, Alert, Modal, TextInput, Pressable, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { db, webDb, webAuth } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, addDoc, serverTimestamp, query, where } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -128,9 +128,26 @@ export default function ProviderProfile() {
     if (!u) return;
     setDeleting(true);
     try {
+      // Delete pets subcollection
       const petsSnap = await getDocs(collection(webDb, "users", u.uid, "pets"));
       await Promise.all(petsSnap.docs.map((petDoc) => deleteDoc(petDoc.ref)));
+
+      // Delete conversations
+      const convsSnap = await getDocs(
+        query(collection(webDb, "conversations"), where("participants", "array-contains", u.uid))
+      );
+      await Promise.all(convsSnap.docs.map((d) => deleteDoc(d.ref)));
+
+      // Delete bookings (as provider)
+      const bookingsSnap = await getDocs(
+        query(collection(webDb, "bookings"), where("providerId", "==", u.uid))
+      );
+      await Promise.all(bookingsSnap.docs.map((d) => deleteDoc(d.ref)));
+
+      // Delete user document
       await deleteDoc(doc(webDb, "users", u.uid));
+
+      // Finally delete the auth account
       await u.delete();
       router.replace("/(auth)/sign-in");
     } catch (e: any) {

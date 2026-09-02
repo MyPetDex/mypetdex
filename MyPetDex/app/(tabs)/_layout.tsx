@@ -1,9 +1,10 @@
 import { Tabs } from "expo-router";
-import { Platform, Image } from "react-native";
+import { Platform, Image, View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { useResponsive } from "@/hooks/useResponsive";
+import { useConversations } from "@/hooks/useConversations";
 
 const BRAND = "#4C6EF5";
 
@@ -11,6 +12,7 @@ export default function TabLayout() {
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const { isTablet } = useResponsive();
+  const { conversations } = useConversations();
 
   // Determine role: admin email always gets admin, otherwise from profile
   const role = user?.email === "mypetdexapp@gmail.com"
@@ -23,10 +25,18 @@ export default function TabLayout() {
   const isPendingProvider = role === "pending_provider";
   const isRejectedProvider = role === "rejected_provider";
   const isLimboProvider = isPendingProvider || isRejectedProvider;
+  const showMessages = !isShelter && !isAdmin && !isLimboProvider;
+  const totalUnread = conversations
+    .filter((c: any) => !c.hiddenBy?.[user?.uid || ""])
+    .reduce(
+      (sum, c) => sum + (c.unreadCount?.[user?.uid || ""] || 0),
+      0
+    );
 
   return (
     <Tabs
       screenOptions={{
+        animation: "none",
         tabBarActiveTintColor: BRAND,
         tabBarInactiveTintColor: "#A0AABF",
         tabBarStyle: {
@@ -92,6 +102,36 @@ export default function TabLayout() {
           href: isProvider || isShelter || isAdmin || isLimboProvider ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sparkles-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: "Messages",
+          href: showMessages ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <View>
+              <Ionicons name="chatbubbles-outline" size={size} color={color} />
+              {totalUnread > 0 ? (
+                <View style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -8,
+                  backgroundColor: "#ef4444",
+                  borderRadius: 8,
+                  minWidth: 16,
+                  height: 16,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingHorizontal: 3,
+                }}>
+                  <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>
+                    {totalUnread > 9 ? "9+" : totalUnread}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           ),
         }}
       />

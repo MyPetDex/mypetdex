@@ -143,6 +143,7 @@ export default function PetProfileScreen() {
   const [editLicense, setEditLicense] = useState("");
   const [editPhotoUri, setEditPhotoUri] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+  const [appointmentReminders, setAppointmentReminders] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -166,6 +167,25 @@ export default function PetProfileScreen() {
     );
     return unsub;
   }, [user, id]);
+
+  useEffect(() => {
+    if (!user || !id) return;
+    (async () => {
+      try {
+        const remindersSnap = await getDocs(
+          collection(db, "users", user.uid, "pets", id as string, "reminders")
+        );
+        const now = new Date().toISOString().split("T")[0];
+        const upcoming = remindersSnap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((r: any) => r.date >= now)
+          .sort((a: any, b: any) => a.date.localeCompare(b.date));
+        setAppointmentReminders(upcoming);
+      } catch {
+        setAppointmentReminders([]);
+      }
+    })();
+  }, [user, id, pet?.id]);
 
   // Wire header right button — Edit + Delete (hidden in demo)
   useEffect(() => {
@@ -348,7 +368,7 @@ body { font-family: -apple-system, Helvetica, sans-serif; color:#0F172A; }
 </div>
 <div class="section">
   <div class="label">Basic Info</div>
-  ${pet.activityLevel ? `<div class="row"><span class="key">Activity</span><span class="val">${pet.activityLevel}</span></div>` : ""}
+  ${pet.activityLevel ? `<div class="row"><span class="key">Activity</span><span class="val">${LIFE_STAGE_LABELS[pet.activityLevel]?.replace(/^[^\w]+ /, '') || pet.activityLevel}</span></div>` : ""}
   ${pet.neutered !== undefined ? `<div class="row"><span class="key">Neutered</span><span class="val">${pet.neutered ? "Yes" : "No"}</span></div>` : ""}
   ${pet.licenseNumber ? `<div class="row"><span class="key">License #</span><span class="val">${pet.licenseNumber}</span></div>` : ""}
 </div>
@@ -453,9 +473,50 @@ ${(pet.vaccines || []).length > 0 ? `
         <View style={styles.petTags}>
           {pet.age ? <View style={styles.tag}><Text style={styles.tagText}>Age {pet.age}</Text></View> : null}
           {pet.weight ? <View style={styles.tag}><Text style={styles.tagText}>{pet.weight} {pet.weightUnit || "lbs"}</Text></View> : null}
-          {pet.activityLevel ? <View style={styles.tag}><Text style={styles.tagText}>{pet.activityLevel}</Text></View> : null}
+          {pet.activityLevel ? (
+            <View style={styles.tag}>
+              <Text style={styles.tagText}>
+                {LIFE_STAGE_LABELS[pet.activityLevel]?.replace(/^[^\w]+ /, '') || pet.activityLevel}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
+
+      {appointmentReminders.length > 0 && (
+        <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+          <Text style={{ fontSize: 17, fontWeight: "700", color: "#1E293B", marginBottom: 12 }}>
+            Upcoming Appointments
+          </Text>
+          {appointmentReminders.map((r: any) => (
+            <View key={r.id} style={{
+              backgroundColor: "#EFF6FF",
+              borderRadius: 12,
+              padding: 14,
+              marginBottom: 10,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+            }}>
+              <View style={{
+                width: 40, height: 40, borderRadius: 20,
+                backgroundColor: "#4486F4",
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <Ionicons name="calendar-outline" size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: "#1E293B" }}>{r.title}</Text>
+                <Text style={{ fontSize: 13, color: "#64748B", marginTop: 2 }}>
+                  {new Date(r.date + "T12:00:00").toLocaleDateString("en-US", {
+                    weekday: "short", month: "long", day: "numeric",
+                  })} · {r.time}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* Tab Bar */}
       <View style={styles.tabBar}>

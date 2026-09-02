@@ -1,136 +1,129 @@
-# MyPetDex — 3 Bug Fixes
+# 3 Critical Fixes — Apply All, Do Not Skip Any
 
-## Fix 1 — Add "Change Password" screen with confirm field
+## Fix 1 — Messages list shows empty even though conversation exists
 
-The app currently only sends a Firebase reset email with no in-app new password screen. Add a proper Change Password screen inside the app.
+**File:** `app/provider/[id].tsx`
+**Function:** `openChat()`
 
-### Where to add it
-In `app/(tabs)/me.tsx` or `app/(tabs)/settings.tsx`, add a "Change Password" row in the settings menu that opens a modal or screen with three fields:
-1. Current Password
-2. New Password
-3. Confirm New Password
+The conversation document uses `hiddenBy.{uid}: true` as a soft-delete flag. When a user previously deleted a conversation and then opens the chat again via the provider profile, `openChat()` re-creates the conversation with `setDoc + merge:true` but does NOT clear `hiddenBy`. The Messages inbox filters by `!c.hiddenBy?.[user.uid]`, so the conversation stays invisible in the list even though it works when accessed directly.
 
-### Logic
+**Fix:** In `openChat()`, inside the `setDoc` call, add a dynamic key to reset `hiddenBy` for the current user. Change the `setDoc` call to:
+
 ```ts
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
+const convData: Record<string, any> = {
+  participants,
+  participantNames: {
+    [user.uid]: profile?.displayName || user?.displayName || "Pet Owner",
+    [providerUid]: chatName,
+  },
+  participantRoles: {
+    [user.uid]: "owner",
+    [providerUid]: "provider",
+  },
+  lastMessage: "",
+  lastMessageTime: serverTimestamp(),
+  lastMessageSenderId: "",
+  unreadCount: { [user.uid]: 0, [providerUid]: 0 },
+};
+convData[`hiddenBy.${user.uid}`] = false;
 
-async function handleChangePassword(currentPassword: string, newPassword: string, confirmPassword: string) {
-  if (newPassword.length < 8) {
-    Alert.alert("Error", "Password must be at least 8 characters.");
-    return;
-  }
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
-    Alert.alert("Error", 'Password must include at least one special character (e.g. @, #, !)');
-    return;
-  }
-  if (newPassword !== confirmPassword) {
-    Alert.alert("Error", "Passwords do not match.");
-    return;
-  }
-  try {
-    const user = auth.currentUser!;
-    const credential = EmailAuthProvider.credential(user.email!, currentPassword);
-    await reauthenticateWithCredential(user, credential);
-    await updatePassword(user, newPassword);
-    Alert.alert("Success", "Your password has been updated.");
-    // close modal
-  } catch (e: any) {
-    if (e.code === "auth/wrong-password" || e.code === "auth/invalid-credential") {
-      Alert.alert("Error", "Current password is incorrect.");
-    } else {
-      Alert.alert("Error", "Could not update password. Please try again.");
-    }
-  }
-}
+await setDoc(convRef, convData, { merge: true });
 ```
 
-### Notes
-- Only show this option for email/password users (not Google sign-in users). Check with `auth.currentUser?.providerData.some(p => p.providerId === "password")`.
-- Hide it for Google sign-in users since they don't have a password.
-- All three fields must use `secureTextEntry`.
+**Also fix** `app/(tabs)/_layout.tsx` — the badge count must filter out hidden conversations, otherwise a hidden conversation still shows a red badge even though the list is empty:
+
+Find:
+```ts
+const totalUnread = conversations.reduce(
+  (sum, c) => sum + (c.unreadCount?.[user?.uid || ""] || 0),
+  0
+);
+```
+
+Replace with:
+```ts
+const totalUnread = conversations
+  .filter((c: any) => !c.hiddenBy?.[user?.uid || ""])
+  .reduce((sum, c) => sum + (c.unreadCount?.[user?.uid || ""] || 0), 0);
+```
 
 ---
 
-## Fix 2 — Send Feedback: bypass failing Cloud Function, write to Firestore directly
+## Fix 2 — Back button shows "(tabs)" on My Appointments screen
 
-### Problem
-`callFunction("sendFeedback")` is failing with an unhandled error. The `sendFeedback` Cloud Function is either not deployed or broken.
+**File:** `app/_layout.tsx`
 
-### Fix in `app/(tabs)/settings.tsx` and `app/(tabs)/me.tsx`
-Replace the Cloud Function call with a direct Firestore write:
-
+Find the `bookings/index` Stack.Screen:
 ```ts
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { auth } from "@/lib/firebase";
-
-async function handleSendFeedback() {
-  if (!feedbackText.trim() || feedbackText.trim().length < 10) {
-    Alert.alert("Too short", "Please write at least 10 characters.");
-    return;
-  }
-  setFeedbackSending(true);
-  try {
-    await addDoc(collection(db, "feedback"), {
-      message: feedbackText.trim(),
-      subject: "General Feedback",
-      uid: auth.currentUser?.uid ?? "anonymous",
-      email: auth.currentUser?.email ?? "",
-      createdAt: serverTimestamp(),
-    });
-    setFeedbackText("");
-    setFeedbackVisible(false);
-    Alert.alert("Thank you!", "Your feedback has been sent.");
-  } catch (e) {
-    Alert.alert("Error", "Could not send feedback. Please email help@mypetdex.app");
-  } finally {
-    setFeedbackSending(false);
-  }
-}
+<Stack.Screen
+  name="bookings/index"
+  options={{
+    headerShown: true,
+    title: "My Appointments",
+    headerBackTitle: " ",
+  }}
+/>
 ```
 
-Apply this same fix to BOTH files that have `sendFeedback`:
-- `app/(tabs)/settings.tsx`
-- `app/(tabs)/me.tsx`
+Replace with:
+```ts
+<Stack.Screen
+  name="bookings/index"
+  options={{
+    headerShown: true,
+    title: "My Appointments",
+    headerBackTitle: " ",
+    headerBackTitleVisible: false,
+  }}
+/>
+```
 
-Remove the `callFunction` import if it's no longer used after this change.
+Also find the `bookings/[id]` Stack.Screen and add `headerBackTitleVisible: false` there too:
+```ts
+<Stack.Screen
+  name="bookings/[id]"
+  options={{
+    headerShown: true,
+    title: "Appointment",
+    headerBackTitle: " ",
+    headerBackTitleVisible: false,
+  }}
+/>
+```
 
 ---
 
-## Fix 3 — Provider profile modal scrolls infinitely into white space
+## Fix 3 — Back button shows "provider/[id]" on chat screen
 
-### Problem
-In `app/(tabs)/provider-profile.tsx`, modals use:
-```tsx
-<KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-  <ScrollView style={s.modalContainer} contentContainerStyle={{ paddingBottom: 40 }}>
-```
+**File:** `app/_layout.tsx`
 
-`flex: 1` inside a `Modal` makes the `KeyboardAvoidingView` try to fill the entire screen height. The inner `ScrollView` with `style={s.modalContainer}` also has `flex: 1` in its style. This combination causes unbounded scroll height — the user can scroll endlessly past the content into white space.
+Find the `messages/[id]` Stack.Screen options. Make sure it has BOTH `headerBackTitle: " "` AND `headerBackTitleVisible: false`. It must look exactly like this:
 
-### Fix
-1. Remove `flex: 1` from the `KeyboardAvoidingView` style and replace with `flexShrink: 1`:
-```tsx
-<KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-```
-
-2. Update `s.modalContainer` style to remove `flex: 1` and instead use:
 ```ts
-modalContainer: { flexGrow: 1, padding: 20, paddingTop: 24, backgroundColor: "#F5F8FF" },
+<Stack.Screen
+  name="messages/[id]"
+  options={({ route }: any) => ({
+    animation: "fade",
+    headerShown: true,
+    title: route.params?.otherName || "Messages",
+    headerBackTitle: " ",
+    headerBackTitleVisible: false,
+    headerStyle: { backgroundColor: "#fff" },
+    headerTintColor: "#4486F4",
+    headerTitleStyle: { fontWeight: "700", fontSize: 17 },
+  })}
+/>
 ```
 
-3. Wrap the Modal content in a `<View style={{ flex: 1 }}>` at the top level inside the Modal so it properly constrains height.
-
-Apply this fix to BOTH modals inside `provider-profile.tsx` (there are two `KeyboardAvoidingView` blocks at lines ~224 and ~274).
+If `headerBackTitleVisible: false` is already there, do not remove it. If it is missing, add it.
 
 ---
 
-## After all fixes
+## After applying all 3 fixes
 
-1. `npx tsc --noEmit --skipLibCheck` → 0 errors
-2. Test on device:
-   - Change Password: wrong current password shows error, mismatched new passwords show error, success updates and closes modal
-   - Send Feedback: submitting text writes to Firestore `feedback` collection, success alert shows
-   - Provider profile: edit modal does not scroll past content
-3. `git add -A && git commit -m "Fix change password, feedback Firestore, provider modal scroll"`
-4. `eas update --channel production --message "Fix change password, feedback, provider scroll"`
+Run:
+```
+npx tsc --noEmit --skipLibCheck
+```
+
+Fix any TypeScript errors. Do not add or change anything else. Do not touch `firestore.rules`, the shopping screen, or any other file not mentioned above.

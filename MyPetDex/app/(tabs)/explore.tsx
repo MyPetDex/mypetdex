@@ -106,6 +106,7 @@ function mapUserToListing(data: Record<string, unknown>, uid: string) {
     bio: String(data.bio || ""),
     priceRange: String(data.priceRange || ""),
     role,
+    approved: data.approved === true,
     verified: data.verified === true,
     source: "signup",
   };
@@ -232,6 +233,9 @@ export default function ExploreScreen() {
   const [stateFilter, setStateFilter] = useState("");
   const [serviceZip, setServiceZip] = useState("");
   const [searched, setSearched] = useState(false);
+  // Refs so search button always reads the latest value without waiting for re-render
+  const stateFilterRef = useRef("");
+  const serviceZipRef = useRef("");
 
   // No cleanup needed — state resets naturally on each fresh mount
   // (Expo Router unmounts tabs when navigating away, so state is always fresh)
@@ -253,8 +257,10 @@ export default function ExploreScreen() {
     if (cancelTimerRef.current) clearTimeout(cancelTimerRef.current);
   }
 
-  async function searchProviders(overrideService?: string) {
-    if (!stateFilter) return;
+  async function searchProviders(overrides?: { state?: string; zip?: string; service?: string }) {
+    const useStateVal = overrides?.state ?? stateFilter;
+    const useZip = overrides?.zip ?? serviceZip;
+    if (!useStateVal) return;
     const myId = ++searchIdRef.current;
     setProviderLoading(true);
     setShowCancel(false);
@@ -264,8 +270,8 @@ export default function ExploreScreen() {
     setLocalProviders([]);
     setProviderError("");
 
-    const activeSvc = overrideService !== undefined ? overrideService : serviceFilter;
-    const zipTrim = serviceZip.trim();
+    const activeSvc = overrides?.service !== undefined ? overrides.service : serviceFilter;
+    const zipTrim = useZip.trim();
 
     const TIMEOUT_MS = 6000;
 
@@ -273,13 +279,13 @@ export default function ExploreScreen() {
       const runQuery = async (): Promise<{ seed: any[]; local: any[] }> => {
         const seedQ = query(
           collection(webDb, "seedProviders"),
-          where("state", "==", stateFilter),
+          where("state", "==", useStateVal),
           limit(500),
         );
         const usersQ = query(
           collection(webDb, "users"),
           where("role", "==", "provider"),
-          where("state", "==", stateFilter),
+          where("state", "==", useStateVal),
           limit(200),
         );
 
@@ -287,6 +293,8 @@ export default function ExploreScreen() {
         let localResults = usersSnap.docs.map((d) =>
           mapUserToListing(d.data() as Record<string, unknown>, d.id),
         );
+        // Only show admin-approved providers in Explore
+        localResults = localResults.filter((p) => p.approved === true);
 
         if (zipTrim) {
           localResults = localResults.filter((p) => matchesZipForUser(p, zipTrim));
@@ -428,20 +436,28 @@ export default function ExploreScreen() {
 
           {/* Search filters */}
           <View style={styles.filterRow}>
-            <StateDropdown value={stateFilter} onSelect={setStateFilter} />
+            <StateDropdown value={stateFilter} onSelect={(val) => { setStateFilter(val); stateFilterRef.current = val; }} />
             <TextInput
               style={styles.zipInput}
               placeholder="Zip code"
               placeholderTextColor="#aaa"
               value={serviceZip}
-              onChangeText={(text) => setServiceZip(text.replace(/\D/g, "").slice(0, 5))}
+              onChangeText={(text) => { const v = text.replace(/\D/g, "").slice(0, 5); setServiceZip(v); serviceZipRef.current = v; }}
               keyboardType="numeric"
               maxLength={5}
-              onSubmitEditing={() => { if (!stateFilter) return; setSearched(true); searchProviders(); }}
+              onSubmitEditing={() => {
+                if (!stateFilterRef.current) return;
+                setSearched(true);
+                searchProviders({ state: stateFilterRef.current, zip: serviceZipRef.current });
+              }}
             />
             <Pressable
               style={[styles.searchBtn, !stateFilter && { opacity: 0.5 }]}
-              onPress={() => { if (!stateFilter) return; setSearched(true); searchProviders(); }}
+              onPress={() => {
+                if (!stateFilterRef.current) return;
+                setSearched(true);
+                searchProviders({ state: stateFilterRef.current, zip: serviceZipRef.current });
+              }}
             >
               <Text style={styles.searchBtnText}>Search</Text>
             </Pressable>
@@ -462,7 +478,7 @@ export default function ExploreScreen() {
                   const next = s.label === serviceFilter ? "" : s.label;
                   setServiceFilter(next);
                   setSearched(true);
-                  if (stateFilter) searchProviders(next);
+                  if (stateFilter) searchProviders({ state: stateFilter, zip: serviceZip, service: next });
                 }}
               >
                 <View style={[styles.serviceIconCircle, { backgroundColor: s.color + "18" }]}>

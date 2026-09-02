@@ -102,21 +102,22 @@ export default function AdminProviders() {
   }
 
   async function reject(providerId: string, name: string) {
-    Alert.alert(
+    Alert.prompt(
       "Reject Application",
-      `Reject "${name}"? They will see a rejection notice on next login.`,
+      `Enter a reason for rejecting "${name}":`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Reject",
           style: "destructive",
-          onPress: async () => {
+          onPress: async (reason?: string) => {
             setActing(providerId);
             try {
               await updateDoc(doc(webDb, "users", providerId), {
                 role: "rejected_provider",
                 approved: false,
                 rejectedAt: serverTimestamp(),
+                rejectionReason: reason?.trim() || "Your application did not meet our requirements at this time.",
               });
               setProviders(prev => prev.map(p =>
                 p.id === providerId ? { ...p, role: "rejected_provider", approved: false } : p
@@ -127,7 +128,9 @@ export default function AdminProviders() {
             setActing(null);
           },
         },
-      ]
+      ],
+      "plain-text",
+      "",
     );
   }
 

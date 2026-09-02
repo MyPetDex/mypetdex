@@ -64,17 +64,19 @@ export default function SignInScreen() {
   // Handle Google auth response
   useEffect(() => {
     if (response?.type === "success") {
-      // Keep loading=true — signInWithCredential is async; the component
-      // will unmount when onAuthStateChanged fires. Only clear on failure.
       const { id_token } = response.params;
       const credential = GoogleAuthProvider.credential(id_token);
-      signInWithCredential(auth, credential).catch((e) => {
-        setError("Could not sign in with Google. Please try again.");
-        setLoading(false);
-        console.error(e);
-      });
-    } else if (response?.type === "error" || response?.type === "dismiss") {
+      signInWithCredential(auth, credential)
+        .catch((e) => {
+          console.error("Google sign-in error:", e);
+          setError("Could not sign in with Google. Please try again.");
+          Alert.alert("Sign-in failed", "Please try again.");
+        })
+        .finally(() => setLoading(false));
+    } else if (response?.type === "error") {
       setError("Could not sign in with Google. Please try again.");
+      setLoading(false);
+    } else if (response?.type === "dismiss") {
       setLoading(false);
     }
   }, [response]);
@@ -93,15 +95,23 @@ export default function SignInScreen() {
   }
 
   async function handleGoogle() {
-    setError(""); setLoading(true);
+    setError("");
     setPendingRole(role);
-    try { await signInWithGoogle(); }
-    catch {
-      setError("Could not sign in with Google. Please try again.");
-      setLoading(false);
+    if (!request) {
+      try {
+        await promptAsync();
+      } catch {
+        Alert.alert("Not ready", "Google sign-in is loading. Please try again in a moment.");
+      }
+      return;
     }
-    // No finally setLoading(false) — loading stays true until the response
-    // useEffect processes the credential and the component unmounts on success.
+    setLoading(true);
+    try {
+      signInWithGoogle();
+    } catch {
+      setLoading(false);
+      Alert.alert("Error", "Google sign-in failed. Please try again.");
+    }
   }
 
   async function handleApple() {

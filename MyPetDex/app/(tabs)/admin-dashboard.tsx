@@ -15,7 +15,10 @@ const PLAN_PRICES: Record<string, number> = { plus: 3.0, family: 5.0 };
 export default function AdminDashboard() {
   const { user } = useAuth();
   const router = useRouter();
-  const [stats, setStats] = useState({ owners: 0, providers: 0, shelters: 0, plusUsers: 0, familyUsers: 0 });
+  const [stats, setStats] = useState({
+    owners: 0, providers: 0, shelters: 0, plusUsers: 0, familyUsers: 0,
+    pendingProviders: 0, bookings: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
@@ -28,17 +31,25 @@ export default function AdminDashboard() {
 
   async function loadStats() {
     try {
-      const snap = await getDocs(collection(webDb, "users"));
-      let owners = 0, providers = 0, shelters = 0, plusUsers = 0, familyUsers = 0;
-      snap.forEach(d => {
+      const [usersSnap, bookingsSnap] = await Promise.all([
+        getDocs(collection(webDb, "users")),
+        getDocs(collection(webDb, "bookings")),
+      ]);
+      let owners = 0, providers = 0, shelters = 0, plusUsers = 0, familyUsers = 0, pendingProviders = 0;
+      usersSnap.forEach(d => {
         const data = d.data();
         if (data.role === "owner") owners++;
         else if (data.role === "provider") providers++;
         else if (data.role === "shelter") shelters++;
+        else if (data.role === "pending_provider") pendingProviders++;
         if (data.plan === "plus") plusUsers++;
         if (data.plan === "family") familyUsers++;
       });
-      setStats({ owners, providers, shelters, plusUsers, familyUsers });
+      setStats({
+        owners, providers, shelters, plusUsers, familyUsers,
+        pendingProviders,
+        bookings: bookingsSnap.size,
+      });
     } finally { setLoading(false); }
   }
 
@@ -68,6 +79,13 @@ export default function AdminDashboard() {
         </Text>
       </View>
 
+      {/* Operations */}
+      <Text style={s.sectionTitle}>Operations</Text>
+      <View style={s.statsGrid}>
+        <StatCard label="Pending Providers" value={stats.pendingProviders} icon="time-outline" color="#F59E0B" />
+        <StatCard label="Total Bookings" value={stats.bookings} icon="calendar-outline" color="#4486F4" />
+      </View>
+
       {/* User counts */}
       <Text style={s.sectionTitle}>Users ({totalUsers} total)</Text>
       <View style={s.statsGrid}>
@@ -82,6 +100,7 @@ export default function AdminDashboard() {
       {/* Quick nav */}
       <Text style={s.sectionTitle}>Manage</Text>
       {[
+        { icon: "briefcase-outline", label: "Provider Applications", sub: `${stats.pendingProviders} pending review`, tab: "admin-providers" },
         { icon: "people-outline", label: "Users & Accounts", sub: "Enable or disable provider/shelter accounts", tab: "admin-users" },
         { icon: "shield-checkmark-outline", label: "Pending Reviews", sub: "Approve or reject service provider reviews", tab: "admin-reviews" },
         { icon: "chatbubble-ellipses-outline", label: "User Feedback", sub: "Read messages sent from the app", tab: "admin-feedback" },

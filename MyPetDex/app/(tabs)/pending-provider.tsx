@@ -71,10 +71,18 @@ export default function PendingProvider() {
         </Text>
         <Text style={s.bannerSub}>
           {isRejected
-            ? "Unfortunately your provider application wasn't approved at this time. Please contact our support team for more information or to reapply."
+            ? (profile.rejectionReason
+              || "Unfortunately your provider application wasn't approved at this time. Please contact our support team for more information or to reapply.")
             : "Our team is reviewing your provider application. You'll be able to access your provider dashboard once approved — typically within 1–2 business days."}
         </Text>
       </View>
+
+      {isRejected && profile.rejectionReason ? (
+        <View style={s.reasonCard}>
+          <Text style={s.reasonTitle}>Reason provided</Text>
+          <Text style={s.reasonText}>{profile.rejectionReason}</Text>
+        </View>
+      ) : null}
 
       {/* Timeline */}
       {!isRejected && (
@@ -186,6 +194,16 @@ const s = StyleSheet.create({
   bannerIconWrapRejected: { backgroundColor: "#FEE2E2" },
   bannerTitle: { fontSize: 20, fontWeight: "800", color: "#1E293B", marginBottom: 10, textAlign: "center" },
   bannerSub: { fontSize: 14, color: "#64748B", lineHeight: 21, textAlign: "center" },
+  reasonCard: {
+    backgroundColor: "#FEF2F2",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  reasonTitle: { fontSize: 13, fontWeight: "700", color: "#991B1B", marginBottom: 6 },
+  reasonText: { fontSize: 14, color: "#7F1D1D", lineHeight: 20 },
 
   timeline: {
     backgroundColor: "#fff",

@@ -200,7 +200,7 @@ export default Sentry.wrap(function RootLayout() {
     <AuthProvider>
       <AuthGuard />
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, headerBackTitle: " " }}>
         <Stack.Screen name="(auth)/sign-in" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="demo-login" options={{ headerShown: false }} />
@@ -239,11 +239,35 @@ export default Sentry.wrap(function RootLayout() {
           }}
         />
         <Stack.Screen
-          name="messages/[id]"
+          name="bookings/index"
           options={{
             headerShown: true,
-            title: "Chat",
-          }}
+            title: "My Appointments",
+            headerBackTitle: " ",
+            headerBackTitleVisible: false,
+          } as any}
+        />
+        <Stack.Screen
+          name="bookings/[id]"
+          options={{
+            headerShown: true,
+            title: "Appointment",
+            headerBackTitle: " ",
+            headerBackTitleVisible: false,
+          } as any}
+        />
+        <Stack.Screen
+          name="messages/[id]"
+          options={({ route }: any) => ({
+            animation: "fade",
+            headerShown: true,
+            title: route.params?.otherName || "Messages",
+            headerBackTitle: " ",
+            headerBackTitleVisible: false,
+            headerStyle: { backgroundColor: "#fff" },
+            headerTintColor: "#4486F4",
+            headerTitleStyle: { fontWeight: "700", fontSize: 17 },
+          })}
         />
         <Stack.Screen
           name="provider/[id]"

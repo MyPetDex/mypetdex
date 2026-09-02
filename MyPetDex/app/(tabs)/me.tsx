@@ -13,7 +13,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useResponsive } from "@/hooks/useResponsive";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { db, auth, webAuth, webDb } from "@/lib/firebase";
-import { collection, onSnapshot, doc, deleteDoc, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, doc, deleteDoc, getDocs, query, where } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import * as WebBrowser from "expo-web-browser";
 
@@ -102,9 +102,26 @@ export default function MeScreen() {
     if (!u) return;
     setDeleting(true);
     try {
+      // Delete pets subcollection
       const petsSnap = await getDocs(collection(webDb, "users", u.uid, "pets"));
       await Promise.all(petsSnap.docs.map((petDoc) => deleteDoc(petDoc.ref)));
+
+      // Delete conversations
+      const convsSnap = await getDocs(
+        query(collection(webDb, "conversations"), where("participants", "array-contains", u.uid))
+      );
+      await Promise.all(convsSnap.docs.map((d) => deleteDoc(d.ref)));
+
+      // Delete bookings (as pet owner)
+      const bookingsSnap = await getDocs(
+        query(collection(webDb, "bookings"), where("ownerId", "==", u.uid))
+      );
+      await Promise.all(bookingsSnap.docs.map((d) => deleteDoc(d.ref)));
+
+      // Delete user document
       await deleteDoc(doc(webDb, "users", u.uid));
+
+      // Finally delete the auth account
       await u.delete();
       router.replace("/(auth)/sign-in");
     } catch (e: any) {
@@ -412,6 +429,7 @@ export default function MeScreen() {
           <Text style={styles.settingsSectionTitle}>Account</Text>
           <View style={styles.settingsCard}>
             {[
+              { label: "My Appointments", icon: "calendar-outline", onPress: () => router.push("/bookings" as any) },
               ...(!isDemo && isPasswordUser
                 ? [{ label: "Change Password", icon: "key-outline", onPress: () => setShowChangePassword(true) }]
                 : []),

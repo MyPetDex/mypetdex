@@ -1,5 +1,5 @@
 import {
-  View, Text, StyleSheet, ScrollView, Pressable,
+  View, Text, StyleSheet, ScrollView, Pressable, TouchableOpacity,
   ActivityIndicator, Modal, Image,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
@@ -11,7 +11,8 @@ import { usePlan } from "@/hooks/usePlan";
 import { useResponsive } from "@/hooks/useResponsive";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, doc, getDoc } from "firebase/firestore";
+import { bookingStatusStyle } from "@/lib/bookingStatus";
+import { collection, onSnapshot, doc, getDoc, query, where } from "firebase/firestore";
 
 const BRAND = "#4C6EF5";
 const BRAND_DARK = "#3A5BD9";
@@ -33,6 +34,7 @@ export default function HomeScreen() {
   const [selectedPet, setSelectedPet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [roleChecked, setRoleChecked] = useState(false);
+  const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
 
   const firstName = user?.displayName?.split(" ")[0] || "there";
 
@@ -78,6 +80,25 @@ export default function HomeScreen() {
     return unsub;
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    const today = new Date().toISOString().split("T")[0];
+    const q = query(
+      collection(db, "bookings"),
+      where("ownerId", "==", user.uid),
+      where("status", "in", ["pending", "confirmed"]),
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const upcoming = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((b: any) => b.date >= today)
+        .sort((a: any, b: any) => a.date.localeCompare(b.date))
+        .slice(0, 3);
+      setUpcomingBookings(upcoming);
+    }, (e) => console.warn("bookings listener error:", e));
+    return unsub;
+  }, [user]);
+
   function handleAddPet() {
     if (pets.length >= maxPets) {
       setShowUpgrade(true);
@@ -114,6 +135,7 @@ export default function HomeScreen() {
           <View>
             <Text style={styles.greeting}>Hello, {firstName} 👋</Text>
             <Text style={styles.sub}>Welcome to MyPetDex</Text>
+            <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>OTA-TEST-v1</Text>
           </View>
           {planLabel ? (
             <View style={styles.planBadge}>
@@ -127,6 +149,71 @@ export default function HomeScreen() {
           )}
         </View>
       </View>
+
+      {upcomingBookings.length > 0 && (
+        <View style={{ marginHorizontal: 20, marginBottom: 24 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <Text style={{ fontSize: 17, fontWeight: "700", color: "#1E293B" }}>
+              Upcoming Appointments
+            </Text>
+            <Pressable onPress={() => router.push("/bookings" as any)}>
+              <Text style={{ fontSize: 13, color: BRAND, fontWeight: "600" }}>View all</Text>
+            </Pressable>
+          </View>
+          {upcomingBookings.map((b: any) => {
+            const statusColors = bookingStatusStyle(b.status);
+            return (
+            <TouchableOpacity
+              key={b.id}
+              style={{
+                backgroundColor: "#fff",
+                borderRadius: 14,
+                padding: 14,
+                marginBottom: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.06,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
+              onPress={() => router.push(`/bookings/${b.id}` as any)}
+              activeOpacity={0.85}
+            >
+              <View style={{
+                width: 44, height: 44, borderRadius: 22,
+                backgroundColor: "#4486F420",
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <Ionicons name="calendar-outline" size={22} color="#4486F4" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: "#1E293B" }}>
+                  {b.service} · {b.petName}
+                </Text>
+                <Text style={{ fontSize: 13, color: "#64748B", marginTop: 2 }}>
+                  {b.providerName} · {new Date(b.date + "T12:00:00").toLocaleDateString("en-US", {
+                    weekday: "short", month: "short", day: "numeric",
+                  })} at {b.timeSlot || b.time}
+                </Text>
+              </View>
+              <View style={{
+                paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+                backgroundColor: statusColors.bg,
+              }}>
+                <Text style={{
+                  fontSize: 11, fontWeight: "700",
+                  color: statusColors.text,
+                  textTransform: "capitalize",
+                }}>{b.status}</Text>
+              </View>
+            </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
 
       {/* Pet Section */}
       <Text style={styles.sectionTitle}>Your Pet</Text>
