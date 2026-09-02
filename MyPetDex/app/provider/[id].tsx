@@ -144,10 +144,13 @@ export default function ProviderDetailScreen() {
         collection(db, "bookings"),
         where("ownerId", "==", user.uid),
         where("providerId", "==", providerUid),
-        where("status", "in", ["pending", "confirmed"]),
       );
       const bookingSnap = await getDocs(bookingQ);
-      if (bookingSnap.empty) {
+      const hasActive = bookingSnap.docs.some(d => {
+        const s = d.data().status;
+        return s === "pending" || s === "confirmed";
+      });
+      if (!hasActive) {
         Alert.alert(
           "Booking Required",
           "Please book a service with this provider before you can message them."
@@ -155,7 +158,11 @@ export default function ProviderDetailScreen() {
         return;
       }
     } catch {
-      // If the check fails, fall through and let the chat status handle it
+      Alert.alert(
+        "Booking Required",
+        "Please book a service with this provider before you can message them."
+      );
+      return;
     }
     try {
       const chatName = providerDisplayName || name || "Provider";
