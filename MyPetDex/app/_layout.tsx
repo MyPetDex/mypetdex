@@ -210,6 +210,7 @@ export default Sentry.wrap(function RootLayout() {
           headerShown: false,
           headerBackTitle: "Back",
           headerTintColor: BRAND,
+          headerBackTitleStyle: { color: BRAND },
           headerStyle: { backgroundColor: "#fff" },
           headerTitleStyle: { color: BRAND, fontWeight: "700" },
           contentStyle: { backgroundColor: "#fff" },

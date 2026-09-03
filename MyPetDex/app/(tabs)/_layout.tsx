@@ -54,7 +54,8 @@ export default function TabLayout() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
         headerStyle: { backgroundColor: "#fff" },
         headerShadowVisible: false,
-        headerTitleStyle: { fontWeight: "700", fontSize: 18, color: "#0F172A" },
+        headerTitleStyle: { fontWeight: "700", fontSize: 18, color: BRAND },
+        sceneStyle: { backgroundColor: "#fff" },
       }}
     >
       {/* ── Pet Owner tabs ─────────────────────────────────────────── */}
