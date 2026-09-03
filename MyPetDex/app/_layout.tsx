@@ -62,6 +62,28 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 
 const BRAND = "#4486F4";
 
+// Custom back button — iOS 26 native back pill ignores headerTintColor,
+// so we render our own to control color.
+function BackButton() {
+  const router = useRouter();
+  if (!router.canGoBack()) return null;
+  return (
+    <Pressable
+      onPress={() => router.back()}
+      hitSlop={12}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        marginLeft: 4,
+        opacity: pressed ? 0.5 : 1,
+      })}
+    >
+      <Ionicons name="chevron-back" size={24} color={BRAND} />
+      <Text style={{ fontSize: 17, color: BRAND, marginLeft: -2 }}>Back</Text>
+    </Pressable>
+  );
+}
+
 // Close button rendered as headerLeft for modal screens on iOS
 function ModalCloseButton() {
   const router = useRouter();
@@ -211,6 +233,7 @@ export default Sentry.wrap(function RootLayout() {
           headerBackTitle: "Back",
           headerTintColor: BRAND,
           headerBackTitleStyle: { color: BRAND },
+          headerLeft: () => <BackButton />,
           headerStyle: { backgroundColor: "#fff" },
           headerTitleStyle: { color: BRAND, fontWeight: "700" },
           contentStyle: { backgroundColor: "#fff" },
