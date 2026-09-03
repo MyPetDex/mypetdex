@@ -135,7 +135,6 @@ export default function HomeScreen() {
           <View>
             <Text style={styles.greeting}>Hello, {firstName} 👋</Text>
             <Text style={styles.sub}>Welcome to MyPetDex</Text>
-            <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>OTA-TEST-v1</Text>
           </View>
           {planLabel ? (
             <View style={styles.planBadge}>
