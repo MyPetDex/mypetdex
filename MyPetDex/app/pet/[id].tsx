@@ -12,7 +12,7 @@ import { useResponsive } from "@/hooks/useResponsive";
 import { db, uploadPetPhoto, auth } from "@/lib/firebase";
 import {
   doc, onSnapshot, updateDoc, deleteDoc, arrayUnion, arrayRemove,
-  addDoc, collection, serverTimestamp, query, where, orderBy, getDocs, limit,
+  addDoc, collection, serverTimestamp, query, where, orderBy, getDocs, getDoc, limit,
 } from "firebase/firestore";
 import * as ImagePicker from "expo-image-picker";
 import * as Print from "expo-print";
@@ -176,11 +176,26 @@ export default function PetProfileScreen() {
           collection(db, "users", user.uid, "pets", id as string, "reminders")
         );
         const now = new Date().toISOString().split("T")[0];
-        const upcoming = remindersSnap.docs
+        const dated = remindersSnap.docs
           .map((d) => ({ id: d.id, ...d.data() }))
           .filter((r: any) => r.date >= now)
           .sort((a: any, b: any) => a.date.localeCompare(b.date));
-        setAppointmentReminders(upcoming);
+
+        // Drop reminders whose booking was cancelled. Reminders are written at
+        // booking time and are not cleaned up on cancel, so verify each one.
+        const checked = await Promise.all(
+          dated.map(async (r: any) => {
+            if (!r.bookingId) return r;
+            try {
+              const bSnap = await getDoc(doc(db, "bookings", r.bookingId));
+              if (!bSnap.exists()) return null;
+              return bSnap.data()?.status === "cancelled" ? null : r;
+            } catch {
+              return r;
+            }
+          })
+        );
+        setAppointmentReminders(checked.filter(Boolean) as any[]);
       } catch {
         setAppointmentReminders([]);
       }
