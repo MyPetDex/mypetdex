@@ -77,7 +77,9 @@ function ModalCloseButton() {
 }
 
 function tabsHomeHref(profile: { role?: string } | null | undefined, pendingRole: string) {
-  const role = profile?.role || pendingRole;
+  // Prefer Firestore role. Signup pending-role "provider" means awaiting approval —
+  // only an explicit profile.role of "provider" means approved.
+  const role = profile?.role || (pendingRole === "provider" ? "pending_provider" : pendingRole);
   if (role === "shelter") return "/(tabs)/shelter-home" as const;
   if (role === "provider") return "/(tabs)/provider-home" as const;
   if (role === "pending_provider" || role === "rejected_provider") return "/(tabs)/pending-provider" as const;
@@ -114,6 +116,8 @@ function AuthGuard() {
   }, [user, authLoading, profileLoading, emailVerified, profile?.city, profile?.businessName, profile?.shelterName, profile?.onboardingComplete]);
 
   useEffect(() => {
+    // Wait for auth + profile before routing — especially after emailVerified flips true,
+    // so we don't send providers to provider-home before pending_provider is loaded.
     if (authLoading || (user && profileLoading)) return;
 
     const inAuthGroup = segments.some(s => s === "(auth)");
@@ -154,8 +158,9 @@ function AuthGuard() {
       // Already completed onboarding — race condition guard: redirect away
       router.replace(needsEmailVerification ? "/check-email" : homeHref);
     } else if (user && inCheckEmail) {
-      // Verified (or just became verified, e.g. on app foreground) — let them in
-      if (!needsEmailVerification) {
+      // Verified (or just became verified, e.g. on app foreground) — wait for profile
+      // to finish loading before leaving check-email so role routing is correct.
+      if (!needsEmailVerification && !profileLoading) {
         router.replace(homeHref);
       }
     } else if (user && !inAuthGroup && !inOnboarding && !inCheckEmail) {

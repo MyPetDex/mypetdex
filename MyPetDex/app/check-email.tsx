@@ -53,7 +53,9 @@ export default function CheckEmailScreen() {
     const verified = await refreshEmailVerification();
     setChecking(false);
     if (verified) {
-      const role = profile?.role || getPendingRole();
+      // Prefer Firestore role. Signup pending-role "provider" means awaiting approval.
+      const pending = getPendingRole();
+      const role = profile?.role || (pending === "provider" ? "pending_provider" : pending);
       if (role === "shelter") router.replace("/(tabs)/shelter-home");
       else if (role === "provider") router.replace("/(tabs)/provider-home");
       else if (role === "pending_provider" || role === "rejected_provider") router.replace("/(tabs)/pending-provider");

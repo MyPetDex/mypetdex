@@ -144,7 +144,7 @@ export default function OnboardingScreen() {
         uid: u.uid,
         email: u.email || null,
         displayName: u.displayName || null,
-        role,
+        role: role === "provider" ? "pending_provider" : role,
         plan: "free",
         state,
         city: city.trim(),
@@ -208,6 +208,8 @@ export default function OnboardingScreen() {
         await triggerWelcomeEmail();
         if (role === "shelter") {
           router.replace("/(tabs)/shelter-home");
+        } else if (role === "provider") {
+          router.replace("/(tabs)/pending-provider");
         } else {
           router.replace("/(tabs)");
         }
