@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useConversations } from "@/hooks/useConversations";
 
-const BRAND = "#4C6EF5";
+const BRAND = "#4486F4";
 
 export default function TabLayout() {
   const { user } = useAuth();

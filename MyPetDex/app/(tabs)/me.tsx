@@ -17,7 +17,7 @@ import { collection, onSnapshot, doc, deleteDoc, getDocs, query, where } from "f
 import { getFunctions, httpsCallable } from "firebase/functions";
 import * as WebBrowser from "expo-web-browser";
 
-const BRAND = "#4C6EF5";
+const BRAND = "#4486F4";
 const BG = "#F4F6FB";
 const TEXT = "#0F172A";
 const TEXT2 = "#64748B";

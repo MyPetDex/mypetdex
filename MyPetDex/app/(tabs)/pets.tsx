@@ -10,7 +10,7 @@ import { collection, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
 
-const BRAND = "#4C6EF5";
+const BRAND = "#4486F4";
 const BG = "#F4F6FB";
 const TEXT = "#0F172A";
 const TEXT2 = "#64748B";

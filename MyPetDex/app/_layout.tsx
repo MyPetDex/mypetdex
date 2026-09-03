@@ -60,7 +60,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   }
 }
 
-const BRAND = "#4C6EF5";
+const BRAND = "#4486F4";
 
 // Close button rendered as headerLeft for modal screens on iOS
 function ModalCloseButton() {
@@ -205,7 +205,16 @@ export default Sentry.wrap(function RootLayout() {
     <AuthProvider>
       <AuthGuard />
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, headerBackTitle: " " } as any}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          headerBackTitle: "Back",
+          headerTintColor: BRAND,
+          headerStyle: { backgroundColor: "#fff" },
+          headerTitleStyle: { color: BRAND, fontWeight: "700" },
+          contentStyle: { backgroundColor: "#fff" },
+        } as any}
+      >
         <Stack.Screen name="(auth)/sign-in" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="demo-login" options={{ headerShown: false }} />
@@ -248,8 +257,6 @@ export default Sentry.wrap(function RootLayout() {
           options={{
             headerShown: true,
             title: "My Appointments",
-            headerBackTitle: " ",
-            headerBackTitleVisible: false,
           } as any}
         />
         <Stack.Screen
@@ -257,8 +264,6 @@ export default Sentry.wrap(function RootLayout() {
           options={{
             headerShown: true,
             title: "Appointment",
-            headerBackTitle: " ",
-            headerBackTitleVisible: false,
           } as any}
         />
         <Stack.Screen
@@ -267,8 +272,6 @@ export default Sentry.wrap(function RootLayout() {
             animation: "fade",
             headerShown: true,
             title: route.params?.otherName || "Messages",
-            headerBackTitle: " ",
-            headerBackTitleVisible: false,
             headerStyle: { backgroundColor: "#fff" },
             headerTintColor: "#4486F4",
             headerTitleStyle: { fontWeight: "700", fontSize: 17 },
@@ -278,9 +281,6 @@ export default Sentry.wrap(function RootLayout() {
           name="provider/[id]"
           options={{
             headerShown: false,
-            headerBackTitle: " ",
-            headerBackTitleVisible: false,
-            title: " ",
           } as any}
         />
         <Stack.Screen

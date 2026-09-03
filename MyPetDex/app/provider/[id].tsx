@@ -318,7 +318,7 @@ export default function ProviderDetailScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerBackTitle: " ", headerBackTitleVisible: false, title: " " } as any} />
+      <Stack.Screen options={{} as any} />
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}

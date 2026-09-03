@@ -14,7 +14,7 @@ import { db } from "@/lib/firebase";
 import { bookingStatusStyle } from "@/lib/bookingStatus";
 import { collection, onSnapshot, doc, getDoc, query, where } from "firebase/firestore";
 
-const BRAND = "#4C6EF5";
+const BRAND = "#4486F4";
 const BRAND_DARK = "#3A5BD9";
 const BG = "#F4F6FB";
 const TEXT = "#0F172A";

@@ -8,7 +8,7 @@ import * as WebBrowser from "expo-web-browser";
 import { auth, db, webAuth, webDb } from "@/lib/firebase";
 import { doc, deleteDoc, collection, getDocs, addDoc, serverTimestamp, query, where } from "firebase/firestore";
 
-const BRAND = "#4C6EF5";
+const BRAND = "#4486F4";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();

@@ -12,7 +12,7 @@ import { useRouter } from "expo-router";
 import { auth, db } from "@/lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
 
-const BRAND = "#4C6EF5";
+const BRAND = "#4486F4";
 const AI_PROXY_URL = "https://us-central1-mypetdex-c4315.cloudfunctions.net/aiProxy";
 
 type SmartAction = {
@@ -39,7 +39,7 @@ function detectSmartAction(text: string): SmartAction | null {
   if (/medic|medicine|dose|pill|tablet|prescription|flea|heartworm|deworm/.test(t))
     return { icon: "medical-outline", label: "Log medication", tab: "Meds", color: "#ef4444" };
   if (/vet visit|clinic|appointment|check.?up|annual exam|doctor visit/.test(t))
-    return { icon: "calendar-outline", label: "Log vet visit", tab: "Records", color: "#4C6EF5" };
+    return { icon: "calendar-outline", label: "Log vet visit", tab: "Records", color: "#4486F4" };
   if (/remind|schedule|don.?t forget|upcoming|next visit|next appointment/.test(t))
     return { icon: "notifications-outline", label: "Set reminder", tab: "Reminders", color: "#f59e0b" };
   return null;
