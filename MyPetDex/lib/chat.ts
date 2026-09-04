@@ -83,7 +83,10 @@ export async function openChatWithProvider(args: OpenChatArgs): Promise<OpenChat
       unreadCount: { [ownerUid]: 0, [providerUid]: 0 },
       ended: false,
     };
-    convData[`hiddenBy.${ownerUid}`] = false;
+    // Nested map — must match how the conversations list reads it
+    // (c.hiddenBy?.[uid]). A dotted key here would create a literal
+    // field named "hiddenBy.<uid>" instead, which nothing reads.
+    convData.hiddenBy = { [ownerUid]: false };
 
     await setDoc(convRef, convData, { merge: true });
 
