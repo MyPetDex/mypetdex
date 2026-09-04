@@ -281,6 +281,8 @@ export default Sentry.wrap(function RootLayout() {
           options={{
             headerShown: true,
             title: "My Appointments",
+            headerStyle: { backgroundColor: "#fff" },
+            contentStyle: { backgroundColor: "#F8FAFC" },
           } as any}
         />
         <Stack.Screen
@@ -288,6 +290,8 @@ export default Sentry.wrap(function RootLayout() {
           options={{
             headerShown: true,
             title: "Appointment",
+            headerStyle: { backgroundColor: "#fff" },
+            contentStyle: { backgroundColor: "#F8FAFC" },
           } as any}
         />
         <Stack.Screen
