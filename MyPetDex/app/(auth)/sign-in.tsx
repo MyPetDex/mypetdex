@@ -76,7 +76,9 @@ export default function SignInScreen() {
     } else if (response?.type === "error") {
       setError("Could not sign in with Google. Please try again.");
       setLoading(false);
-    } else if (response?.type === "dismiss") {
+    } else if (response) {
+      // Any other outcome (dismiss, cancel, locked) — clear loading so the
+      // screen renders again. Without this the user is stuck on a blank view.
       setLoading(false);
     }
   }, [response]);
