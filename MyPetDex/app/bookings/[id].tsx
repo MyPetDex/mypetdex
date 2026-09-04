@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet, ActivityIndicator, Pressable, Alert,
+  View, Text, ScrollView, StyleSheet, ActivityIndicator, Pressable, Alert, Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -102,6 +102,15 @@ export default function BookingDetailScreen() {
     : "";
 
   return (
+    <View style={{ flex: 1, backgroundColor: "#F5F8FF" }}>
+      <View style={s.header}>
+        <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={8}>
+          <Ionicons name="arrow-back" size={20} color="#0F172A" />
+        </Pressable>
+        <Text style={s.headerTitle} numberOfLines={1}>Appointment</Text>
+        <View style={{ width: 36 }} />
+      </View>
+
     <ScrollView style={s.container} contentContainerStyle={s.content}>
       <View style={s.headerRow}>
         <Text style={s.title}>{booking.service || "Appointment"}</Text>
@@ -159,10 +168,28 @@ export default function BookingDetailScreen() {
         </Pressable>
       )}
     </ScrollView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 56 : 16,
+    paddingBottom: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#eee",
+  },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: "#F4F6FB",
+    alignItems: "center", justifyContent: "center",
+  },
+  headerTitle: { flex: 1, fontSize: 16, fontWeight: "700", color: BRAND, textAlign: "center" },
   container: { flex: 1, backgroundColor: "#F5F8FF" },
   content: { padding: 20, paddingBottom: 40 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
