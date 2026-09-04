@@ -292,14 +292,11 @@ export default Sentry.wrap(function RootLayout() {
         />
         <Stack.Screen
           name="messages/[id]"
-          options={({ route }: any) => ({
+          options={{
             animation: "fade",
-            headerShown: true,
-            title: route.params?.otherName || "Messages",
-            headerStyle: { backgroundColor: "#fff" },
-            headerTintColor: "#4486F4",
-            headerTitleStyle: { fontWeight: "700", fontSize: 17 },
-          })}
+            headerShown: false,
+            contentStyle: { backgroundColor: "#fff" },
+          } as any}
         />
         <Stack.Screen
           name="provider/[id]"

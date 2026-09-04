@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView,
+  View, Text, TextInput, TouchableOpacity, Pressable, FlatList, KeyboardAvoidingView,
   Platform, StyleSheet, ActivityIndicator, Alert,
 } from "react-native";
 import {
@@ -84,16 +84,6 @@ export default function ChatScreen() {
     }).catch(() => setChatStatus("active")); // fail open — don't block on error
   }, [user?.uid, otherUid, convId]);
 
-  // Add trash icon to header
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity onPress={deleteConversation} style={{ marginRight: 4, padding: 4 }}>
-          <Ionicons name="trash-outline" size={20} color="#EF4444" />
-        </TouchableOpacity>
-      ),
-    });
-  }, [convId, user?.uid]);
 
   useEffect(() => {
     if (!convId || !user?.uid) return;
@@ -174,6 +164,17 @@ export default function ChatScreen() {
   const canChat = chatStatus === "active";
 
   return (
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+      <View style={styles.chatHeader}>
+        <Pressable onPress={() => router.back()} style={styles.chatBackBtn} hitSlop={8}>
+          <Ionicons name="arrow-back" size={20} color="#0F172A" />
+        </Pressable>
+        <Text style={styles.chatHeaderTitle} numberOfLines={1}>{otherName || "Messages"}</Text>
+        <Pressable onPress={deleteConversation} style={styles.chatBackBtn} hitSlop={8}>
+          <Ionicons name="trash-outline" size={19} color="#EF4444" />
+        </Pressable>
+      </View>
+
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -296,10 +297,28 @@ export default function ChatScreen() {
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  chatHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 56 : 16,
+    paddingBottom: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#eee",
+  },
+  chatBackBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: "#F4F6FB",
+    alignItems: "center", justifyContent: "center",
+  },
+  chatHeaderTitle: { flex: 1, fontSize: 16, fontWeight: "700", color: BRAND, textAlign: "center", marginHorizontal: 8 },
   container: { flex: 1, backgroundColor: "#f8f9fa" },
   list: { padding: 16, flexGrow: 1 },
   statusBanner: {
