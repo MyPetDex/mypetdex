@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { db } from "@/lib/firebase";
+import { hasActiveBooking, openChatWithProvider } from "@/lib/chat";
 import {
   collection, query, where, orderBy, getDocs,
   addDoc, serverTimestamp, setDoc, doc, getDoc, deleteDoc,
@@ -138,27 +139,9 @@ export default function ProviderDetailScreen() {
       Alert.alert("Unavailable", "Chat is only available with registered providers.");
       return;
     }
-    // Must have an active booking to start a chat
-    let hasActive = false;
-    try {
-      const bookingQ = query(
-        collection(db, "bookings"),
-        where("ownerId", "==", user.uid),
-        where("providerId", "==", providerUid),
-      );
-      const bookingSnap = await getDocs(bookingQ);
-      hasActive = bookingSnap.docs.some(d => {
-        const s = d.data().status;
-        return s === "pending" || s === "confirmed";
-      });
-      if (!hasActive) {
-        Alert.alert(
-          "Booking Required",
-          "Please book a service with this provider before you can message them."
-        );
-        return;
-      }
-    } catch {
+
+    const active = await hasActiveBooking(user.uid, providerUid);
+    if (!active) {
       Alert.alert(
         "Booking Required",
         "Please book a service with this provider before you can message them."
@@ -166,59 +149,30 @@ export default function ProviderDetailScreen() {
       return;
     }
 
-    try {
-      const chatName = providerDisplayName || name || "Provider";
+    const result = await openChatWithProvider({
+      ownerUid: user.uid,
+      ownerName: profile?.displayName || user?.displayName || "Pet Owner",
+      providerUid,
+      providerName: providerDisplayName || name || "Provider",
+      activeBooking: active,
+    });
 
-      const participants = [user.uid, providerUid].sort();
-      const convId = participants.join("_");
-      const convRef = doc(db, "conversations", convId);
-
-      const existingSnap = await getDoc(convRef);
-      if (existingSnap.exists()) {
-        const existing = existingSnap.data();
-        if (existing.ended === true && !hasActive) {
-          Alert.alert(
-            "Booking Required",
-            "Please book a service with this provider before you can message them."
-          );
-          return;
-        }
-        const msgsSnap = await getDocs(collection(db, "conversations", convId, "messages"));
-        const hasMessages = !msgsSnap.empty || Boolean(existing.lastMessage);
-        if (!hasMessages) {
-          await deleteDoc(convRef);
-        }
-      }
-
-      const convData: Record<string, any> = {
-        participants,
-        participantNames: {
-          [user.uid]: profile?.displayName || user?.displayName || "Pet Owner",
-          [providerUid]: chatName,
-        },
-        participantRoles: {
-          [user.uid]: "owner",
-          [providerUid]: "provider",
-        },
-        lastMessage: "",
-        lastMessageTime: serverTimestamp(),
-        lastMessageSenderId: "",
-        unreadCount: { [user.uid]: 0, [providerUid]: 0 },
-        ended: false,
-      };
-      convData[`hiddenBy.${user.uid}`] = false;
-
-      await setDoc(convRef, convData, { merge: true });
-
-      router.push({
-        pathname: "/messages/[id]" as any,
-        params: { id: convId, otherName: chatName, otherUid: providerUid },
-      });
-    } catch (e: any) {
-      console.error("Chat error:", e);
-      Alert.alert("Error", "Could not open chat. Please try again.");
+    if (!result.ok) {
+      Alert.alert(
+        result.reason === "no-booking" ? "Booking Required" : "Error",
+        result.reason === "no-booking"
+          ? "Please book a service with this provider before you can message them."
+          : "Could not open chat. Please try again."
+      );
+      return;
     }
+
+    router.push({
+      pathname: "/messages/[id]" as any,
+      params: { id: result.convId, otherName: result.otherName, otherUid: result.otherUid },
+    });
   }
+
 
   useEffect(() => {
     if (id) loadReviews();
