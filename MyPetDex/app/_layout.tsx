@@ -279,10 +279,8 @@ export default Sentry.wrap(function RootLayout() {
         <Stack.Screen
           name="bookings/index"
           options={{
-            headerShown: true,
-            title: "My Appointments",
-            headerStyle: { backgroundColor: "#fff" },
-            contentStyle: { backgroundColor: "#F8FAFC" },
+            headerShown: false,
+            contentStyle: { backgroundColor: "#F5F8FF" },
           } as any}
         />
         <Stack.Screen
