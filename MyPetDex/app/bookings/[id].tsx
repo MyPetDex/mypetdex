@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { webDb } from "@/lib/firebase";
 import { doc, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore";
 import { bookingStatusStyle, formatMedications } from "@/lib/bookingStatus";
+import { openChatWithProvider } from "@/lib/chat";
 
 const BRAND = "#4486F4";
 
@@ -32,6 +33,28 @@ export default function BookingDetailScreen() {
     }, () => setLoading(false));
     return unsub;
   }, [id]);
+
+  async function openChat() {
+    if (!user?.uid || !booking?.providerId) {
+      Alert.alert("Unavailable", "Chat is not available for this booking.");
+      return;
+    }
+    const result = await openChatWithProvider({
+      ownerUid: user.uid,
+      ownerName: user.displayName || "Pet Owner",
+      providerUid: booking.providerId,
+      providerName: booking.providerName || "Provider",
+      activeBooking: true,
+    });
+    if (!result.ok) {
+      Alert.alert("Error", "Could not open chat. Please try again.");
+      return;
+    }
+    router.push({
+      pathname: "/messages/[id]" as any,
+      params: { id: result.convId, otherName: result.otherName, otherUid: result.otherUid },
+    });
+  }
 
   async function confirmCancel() {
     if (!booking?.id) return;
@@ -123,6 +146,13 @@ export default function BookingDetailScreen() {
         ))}
       </View>
 
+      {canCancel && booking.providerId && (
+        <Pressable onPress={openChat} style={s.messageBtn}>
+          <Ionicons name="chatbubble-outline" size={17} color="#fff" />
+          <Text style={s.messageBtnText}>Message Provider</Text>
+        </Pressable>
+      )}
+
       {canCancel && (
         <Pressable onPress={confirmCancel} style={s.cancelBtn}>
           <Text style={s.cancelBtnText}>Cancel Appointment</Text>
@@ -163,5 +193,16 @@ const s = StyleSheet.create({
     borderColor: "#EF4444",
     alignItems: "center",
   },
+  messageBtn: {
+    marginTop: 8,
+    paddingVertical: 13,
+    borderRadius: 12,
+    backgroundColor: BRAND,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  messageBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   cancelBtnText: { color: "#EF4444", fontWeight: "700", fontSize: 15 },
 });
