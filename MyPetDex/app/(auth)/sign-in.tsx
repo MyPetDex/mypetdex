@@ -3,9 +3,11 @@ import {
   ActivityIndicator, ScrollView, Alert, KeyboardAvoidingView,
   Platform, Image, SafeAreaView, Linking,
 } from "react-native";
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as WebBrowser from "expo-web-browser";
+import { Animated, Easing } from "react-native";
 import * as Google from "expo-auth-session/providers/google";
 import { makeRedirectUri } from "expo-auth-session";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,6 +32,38 @@ const US_STATES = [
   "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
   "VA","WA","WV","WI","WY",
 ];
+
+function RoleCard({ index, icon, title, desc, onPress }: any) {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 420,
+      delay: 120 + index * 90,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, []);
+  return (
+    <Animated.View
+      style={{
+        opacity: anim,
+        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+      }}
+    >
+      <Pressable style={styles.roleCard} onPress={onPress}>
+        <View style={styles.roleIconWrap}>
+          <Ionicons name={icon} size={22} color={BRAND} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.roleCardTitle}>{title}</Text>
+          <Text style={styles.roleCardDesc}>{desc}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color="#C7D2E5" />
+      </Pressable>
+    </Animated.View>
+  );
+}
 
 const IOS_CLIENT_ID = "209772699227-eibpfptsff0h497q956hlru2qbeu9pm9.apps.googleusercontent.com";
 const WEB_CLIENT_ID = "209772699227-ilqlulmvqp12fau8bbvmq5ufvnbkoguc.apps.googleusercontent.com";
@@ -270,18 +304,18 @@ export default function SignInScreen() {
           </View>
           <View style={styles.roleCards}>
             {([
-              { role: "owner" as Role, emoji: "🐾", title: "Pet Owner", desc: "Manage health records, reminders & personalized tips" },
-              { role: "provider" as Role, emoji: "🛎️", title: "Service Provider", desc: "Grow your pet business & get discovered locally" },
-              { role: "shelter" as Role, emoji: "🏠", title: "Animal Shelter", desc: "List adoptable pets & connect with loving families" },
-            ]).map(({ role: r, emoji, title, desc }) => (
-              <Pressable key={r} style={styles.roleCard} onPress={() => { setRole(r); setScreen("register"); }}>
-                <Text style={styles.roleCardEmoji}>{emoji}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.roleCardTitle}>{title}</Text>
-                  <Text style={styles.roleCardDesc}>{desc}</Text>
-                </View>
-                <Text style={styles.roleCardArrow}>›</Text>
-              </Pressable>
+              { role: "owner" as Role, icon: "paw", title: "Pet Owner", desc: "Manage health records, reminders & personalized tips" },
+              { role: "provider" as Role, icon: "briefcase", title: "Service Provider", desc: "Grow your pet business & get discovered locally" },
+              { role: "shelter" as Role, icon: "home", title: "Animal Shelter", desc: "List adoptable pets & connect with loving families" },
+            ]).map(({ role: r, icon, title, desc }, i) => (
+              <RoleCard
+                key={r}
+                index={i}
+                icon={icon}
+                title={title}
+                desc={desc}
+                onPress={() => { setRole(r); setScreen("register"); }}
+              />
             ))}
           </View>
           <View style={styles.bottomLinks}>
@@ -514,11 +548,28 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: "800", color: "#1a1a1a", marginBottom: 4 },
   subtitle: { fontSize: 15, color: "#666", textAlign: "center", lineHeight: 22 },
   roleCards: { gap: 12 },
-  roleCard: { backgroundColor: "#f8f8f8", borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 14 },
-  roleCardEmoji: { fontSize: 28 },
-  roleCardTitle: { fontSize: 16, fontWeight: "700", color: "#1a1a1a" },
-  roleCardDesc: { fontSize: 12, color: "#888", marginTop: 2 },
-  roleCardArrow: { fontSize: 22, color: "#ccc" },
+  roleCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    borderWidth: 1,
+    borderColor: "#E8EDF6",
+    shadowColor: "#4486F4",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  roleIconWrap: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: "#4486F415",
+    alignItems: "center", justifyContent: "center",
+  },
+  roleCardTitle: { fontSize: 16, fontWeight: "700", color: "#0F172A" },
+  roleCardDesc: { fontSize: 12, color: "#7A8699", marginTop: 3, lineHeight: 17 },
   bottomLinks: { flexDirection: "row", justifyContent: "center", alignItems: "center" },
   legalText: { fontSize: 14, color: "#888" },
   linkText: { fontSize: 14, color: BRAND, fontWeight: "700" },
