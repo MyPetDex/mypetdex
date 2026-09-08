@@ -55,6 +55,7 @@ export async function openChatWithProvider(args: OpenChatArgs): Promise<OpenChat
     const convRef = doc(db, "conversations", convId);
 
     const existingSnap = await getDoc(convRef);
+    let wasDeleted = false;
     if (existingSnap.exists()) {
       const existing = existingSnap.data();
       if (existing.ended === true && !activeBooking) {
@@ -64,9 +65,15 @@ export async function openChatWithProvider(args: OpenChatArgs): Promise<OpenChat
       const hasMessages = !msgsSnap.empty || Boolean(existing.lastMessage);
       if (!hasMessages) {
         await deleteDoc(convRef);
+        wasDeleted = true;
       }
     }
 
+    // Treat a just-deleted empty conversation as new — it needs its counters back.
+    const isNew = !existingSnap.exists() || wasDeleted;
+
+    // Never reset lastMessage/unreadCount on an existing conversation — the send
+    // handler owns those fields and merging blanks would wipe the preview text.
     const convData: Record<string, any> = {
       participants,
       participantNames: {
@@ -77,16 +84,18 @@ export async function openChatWithProvider(args: OpenChatArgs): Promise<OpenChat
         [ownerUid]: "owner",
         [providerUid]: "provider",
       },
-      lastMessage: "",
-      lastMessageTime: serverTimestamp(),
-      lastMessageSenderId: "",
-      unreadCount: { [ownerUid]: 0, [providerUid]: 0 },
+      // Reopening after a booking unhides for BOTH sides — the provider must be
+      // able to see a conversation the owner has legitimately restarted.
+      hiddenBy: { [ownerUid]: false, [providerUid]: false },
       ended: false,
     };
-    // Nested map — must match how the conversations list reads it
-    // (c.hiddenBy?.[uid]). A dotted key here would create a literal
-    // field named "hiddenBy.<uid>" instead, which nothing reads.
-    convData.hiddenBy = { [ownerUid]: false };
+
+    if (isNew) {
+      convData.lastMessage = "";
+      convData.lastMessageTime = serverTimestamp();
+      convData.lastMessageSenderId = "";
+      convData.unreadCount = { [ownerUid]: 0, [providerUid]: 0 };
+    }
 
     await setDoc(convRef, convData, { merge: true });
 
