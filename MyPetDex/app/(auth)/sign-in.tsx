@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
   heroLegalText: { fontSize: 14, color: "rgba(255,255,255,0.75)" },
   heroLink: { fontSize: 14, color: "#fff", fontWeight: "800" },
   heroLegal: { fontSize: 11, color: "rgba(255,255,255,0.55)", textAlign: "center" },
-  bottomLinks: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 14 },
+  bottomLinks: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: "auto", marginBottom: 14 },
   legalText: { fontSize: 14, color: "#888" },
   linkText: { fontSize: 14, color: BRAND, fontWeight: "700" },
   legal: { fontSize: 11, color: "#bbb", textAlign: "center" },
