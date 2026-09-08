@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import Svg, { Defs, Stop, Rect, Path, G, LinearGradient as SvgLinearGradient, RadialGradient } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as WebBrowser from "expo-web-browser";
 import { Animated, Easing } from "react-native";
@@ -32,6 +33,45 @@ const US_STATES = [
   "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
   "VA","WA","WV","WI","WY",
 ];
+
+function HeroBackground() {
+  return (
+    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
+      <Defs>
+        <SvgLinearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">
+          <Stop offset="0" stopColor="#0A2E63" />
+          <Stop offset="0.45" stopColor="#14468F" />
+          <Stop offset="1" stopColor="#2E6FD1" />
+        </SvgLinearGradient>
+        <RadialGradient id="glow" cx="0.85" cy="0.88" r="0.55">
+          <Stop offset="0" stopColor="#F5E9D0" stopOpacity="0.55" />
+          <Stop offset="0.5" stopColor="#9DC7E8" stopOpacity="0.18" />
+          <Stop offset="1" stopColor="#0A2E63" stopOpacity="0" />
+        </RadialGradient>
+        <RadialGradient id="glowTop" cx="0.5" cy="0.16" r="0.42">
+          <Stop offset="0" stopColor="#7FB2F5" stopOpacity="0.30" />
+          <Stop offset="1" stopColor="#0A2E63" stopOpacity="0" />
+        </RadialGradient>
+      </Defs>
+
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#bg)" />
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#glowTop)" />
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#glow)" />
+
+      {/* corner line-work */}
+      <G opacity="0.16">
+        <Path d="M-40 40 C 60 120, 90 240, 40 400" stroke="#CFE2FF" strokeWidth="1.2" fill="none" />
+        <Path d="M-30 10 C 90 100, 120 250, 70 430" stroke="#CFE2FF" strokeWidth="1.2" fill="none" />
+        <Path d="M-20 -20 C 120 80, 150 260, 100 460" stroke="#CFE2FF" strokeWidth="1.2" fill="none" />
+      </G>
+      <G opacity="0.16">
+        <Path d="M440 40 C 340 120, 310 240, 360 400" stroke="#CFE2FF" strokeWidth="1.2" fill="none" />
+        <Path d="M450 10 C 310 100, 280 250, 330 430" stroke="#CFE2FF" strokeWidth="1.2" fill="none" />
+        <Path d="M460 -20 C 280 80, 250 260, 300 460" stroke="#CFE2FF" strokeWidth="1.2" fill="none" />
+      </G>
+    </Svg>
+  );
+}
 
 function RoleCard({ index, icon, title, desc, onPress }: any) {
   const anim = useRef(new Animated.Value(0)).current;
@@ -295,12 +335,17 @@ export default function SignInScreen() {
   // ── Landing ──────────────────────────────────────────────────────────────────
   if (screen === "landing") {
     return (
-      <SafeAreaView style={styles.safeContainer}>
+      <View style={{ flex: 1, backgroundColor: "#0A2E63" }}>
+        <HeroBackground />
+        <SafeAreaView style={[styles.safeContainer, { backgroundColor: "transparent" }]}>
         <View style={[styles.container, isTablet && { width: 480, alignSelf: "center" }]}>
           <View style={styles.hero}>
-            <Image source={require("../../assets/images/logo-transparent.png")} style={styles.logoImage} resizeMode="contain" />
-            <Text style={styles.title}>MyPetDex</Text>
-            <Text style={styles.subtitle}>Your pets' health & life, all in one place.</Text>
+            <View style={{ alignItems: "center", justifyContent: "center" }}>
+              <View style={styles.logoGlow} />
+              <Image source={require("../../assets/images/logo-transparent.png")} style={styles.logoImage} resizeMode="contain" />
+            </View>
+            <Text style={styles.heroTitle}>MyPetDex</Text>
+            <Text style={styles.heroSubtitle}>Your pets' health & life, all in one place.</Text>
           </View>
           <View style={styles.roleCards}>
             {([
@@ -319,12 +364,13 @@ export default function SignInScreen() {
             ))}
           </View>
           <View style={styles.bottomLinks}>
-            <Text style={styles.legalText}>Already have an account? </Text>
-            <Pressable onPress={() => setScreen("login")}><Text style={styles.linkText}>Sign In</Text></Pressable>
+            <Text style={styles.heroLegalText}>Already have an account? </Text>
+            <Pressable onPress={() => setScreen("login")}><Text style={styles.heroLink}>Sign In</Text></Pressable>
           </View>
-          <Text style={styles.legal}>🔒 Your data is encrypted and never shared with third parties.</Text>
+          <Text style={styles.heroLegal}>Your data is encrypted and never shared with third parties.</Text>
         </View>
       </SafeAreaView>
+      </View>
     );
   }
 
@@ -549,27 +595,38 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15, color: "#666", textAlign: "center", lineHeight: 22 },
   roleCards: { gap: 12 },
   roleCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.88)",
+    borderRadius: 18,
     padding: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
     borderWidth: 1,
-    borderColor: "#E8EDF6",
-    shadowColor: "#4486F4",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+    borderColor: "rgba(255,255,255,0.55)",
+    shadowColor: "#04214A",
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
   },
   roleIconWrap: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: "#4486F415",
+    width: 46, height: 46, borderRadius: 23,
+    backgroundColor: "#4486F41F",
     alignItems: "center", justifyContent: "center",
   },
-  roleCardTitle: { fontSize: 16, fontWeight: "700", color: "#0F172A" },
-  roleCardDesc: { fontSize: 12, color: "#7A8699", marginTop: 3, lineHeight: 17 },
+  roleCardTitle: { fontSize: 16.5, fontWeight: "700", color: "#0E2A52" },
+  roleCardDesc: { fontSize: 12.5, color: "#5B6B85", marginTop: 3, lineHeight: 17 },
+  heroTitle: { fontSize: 34, fontWeight: "800", color: "#fff", letterSpacing: 0.3 },
+  heroSubtitle: { fontSize: 15, color: "rgba(255,255,255,0.82)", textAlign: "center", lineHeight: 22, marginTop: 6 },
+  logoGlow: {
+    position: "absolute",
+    width: 150, height: 150, borderRadius: 75,
+    backgroundColor: "#7FB2F5",
+    opacity: 0.22,
+  },
+  heroLegalText: { fontSize: 14, color: "rgba(255,255,255,0.75)" },
+  heroLink: { fontSize: 14, color: "#fff", fontWeight: "800" },
+  heroLegal: { fontSize: 11, color: "rgba(255,255,255,0.55)", textAlign: "center" },
   bottomLinks: { flexDirection: "row", justifyContent: "center", alignItems: "center" },
   legalText: { fontSize: 14, color: "#888" },
   linkText: { fontSize: 14, color: BRAND, fontWeight: "700" },
