@@ -340,10 +340,7 @@ export default function SignInScreen() {
         <SafeAreaView style={[styles.safeContainer, { backgroundColor: "transparent" }]}>
         <View style={[styles.container, isTablet && { width: 480, alignSelf: "center" }]}>
           <View style={styles.hero}>
-            <View style={{ alignItems: "center", justifyContent: "center" }}>
-              <View style={styles.logoGlow} />
-              <Image source={require("../../assets/images/logo-transparent.png")} style={styles.logoImage} resizeMode="contain" />
-            </View>
+            <Image source={require("../../assets/images/logo-transparent.png")} style={styles.logoImage} resizeMode="contain" />
             <Text style={styles.heroTitle}>MyPetDex</Text>
             <Text style={styles.heroSubtitle}>Your pets' health & life, all in one place.</Text>
           </View>
@@ -586,14 +583,14 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: "#fff" },
   safeHeader: { backgroundColor: "#fff" },
-  container: { flex: 1, paddingHorizontal: 28, paddingVertical: 20, justifyContent: "space-between" },
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24, justifyContent: "flex-start" },
   scrollContent: { padding: 24, paddingBottom: 60 },
-  hero: { alignItems: "center", gap: 8, marginTop: 8 },
+  hero: { alignItems: "center", gap: 6, marginTop: 12, marginBottom: 34 },
   logoImage: { width: 100, height: 100, marginBottom: 4 },
   logoSmall: { width: 60, height: 60, alignSelf: "center", marginBottom: 12 },
   title: { fontSize: 28, fontWeight: "800", color: "#1a1a1a", marginBottom: 4 },
   subtitle: { fontSize: 15, color: "#666", textAlign: "center", lineHeight: 22 },
-  roleCards: { gap: 12 },
+  roleCards: { gap: 12, marginBottom: 28 },
   roleCard: {
     backgroundColor: "rgba(255,255,255,0.88)",
     borderRadius: 18,
@@ -627,7 +624,7 @@ const styles = StyleSheet.create({
   heroLegalText: { fontSize: 14, color: "rgba(255,255,255,0.75)" },
   heroLink: { fontSize: 14, color: "#fff", fontWeight: "800" },
   heroLegal: { fontSize: 11, color: "rgba(255,255,255,0.55)", textAlign: "center" },
-  bottomLinks: { flexDirection: "row", justifyContent: "center", alignItems: "center" },
+  bottomLinks: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 14 },
   legalText: { fontSize: 14, color: "#888" },
   linkText: { fontSize: 14, color: BRAND, fontWeight: "700" },
   legal: { fontSize: 11, color: "#bbb", textAlign: "center" },
