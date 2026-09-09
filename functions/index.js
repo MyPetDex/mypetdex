@@ -1,5 +1,5 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onRequest, onCall } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
@@ -1682,6 +1682,118 @@ exports.onNewBooking = onDocumentCreated(
       });
     } catch (e) {
       console.error("onNewBooking error:", e);
+    }
+  }
+);
+
+// ─── Chat eligibility ─────────────────────────────────────────────────────────
+// Single source of truth for "may these two message each other, and until when".
+// Written only by this function; read by the client and by Firestore rules.
+//   allowed: true while a booking is pending/confirmed, or within 24h of completion
+//   until:   expiry timestamp for the completed window, else null
+const CHAT_GRACE_MS = 24 * 60 * 60 * 1000;
+
+async function recomputeEligibility(ownerId, providerId) {
+  if (!ownerId || !providerId) return;
+  const snap = await db.collection("bookings")
+    .where("ownerId", "==", ownerId)
+    .where("providerId", "==", providerId)
+    .get();
+
+  let allowed = false;
+  let until = null;
+  let reason = "none";
+
+  for (const d of snap.docs) {
+    const b = d.data();
+    if (b.status === "pending" || b.status === "confirmed") {
+      allowed = true;
+      until = null;
+      reason = b.status;
+      break; // active booking wins outright
+    }
+    if (b.status === "completed" && b.completedAt) {
+      const expiry = b.completedAt.toMillis() + CHAT_GRACE_MS;
+      if (expiry > Date.now() && (!until || expiry > until)) {
+        allowed = true;
+        until = expiry;
+        reason = "completed_grace";
+      }
+    }
+  }
+
+  await db.collection("chatEligibility").doc(`${ownerId}_${providerId}`).set({
+    ownerId,
+    providerId,
+    allowed,
+    until: until ? admin.firestore.Timestamp.fromMillis(until) : null,
+    reason,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
+// ONE-TIME BACKFILL — run once after deploy, then delete this function.
+// Existing bookings predate the eligibility trigger, so without this every
+// current conversation would be blocked once rules start requiring the doc.
+exports.backfillChatEligibility = onRequest(async (req, res) => {
+  try {
+    const snap = await db.collection("bookings").get();
+    const pairs = new Set();
+    snap.docs.forEach((d) => {
+      const b = d.data();
+      const ownerId = b.ownerId || b.uid || b.clientId;
+      if (ownerId && b.providerId) pairs.add(`${ownerId}|${b.providerId}`);
+    });
+    let done = 0;
+    for (const pair of pairs) {
+      const [ownerId, providerId] = pair.split("|");
+      await recomputeEligibility(ownerId, providerId);
+      done++;
+    }
+    return res.status(200).json({ ok: true, bookings: snap.size, pairs: pairs.size, written: done });
+  } catch (e) {
+    console.error("backfillChatEligibility error:", e);
+    return res.status(500).json({ error: String(e) });
+  }
+});
+
+// Nothing fires when time simply passes, so sweep expired completed-grace
+// windows hourly and flip them to disallowed.
+exports.expireChatEligibility = onSchedule("every 60 minutes", async () => {
+  try {
+    const now = admin.firestore.Timestamp.now();
+    const snap = await db.collection("chatEligibility")
+      .where("allowed", "==", true)
+      .where("until", "<=", now)
+      .get();
+    if (snap.empty) return;
+    const batch = db.batch();
+    snap.docs.forEach((d) => {
+      batch.update(d.ref, {
+        allowed: false,
+        reason: "expired",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+    await batch.commit();
+    console.log(`expireChatEligibility: expired ${snap.size}`);
+  } catch (e) {
+    console.error("expireChatEligibility error:", e);
+  }
+});
+
+exports.onBookingWriteEligibility = onDocumentWritten(
+  "bookings/{bookingId}",
+  async (event) => {
+    const after = event.data?.after?.data();
+    const before = event.data?.before?.data();
+    const b = after || before;
+    if (!b) return;
+    const ownerId = b.ownerId || b.uid || b.clientId;
+    try {
+      await recomputeEligibility(ownerId, b.providerId);
+    } catch (e) {
+      console.error("onBookingWriteEligibility error:", e);
     }
   }
 );
