@@ -5,7 +5,7 @@ import * as Updates from "expo-updates";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import * as WebBrowser from "expo-web-browser";
-import { auth, db, webAuth, webDb } from "@/lib/firebase";
+import { auth, db, webAuth, webDb, callFunction } from "@/lib/firebase";
 import { doc, deleteDoc, collection, getDocs, addDoc, serverTimestamp, query, where } from "firebase/firestore";
 
 const BRAND = "#4486F4";
@@ -84,6 +84,13 @@ export default function SettingsScreen() {
     }
     setFeedbackSending(true);
     try {
+      // Email first — this is the notification that actually reaches support.
+      // The Firestore write below is a durable record, not the delivery path.
+      await callFunction("sendFeedback")({
+        subject: "General Feedback",
+        message: feedbackText.trim(),
+      });
+
       await addDoc(collection(db, "feedback"), {
         message: feedbackText.trim(),
         subject: "General Feedback",
