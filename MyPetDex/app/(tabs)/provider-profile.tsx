@@ -9,6 +9,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+import * as ImagePicker from "expo-image-picker";
+import { Image } from "react-native";
+import { uploadProviderPhoto } from "@/lib/firebase";
 
 const BRAND = "#4486F4";
 const APP_URL = "https://apps.apple.com/app/mypetdex/id6772248051";
@@ -25,6 +28,7 @@ export default function ProviderProfile() {
   const [showEdit, setShowEdit] = useState(false);
   const [editForm, setEditForm] = useState({ businessName: "", service: "", phone: "", website: "", bio: "", priceRange: "", city: "", state: "" });
   const [saving, setSaving] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -49,6 +53,35 @@ export default function ProviderProfile() {
     }
     load();
   }, [user]);
+
+  // Upload immediately on pick rather than at save time: a slow or failed
+  // upload should not block or half-complete the rest of the form.
+  async function handlePickPhoto() {
+    if (!user) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (perm.status !== "granted") {
+      Alert.alert("Permission needed", "Allow photo access to set a profile photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+
+    setPhotoUploading(true);
+    try {
+      const url = await uploadProviderPhoto(user.uid, result.assets[0].uri);
+      await updateDoc(doc(webDb, "users", user.uid), { photoURL: url });
+      setProfile((prev: any) => ({ ...prev, photoURL: url }));
+    } catch (e) {
+      console.error("provider photo upload:", e);
+      Alert.alert("Upload failed", "Could not save that photo. Please try again.");
+    }
+    setPhotoUploading(false);
+  }
 
   async function handleSaveEdit() {
     if (!user) return;
@@ -253,6 +286,24 @@ export default function ProviderProfile() {
                   <Text style={s.modalClose}>Cancel</Text>
                 </Pressable>
               </View>
+              <View style={{ alignItems: "center", marginBottom: 20 }}>
+                <Pressable onPress={handlePickPhoto} disabled={photoUploading}>
+                  {profile?.photoURL ? (
+                    <Image source={{ uri: profile.photoURL }} style={s.photoCircle} />
+                  ) : (
+                    <View style={[s.photoCircle, s.photoPlaceholder]}>
+                      <Ionicons name="camera-outline" size={26} color={BRAND} />
+                    </View>
+                  )}
+                  {photoUploading && (
+                    <View style={s.photoOverlay}><ActivityIndicator color="#fff" /></View>
+                  )}
+                </Pressable>
+                <Text style={{ fontSize: 13, color: BRAND, fontWeight: "600", marginTop: 8 }}>
+                  {photoUploading ? "Uploading..." : profile?.photoURL ? "Change photo" : "Add photo"}
+                </Text>
+              </View>
+
               {[
                 { label: "Business Name", key: "businessName", placeholder: "Your business name" },
                 { label: "Phone", key: "phone", placeholder: "+1 (555) 000-0000" },
@@ -370,6 +421,9 @@ const s = StyleSheet.create({
   menuLabel: { flex: 1, fontSize: 15, fontWeight: "600", color: "#1E293B" },
   editBtn: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1.5, borderColor: BRAND, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, marginBottom: 24 },
   editBtnText: { color: BRAND, fontWeight: "700", fontSize: 14 },
+  photoCircle: { width: 96, height: 96, borderRadius: 48, backgroundColor: "#EEF2FA" },
+  photoPlaceholder: { alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: "#CBD9F0", borderStyle: "dashed" },
+  photoOverlay: { position: "absolute", top: 0, left: 0, width: 96, height: 96, borderRadius: 48, backgroundColor: "rgba(0,0,0,0.4)", alignItems: "center", justifyContent: "center" },
   fieldLabel: { fontSize: 12, fontWeight: "700", color: "#64748B", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 },
   fieldInput: { backgroundColor: "#fff", borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 12, padding: 12, fontSize: 15, color: "#1E293B" },
   deleteBtn: { backgroundColor: "#E53935", borderRadius: 14, padding: 16, alignItems: "center", width: "100%", marginTop: 10 },

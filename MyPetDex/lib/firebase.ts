@@ -54,8 +54,12 @@ export const petsRef = (uid: string) => collection(db, "users", uid, "pets");
 export const petRef = (uid: string, petId: string) => doc(db, "users", uid, "pets", petId);
 
 // ── Storage helper ────────────────────────────────────────────────────────────
-export async function uploadPetPhoto(uid: string, petId: string, localUri: string): Promise<string> {
-  const storageRef = ref(storage, `users/${uid}/pets/${petId}/photo.jpg`);
+/**
+ * Uploads a local image to the given storage path and returns its download URL.
+ * Storage rules decide who may write where — see storage.rules.
+ */
+export async function uploadImage(storagePath: string, localUri: string): Promise<string> {
+  const storageRef = ref(storage, storagePath);
   const blob = await new Promise<Blob>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.onload = () => resolve(xhr.response);
@@ -66,6 +70,15 @@ export async function uploadPetPhoto(uid: string, petId: string, localUri: strin
   });
   await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
   return getDownloadURL(storageRef);
+}
+
+export async function uploadPetPhoto(uid: string, petId: string, localUri: string): Promise<string> {
+  return uploadImage(`users/${uid}/pets/${petId}/photo.jpg`, localUri);
+}
+
+/** Provider profile photos are public business assets — see storage.rules. */
+export async function uploadProviderPhoto(uid: string, localUri: string): Promise<string> {
+  return uploadImage(`providers/${uid}/photo.jpg`, localUri);
 }
 
 // ── Callable functions ────────────────────────────────────────────────────────

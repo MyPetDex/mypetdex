@@ -34,6 +34,13 @@ service firebase.storage {
       allow write: if (isOwner(uid) || isAdmin()) && isValidImage();
     }
 
+    // Provider profile photos at providers/{uid}/photo.jpg
+    // Business listings — any signed-in user may read; only the owner writes.
+    match /providers/{uid}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if (isOwner(uid) || isAdmin()) && isValidImage();
+    }
+
     // Deny everything else by default
     match /{allPaths=**} {
       allow read, write: if false;
