@@ -288,7 +288,7 @@ export default function ProviderProfile() {
       {/* ── Edit Profile Modal ─────────────────────────────────── */}
       <Modal visible={showEdit} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowEdit(false)}>
         <View style={{ flex: 1 }}>
-          <KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
             <ScrollView contentContainerStyle={[s.modalContainer, { paddingBottom: 40 }]} keyboardShouldPersistTaps="handled">
               <View style={s.modalHeader}>
                 <Text style={s.modalTitle}>Edit Profile</Text>
@@ -358,7 +358,7 @@ export default function ProviderProfile() {
 
       <Modal visible={showFeedback} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowFeedback(false)}>
         <View style={{ flex: 1 }}>
-          <KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
             <ScrollView contentContainerStyle={s.modalContainer} keyboardShouldPersistTaps="handled">
               <View style={s.modalHeader}>
                 <Text style={s.modalTitle}>Send Feedback</Text>

@@ -245,7 +245,7 @@ export default function ShelterProfile() {
       <Text style={s.version}>MyPetDex v1.0.0 · help@mypetdex.app</Text>
 
       <Modal visible={showFeedback} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowFeedback(false)}>
-        <KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <ScrollView contentContainerStyle={s.modalContainer} keyboardShouldPersistTaps="handled">
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Send Feedback</Text>
