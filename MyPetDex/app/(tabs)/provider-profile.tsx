@@ -359,7 +359,7 @@ export default function ProviderProfile() {
       <Modal visible={showFeedback} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowFeedback(false)}>
         <View style={{ flex: 1 }}>
           <KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-            <View style={s.modalContainer}>
+            <ScrollView contentContainerStyle={s.modalContainer} keyboardShouldPersistTaps="handled">
               <View style={s.modalHeader}>
                 <Text style={s.modalTitle}>Send Feedback</Text>
                 <Pressable onPress={() => setShowFeedback(false)}>
@@ -388,7 +388,7 @@ export default function ProviderProfile() {
                   <Text style={s.sendBtnText}>Send Feedback →</Text>
                 )}
               </Pressable>
-            </View>
+            </ScrollView>
           </KeyboardAvoidingView>
         </View>
       </Modal>
