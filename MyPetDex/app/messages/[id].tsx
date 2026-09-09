@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { getChatEligibility } from "@/lib/chat";
 
 const BRAND = "#4486F4";
 
@@ -40,48 +41,17 @@ export default function ChatScreen() {
       setChatStatus("active");
       return;
     }
-    const today = new Date().toISOString().split("T")[0];
-
-    Promise.all([
-      getDocs(query(collection(webDb, "bookings"),
-        where("ownerId", "==", user.uid),
-        where("providerId", "==", otherUid))),
-      getDocs(query(collection(webDb, "bookings"),
-        where("ownerId", "==", otherUid),
-        where("providerId", "==", user.uid))),
-      convId ? getDoc(doc(webDb, "conversations", convId)) : Promise.resolve(null),
-    ]).then(([snap1, snap2, convSnap]) => {
-      const all = [
-        ...snap1.docs.map((d) => ({ id: d.id, ...d.data() as any })),
-        ...snap2.docs.map((d) => ({ id: d.id, ...d.data() as any })),
-      ];
-      const convExists = convSnap?.exists() ?? false;
-      const convEnded = convSnap?.exists() ? convSnap.data()?.ended === true : false;
-
-      // Active booking (pending/confirmed and upcoming)?
-      const active = all.find((b) =>
-        (b.status === "pending" || b.status === "confirmed") && b.date >= today
-      );
-      if (active) { setChatStatus("active"); return; }
-
-      // Completed within 24 hours?
-      const completed = all
-        .filter((b) => b.status === "completed" && b.completedAt)
-        .sort((a, b) => (b.completedAt?.seconds || 0) - (a.completedAt?.seconds || 0))[0];
-
-      if (completed?.completedAt) {
-        const hoursSince = (Date.now() - completed.completedAt.seconds * 1000) / 3_600_000;
-        if (hoursSince < 24) { setChatStatus("active"); return; }
-      }
-
-      // Stale or missing conversation with no active booking
-      if (!convExists || convEnded) {
-        setChatStatus("no_booking");
-        return;
-      }
-
-      setChatStatus("ended");
-    }).catch(() => setChatStatus("active")); // fail open — don't block on error
+    // Single source of truth — see getChatEligibility in lib/chat.ts. Do not
+    // reimplement the booking/grace-window rule here; Firestore rules enforce
+    // the same document, so a local copy would only drift.
+    getChatEligibility(user.uid, otherUid)
+      .then((e) => {
+        if (e.allowed) { setChatStatus("active"); return; }
+        setChatStatus(
+          e.reason === "expired" || e.reason === "completed_grace" ? "ended" : "no_booking"
+        );
+      })
+      .catch(() => setChatStatus("active")); // fail open — don't block on error
   }, [user?.uid, otherUid, convId]);
 
 

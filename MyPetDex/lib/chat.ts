@@ -8,21 +8,55 @@ import { db } from "@/lib/firebase";
  * Returns true if the owner has a pending or confirmed booking with this provider.
  * Throws nothing — returns false on any error so callers can treat it as "no booking".
  */
+/**
+ * Kept for call-site compatibility. Delegates to getChatEligibility so there is
+ * exactly one definition of the messaging rule — do not reimplement the booking
+ * query here.
+ */
 export async function hasActiveBooking(ownerUid: string, providerUid: string): Promise<boolean> {
+  const e = await getChatEligibility(ownerUid, providerUid);
+  return e.allowed;
+}
+
+export type ChatEligibility = {
+  allowed: boolean;
+  reason: "pending" | "confirmed" | "completed_grace" | "expired" | "none" | "unknown";
+  until: Date | null;
+};
+
+/**
+ * The single source of truth for whether two users may message each other.
+ * Reads the chatEligibility document maintained by the onBookingWriteEligibility
+ * Cloud Function — the same document Firestore rules check on message create,
+ * so the client and the server can never disagree.
+ *
+ * Direction-independent: either party can ask.
+ */
+export async function getChatEligibility(
+  ownerUid: string,
+  providerUid: string
+): Promise<ChatEligibility> {
   try {
-    const snap = await getDocs(
-      query(
-        collection(db, "bookings"),
-        where("ownerId", "==", ownerUid),
-        where("providerId", "==", providerUid),
-      )
-    );
-    return snap.docs.some((d) => {
-      const s = d.data().status;
-      return s === "pending" || s === "confirmed";
-    });
+    // Either party may ask, and a chat screen does not always know which uid is
+    // the owner, so try both orderings of the deterministic document id.
+    let snap = await getDoc(doc(db, "chatEligibility", `${ownerUid}_${providerUid}`));
+    if (!snap.exists()) {
+      snap = await getDoc(doc(db, "chatEligibility", `${providerUid}_${ownerUid}`));
+    }
+    if (!snap.exists()) return { allowed: false, reason: "none", until: null };
+    const d = snap.data();
+    const until = d.until?.toDate?.() ?? null;
+    // The hourly sweep may not have run yet — treat a passed expiry as expired.
+    if (d.allowed && until && until.getTime() <= Date.now()) {
+      return { allowed: false, reason: "expired", until };
+    }
+    return {
+      allowed: Boolean(d.allowed),
+      reason: (d.reason || "unknown") as ChatEligibility["reason"],
+      until,
+    };
   } catch {
-    return false;
+    return { allowed: false, reason: "unknown", until: null };
   }
 }
 
