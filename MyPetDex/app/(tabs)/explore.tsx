@@ -165,13 +165,17 @@ function ProviderCard({
   return (
     <Pressable style={styles.providerCard} onPress={openDetail}>
       <View style={styles.providerHeader}>
-        <View style={[styles.providerIcon, { backgroundColor: (svcType?.color || "#888") + "20" }]}>
-          <Ionicons
-            name={(svcType?.icon as any) || (p.role === "shelter" ? "home-outline" : "paw-outline")}
-            size={22}
-            color={svcType?.color || "#888"}
-          />
-        </View>
+        {p.photo || p.photoURL ? (
+          <Image source={{ uri: p.photo || p.photoURL }} style={styles.providerIcon} />
+        ) : (
+          <View style={[styles.providerIcon, { backgroundColor: (svcType?.color || "#888") + "20" }]}>
+            <Ionicons
+              name={(svcType?.icon as any) || (p.role === "shelter" ? "home-outline" : "paw-outline")}
+              size={22}
+              color={svcType?.color || "#888"}
+            />
+          </View>
+        )}
         <View style={{ flex: 1 }}>
           <View style={styles.providerNameRow}>
             <Text style={styles.providerName}>{p.businessName || p.name}</Text>
