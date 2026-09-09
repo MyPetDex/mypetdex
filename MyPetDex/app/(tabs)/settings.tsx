@@ -149,7 +149,9 @@ export default function SettingsScreen() {
       {/* Feedback Modal */}
       <Modal visible={feedbackVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setFeedbackVisible(false)}>
         <KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-          <View style={styles.modalContainer}>
+          {/* keyboardShouldPersistTaps so the button takes the first tap instead
+              of it being consumed dismissing the keyboard. */}
+          <ScrollView contentContainerStyle={styles.modalContainer} keyboardShouldPersistTaps="handled">
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Send Feedback</Text>
               <Pressable onPress={() => setFeedbackVisible(false)}>
@@ -175,14 +177,14 @@ export default function SettingsScreen() {
             >
               <Text style={styles.sendBtnText}>{feedbackSending ? "Sending…" : "Send Feedback"}</Text>
             </Pressable>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
 
       {/* Change Password Modal */}
       <Modal visible={showChangePassword} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowChangePassword(false)}>
         <KeyboardAvoidingView style={{ flexShrink: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-          <View style={styles.modalContainer}>
+          <ScrollView contentContainerStyle={styles.modalContainer} keyboardShouldPersistTaps="handled">
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Change Password</Text>
               <Pressable onPress={() => setShowChangePassword(false)}>
@@ -230,7 +232,7 @@ export default function SettingsScreen() {
                 <Text style={styles.sendBtnText}>Update Password</Text>
               )}
             </Pressable>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
 
