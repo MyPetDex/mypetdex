@@ -492,7 +492,7 @@ export default function MeScreen() {
               <Text style={styles.modalClose}>Cancel</Text>
             </Pressable>
           </View>
-          <ScrollView contentContainerStyle={styles.modalScroll}>
+          <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
             {feedbackSent ? (
               <View style={styles.sentBox}>
                 <Ionicons name="checkmark-circle" size={56} color="#22C55E" />
