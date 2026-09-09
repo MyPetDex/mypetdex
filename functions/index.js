@@ -82,7 +82,7 @@ exports.sendScheduledReminders = onSchedule(
             try {
               const ownerData = userDoc.data();
               const ownerEmail = pet.ownerEmail || ownerData.email;
-              const expoPushToken = ownerData.expoPushToken || null;
+              const expoPushToken = await getPushToken(userDoc.id, ownerData.expoPushToken);
 
               if (ownerEmail) {
                 try {
@@ -1454,7 +1454,7 @@ exports.sendHealthAlerts = onSchedule("0 9 * * *", async () => {
     try {
       const userId = userDoc.id;
       const userData = userDoc.data();
-      const expoPushToken = userData.expoPushToken;
+      const expoPushToken = await getPushToken(userId, userData.expoPushToken);
 
       if (!expoPushToken || !expoPushToken.startsWith("ExponentPushToken")) continue;
 
@@ -1587,7 +1587,7 @@ exports.notifyAdminNewProvider = onDocumentCreated("users/{uid}", async (event) 
     const adminSnap = await db.collection("users")
       .where("email", "==", "mypetdexapp@gmail.com").limit(1).get();
     if (adminSnap.empty) return;
-    const token = adminSnap.docs[0].data().expoPushToken;
+    const token = await getPushToken(adminSnap.docs[0].id, adminSnap.docs[0].data().expoPushToken);
     if (!token || !token.startsWith("ExponentPushToken[")) return;
     await fetch("https://exp.host/--/api/v2/push/send", {
       method: "POST",
@@ -1619,7 +1619,7 @@ exports.onNewMessage = onDocumentCreated(
       if (!receiverId) return;
 
       const receiverDoc = await db.collection("users").doc(receiverId).get();
-      const expoPushToken = receiverDoc.data()?.expoPushToken;
+      const expoPushToken = await getPushToken(receiverId, receiverDoc.data()?.expoPushToken);
       if (!expoPushToken || !String(expoPushToken).startsWith("ExponentPushToken")) return;
 
       const pushRes = await fetch("https://exp.host/--/api/v2/push/send", {
@@ -1660,7 +1660,7 @@ exports.onNewBooking = onDocumentCreated(
 
     try {
       const providerDoc = await db.collection("users").doc(booking.providerId).get();
-      const expoPushToken = providerDoc.data()?.expoPushToken;
+      const expoPushToken = await getPushToken(booking.providerId, providerDoc.data()?.expoPushToken);
       if (!expoPushToken || !String(expoPushToken).startsWith("ExponentPushToken")) return;
 
       const ownerName = booking.ownerName || booking.clientName || "A pet owner";
@@ -1685,6 +1685,25 @@ exports.onNewBooking = onDocumentCreated(
     }
   }
 );
+
+// ─── Push tokens ──────────────────────────────────────────────────────────────
+// Tokens live at users/{uid}/private/push so they are not exposed by the
+// public-read rule on provider user documents. Falls back to the legacy
+// users/{uid}.expoPushToken field until every client has migrated.
+async function getPushToken(uid, legacyValue) {
+  if (!uid) return null;
+  try {
+    const snap = await db.collection("users").doc(uid)
+      .collection("private").doc("push").get();
+    const t = snap.exists ? snap.data()?.expoPushToken : null;
+    if (t && String(t).startsWith("ExponentPushToken")) return t;
+  } catch (e) {
+    console.error("getPushToken error:", e);
+  }
+  return legacyValue && String(legacyValue).startsWith("ExponentPushToken")
+    ? legacyValue
+    : null;
+}
 
 // ─── Chat eligibility ─────────────────────────────────────────────────────────
 // Single source of truth for "may these two message each other, and until when".
@@ -1731,31 +1750,6 @@ async function recomputeEligibility(ownerId, providerId) {
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 }
-
-// ONE-TIME BACKFILL — run once after deploy, then delete this function.
-// Existing bookings predate the eligibility trigger, so without this every
-// current conversation would be blocked once rules start requiring the doc.
-exports.backfillChatEligibility = onRequest(async (req, res) => {
-  try {
-    const snap = await db.collection("bookings").get();
-    const pairs = new Set();
-    snap.docs.forEach((d) => {
-      const b = d.data();
-      const ownerId = b.ownerId || b.uid || b.clientId;
-      if (ownerId && b.providerId) pairs.add(`${ownerId}|${b.providerId}`);
-    });
-    let done = 0;
-    for (const pair of pairs) {
-      const [ownerId, providerId] = pair.split("|");
-      await recomputeEligibility(ownerId, providerId);
-      done++;
-    }
-    return res.status(200).json({ ok: true, bookings: snap.size, pairs: pairs.size, written: done });
-  } catch (e) {
-    console.error("backfillChatEligibility error:", e);
-    return res.status(500).json({ error: String(e) });
-  }
-});
 
 // Nothing fires when time simply passes, so sweep expired completed-grace
 // windows hourly and flip them to disallowed.
@@ -1811,7 +1805,7 @@ exports.onBookingStatusChange = onDocumentUpdated(
 
     try {
       const ownerDoc = await db.collection("users").doc(ownerId).get();
-      const expoPushToken = ownerDoc.data()?.expoPushToken;
+      const expoPushToken = await getPushToken(ownerId, ownerDoc.data()?.expoPushToken);
       if (!expoPushToken || !String(expoPushToken).startsWith("ExponentPushToken")) return;
 
       const time = after.timeSlot || after.time || "";

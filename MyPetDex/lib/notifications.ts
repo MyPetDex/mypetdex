@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 // Configure how notifications appear when app is in foreground
@@ -52,8 +52,14 @@ export async function registerForPushNotifications(uid: string): Promise<void> {
       return;
     }
 
-    // Save to Firestore (JS SDK — works on both iOS and web)
-    await updateDoc(doc(db, "users", uid), { expoPushToken });
+    // Save to a private subcollection, not the user document. Provider user docs
+    // are readable by any signed-in user for business listings, and a push token
+    // there would let anyone send notifications to that device.
+    await setDoc(
+      doc(db, "users", uid, "private", "push"),
+      { expoPushToken, updatedAt: serverTimestamp() },
+      { merge: true }
+    );
 
     // Android notification channel
     if (Platform.OS === "android") {
