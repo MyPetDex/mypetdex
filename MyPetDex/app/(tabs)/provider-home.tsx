@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from "react-native";
 import { webDb } from "@/lib/firebase";
 import { doc, getDoc, collection, query, where, getDocs, onSnapshot } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
@@ -97,9 +97,13 @@ export default function ProviderHome() {
     <ScrollView style={s.container} contentContainerStyle={s.content}>
       {/* Header */}
       <View style={s.header}>
-        <View style={s.avatar}>
-          <Text style={s.avatarText}>{name.charAt(0).toUpperCase()}</Text>
-        </View>
+        {profile?.photoURL ? (
+          <Image source={{ uri: profile.photoURL }} style={s.avatar} />
+        ) : (
+          <View style={s.avatar}>
+            <Text style={s.avatarText}>{name.charAt(0).toUpperCase()}</Text>
+          </View>
+        )}
         <View style={{ flex: 1 }}>
           <Text style={s.name}>{name}</Text>
           <View style={s.badgeRow}>
