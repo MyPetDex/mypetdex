@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
   Share, Linking, Alert, Modal, TextInput, Pressable, KeyboardAvoidingView, Platform,
 } from "react-native";
-import { db, webDb, webAuth } from "@/lib/firebase";
+import { db, webDb, webAuth, callFunction, uploadProviderPhoto } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, addDoc, serverTimestamp, query, where } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,7 +11,6 @@ import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "react-native";
-import { uploadProviderPhoto } from "@/lib/firebase";
 
 const BRAND = "#4486F4";
 const APP_URL = "https://apps.apple.com/app/mypetdex/id6772248051";
@@ -128,6 +127,13 @@ export default function ProviderProfile() {
     }
     setFeedbackSending(true);
     try {
+      // Email first — this is the notification that reaches support.
+      // The Firestore write below is a durable record, not the delivery path.
+      await callFunction("sendFeedback")({
+        subject: "General Feedback",
+        message: feedbackMessage.trim(),
+      });
+
       await addDoc(collection(db, "feedback"), {
         message: feedbackMessage.trim(),
         subject: "General Feedback",

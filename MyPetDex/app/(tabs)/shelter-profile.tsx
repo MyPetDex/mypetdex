@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert,
   Share, Linking, Modal, Pressable, KeyboardAvoidingView, Platform,
 } from "react-native";
-import { db, webDb, webAuth } from "@/lib/firebase";
+import { db, webDb, webAuth, callFunction } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -74,6 +74,13 @@ export default function ShelterProfile() {
     }
     setFeedbackSending(true);
     try {
+      // Email first — this is the notification that reaches support.
+      // The Firestore write below is a durable record, not the delivery path.
+      await callFunction("sendFeedback")({
+        subject: "General Feedback",
+        message: feedbackMessage.trim(),
+      });
+
       await addDoc(collection(db, "feedback"), {
         message: feedbackMessage.trim(),
         subject: "General Feedback",
