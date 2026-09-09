@@ -198,9 +198,13 @@ export default function ProviderProfile() {
 
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
-      <View style={s.avatar}>
-        <Text style={s.avatarText}>{(profile?.businessName || profile?.displayName || "P").charAt(0).toUpperCase()}</Text>
-      </View>
+      {profile?.photoURL ? (
+        <Image source={{ uri: profile.photoURL }} style={s.avatar} />
+      ) : (
+        <View style={s.avatar}>
+          <Text style={s.avatarText}>{(profile?.businessName || profile?.displayName || "P").charAt(0).toUpperCase()}</Text>
+        </View>
+      )}
       <Text style={s.name}>{profile?.businessName || profile?.displayName || "Provider"}</Text>
       <Text style={s.email}>{profile?.email || ""}</Text>
 
