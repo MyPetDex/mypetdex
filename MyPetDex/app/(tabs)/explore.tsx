@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  TextInput, ActivityIndicator, Image, Linking, Modal, FlatList,
+  TextInput, ActivityIndicator, Image, Linking, Modal, FlatList, Keyboard,
 } from "react-native";
 import { useState, useRef, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -264,6 +264,9 @@ export default function ExploreScreen() {
   }
 
   async function searchProviders(overrides?: { state?: string; zip?: string; service?: string }) {
+    // Dismiss the keyboard so results aren't hidden behind it — without this the
+    // search runs but the user sees nothing until they tap elsewhere.
+    Keyboard.dismiss();
     const useStateVal = overrides?.state ?? stateFilter;
     const useZip = overrides?.zip ?? serviceZip;
     if (!useStateVal) return;
@@ -365,6 +368,7 @@ export default function ExploreScreen() {
   }
 
   const searchAdopt = async () => {
+    Keyboard.dismiss();
     if (!zipCode || zipCode.length < 5) return;
     try {
       const localPets = await fetchLocalShelterPets(zipCode, petType);
