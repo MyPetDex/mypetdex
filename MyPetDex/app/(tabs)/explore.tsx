@@ -105,6 +105,8 @@ function mapUserToListing(data: Record<string, unknown>, uid: string) {
     address: String(data.address || ""),
     bio: String(data.bio || ""),
     priceRange: String(data.priceRange || ""),
+    // Carried through so provider cards can show the profile photo.
+    photoURL: String(data.photoURL || data.profilePhoto || ""),
     role,
     approved: data.approved === true,
     verified: data.verified === true,
