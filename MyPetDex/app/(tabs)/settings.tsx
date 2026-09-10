@@ -78,7 +78,7 @@ export default function SettingsScreen() {
       if (e?.code === "auth/requires-recent-login") {
         Alert.alert("Sign In Required", "Please sign out and sign back in, then try again.");
       } else {
-        Alert.alert("Error", "Could not delete your account. Please try again.");
+        Alert.alert("DELETE FAILED (settings)", `${e?.code || "no-code"}: ${e?.message || String(e)}`);
       }
       console.error("Delete account failed:", e);
     } finally {

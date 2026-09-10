@@ -138,7 +138,7 @@ export default function MeScreen() {
         Alert.alert("Sign In Required", "Please sign out and sign back in, then try again.");
       } else {
         // TEMPORARY: surface the real error so we can see what's failing.
-        Alert.alert("Delete failed", `${e?.code || "no-code"}: ${e?.message || String(e)}`);
+        Alert.alert("DELETE FAILED (me)", `${e?.code || "no-code"}: ${e?.message || String(e)}`);
       }
     } finally {
       setDeleting(false);
