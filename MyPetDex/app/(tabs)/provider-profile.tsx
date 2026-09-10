@@ -171,17 +171,41 @@ export default function ProviderProfile() {
       const petsSnap = await getDocs(collection(webDb, "users", u.uid, "pets"));
       await Promise.all(petsSnap.docs.map((petDoc) => deleteDoc(petDoc.ref)));
 
-      // Delete conversations
+      // Conversations are shared with the other participant, so rules forbid
+      // deleting them (allow delete: if false). Hide from this user instead —
+      // deleting here threw and aborted the whole account deletion.
       const convsSnap = await getDocs(
         query(collection(webDb, "conversations"), where("participants", "array-contains", u.uid))
       );
-      await Promise.all(convsSnap.docs.map((d) => deleteDoc(d.ref)));
+      await Promise.all(
+        convsSnap.docs.map((d) =>
+          updateDoc(d.ref, { [`hiddenBy.${u.uid}`]: true, ended: true })
+        )
+      );
 
-      // Delete bookings (as provider)
+      // Bookings belong to the owner — rules only let ownerId/uid delete them,
+      // and the owner's record shouldn't vanish because the provider left.
+      // Cancel them instead, which rules do allow for the provider.
       const bookingsSnap = await getDocs(
         query(collection(webDb, "bookings"), where("providerId", "==", u.uid))
       );
-      await Promise.all(bookingsSnap.docs.map((d) => deleteDoc(d.ref)));
+      await Promise.all(
+        bookingsSnap.docs
+          .filter((d) => {
+            const s = d.data().status;
+            return s === "pending" || s === "confirmed";
+          })
+          .map((d) =>
+            updateDoc(d.ref, {
+              status: "cancelled",
+              cancelledAt: serverTimestamp(),
+              cancelledBy: "provider",
+            })
+          )
+      );
+
+      // Private subcollection (push token)
+      await deleteDoc(doc(webDb, "users", u.uid, "private", "push")).catch(() => {});
 
       // Delete user document
       await deleteDoc(doc(webDb, "users", u.uid));
@@ -193,7 +217,7 @@ export default function ProviderProfile() {
       if (e?.code === "auth/requires-recent-login") {
         Alert.alert("Sign In Required", "Please sign out and sign back in, then try again.");
       } else {
-        Alert.alert("Error", "Could not delete account. Please try again.");
+        Alert.alert("DELETE FAILED (provider)", `${e?.code || "no-code"}: ${e?.message || String(e)}`);
       }
     } finally {
       setDeleting(false);
