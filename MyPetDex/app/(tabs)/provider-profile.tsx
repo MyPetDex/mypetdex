@@ -165,60 +165,17 @@ export default function ProviderProfile() {
   async function confirmDeleteAccount() {
     const u = webAuth.currentUser;
     if (!u) return;
-    setDeleting(true);
+        setDeleting(true);
     try {
-      // Delete pets subcollection
-      const petsSnap = await getDocs(collection(webDb, "users", u.uid, "pets"));
-      await Promise.all(petsSnap.docs.map((petDoc) => deleteDoc(petDoc.ref)));
-
-      // Conversations are shared with the other participant, so rules forbid
-      // deleting them (allow delete: if false). Hide from this user instead —
-      // deleting here threw and aborted the whole account deletion.
-      const convsSnap = await getDocs(
-        query(collection(webDb, "conversations"), where("participants", "array-contains", u.uid))
-      );
-      await Promise.all(
-        convsSnap.docs.map((d) =>
-          updateDoc(d.ref, { [`hiddenBy.${u.uid}`]: true, ended: true })
-        )
-      );
-
-      // Bookings belong to the owner — rules only let ownerId/uid delete them,
-      // and the owner's record shouldn't vanish because the provider left.
-      // Cancel them instead, which rules do allow for the provider.
-      const bookingsSnap = await getDocs(
-        query(collection(webDb, "bookings"), where("providerId", "==", u.uid))
-      );
-      await Promise.all(
-        bookingsSnap.docs
-          .filter((d) => {
-            const s = d.data().status;
-            return s === "pending" || s === "confirmed";
-          })
-          .map((d) =>
-            updateDoc(d.ref, {
-              status: "cancelled",
-              cancelledAt: serverTimestamp(),
-              cancelledBy: "provider",
-            })
-          )
-      );
-
-      // Private subcollection (push token)
-      await deleteDoc(doc(webDb, "users", u.uid, "private", "push")).catch(() => {});
-
-      // Delete user document
-      await deleteDoc(doc(webDb, "users", u.uid));
-
-      // Finally delete the auth account
-      await u.delete();
+      // Server-side deletion: the Cloud Function removes Firestore data and the
+      // auth account atomically with admin privileges. Doing this client-side
+      // could leave data deleted but the account alive if the last step failed.
+      await callFunction("deleteAccount")({});
+      await webAuth.signOut().catch(() => {});
       router.replace("/(auth)/sign-in");
     } catch (e: any) {
-      if (e?.code === "auth/requires-recent-login") {
-        Alert.alert("Sign In Required", "Please sign out and sign back in, then try again.");
-      } else {
-        Alert.alert("DELETE FAILED (provider)", `${e?.code || "no-code"}: ${e?.message || String(e)}`);
-      }
+      console.error("deleteAccount:", e);
+      Alert.alert("Error", "Could not delete your account. Please try again or contact help@mypetdex.app.");
     } finally {
       setDeleting(false);
     }

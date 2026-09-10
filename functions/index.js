@@ -1686,6 +1686,84 @@ exports.onNewBooking = onDocumentCreated(
   }
 );
 
+// ─── Account deletion ─────────────────────────────────────────────────────────
+// Done server-side with the admin SDK so it is atomic: no security-rule
+// failures, and no partial state where Firestore data is gone but the auth
+// account survives. The client re-auth check happens BEFORE calling this.
+exports.deleteAccount = onCall({ cors: true, secrets: [resendKey] }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new Error("Unauthorized");
+
+  let email = "";
+  let name = "there";
+  try {
+    const rec = await admin.auth().getUser(uid);
+    email = rec.email || "";
+    name = rec.displayName || (email ? email.split("@")[0] : "there");
+  } catch (e) {
+    console.error("deleteAccount: could not read auth user", e);
+  }
+
+  try {
+    // Conversations are shared — hide and end rather than delete.
+    const convs = await db.collection("conversations")
+      .where("participants", "array-contains", uid).get();
+    await Promise.all(convs.docs.map((d) =>
+      d.ref.update({ [`hiddenBy.${uid}`]: true, ended: true })
+    ));
+
+    // Bookings belong to both parties — cancel the live ones, keep the record.
+    for (const field of ["ownerId", "providerId"]) {
+      const snap = await db.collection("bookings").where(field, "==", uid).get();
+      await Promise.all(
+        snap.docs
+          .filter((d) => ["pending", "confirmed"].includes(d.data().status))
+          .map((d) => d.ref.update({
+            status: "cancelled",
+            cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+            cancelledBy: field === "ownerId" ? "owner" : "provider",
+          }))
+      );
+    }
+
+    // User document plus every subcollection (pets, private, ...).
+    await db.recursiveDelete(db.collection("users").doc(uid));
+
+    // Auth account last — after this the caller's token is invalid.
+    await admin.auth().deleteUser(uid);
+  } catch (e) {
+    console.error("deleteAccount failed:", e);
+    throw new Error("Could not delete account. Please try again.");
+  }
+
+  // Emails are best-effort — never fail the deletion because mail failed.
+  try {
+    if (email) {
+      await sendEmail(resendKey.value(), {
+        to: [email],
+        from: `MyPetDex <${FROM_EMAIL}>`,
+        subject: "Your MyPetDex account has been deleted",
+        html: emailBase(`
+          <h1>Account deleted</h1>
+          <p style="color:#475569;line-height:24px;">Hi ${name}, your MyPetDex account and its data have been deleted.</p>
+          <p style="color:#475569;line-height:24px;">If this wasn't you, contact us at
+            <a href="mailto:help@mypetdex.app" style="color:#4486F4;">help@mypetdex.app</a>.</p>
+        `),
+      });
+    }
+    await sendEmail(resendKey.value(), {
+      to: [ADMIN_EMAIL],
+      from: `MyPetDex <${FROM_EMAIL}>`,
+      subject: `[Account deleted] ${email || uid}`,
+      html: emailBase(`<h1>Account deleted</h1><p>${email || "(no email)"} — uid ${uid}</p>`),
+    });
+  } catch (e) {
+    console.error("deleteAccount: email failed", e);
+  }
+
+  return { ok: true };
+});
+
 // ─── Push tokens ──────────────────────────────────────────────────────────────
 // Tokens live at users/{uid}/private/push so they are not exposed by the
 // public-read rule on provider user documents. Falls back to the legacy

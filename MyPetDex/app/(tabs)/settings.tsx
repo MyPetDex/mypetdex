@@ -41,46 +41,17 @@ export default function SettingsScreen() {
   async function confirmDeleteAccount() {
     const u = webAuth.currentUser;
     if (!u) return;
-    setDeleting(true);
+        setDeleting(true);
     try {
-      // Delete pets subcollection
-      const petsSnap = await getDocs(collection(webDb, "users", u.uid, "pets"));
-      await Promise.all(petsSnap.docs.map((petDoc) => deleteDoc(petDoc.ref)));
-
-      // Conversations are shared with the other participant, so rules forbid
-      // deleting them (allow delete: if false). Hide from this user instead —
-      // deleting here threw and aborted the whole account deletion.
-      const convsSnap = await getDocs(
-        query(collection(webDb, "conversations"), where("participants", "array-contains", u.uid))
-      );
-      await Promise.all(
-        convsSnap.docs.map((d) =>
-          updateDoc(d.ref, { [`hiddenBy.${u.uid}`]: true, ended: true })
-        )
-      );
-
-      // Delete bookings (as pet owner)
-      const bookingsSnap = await getDocs(
-        query(collection(webDb, "bookings"), where("ownerId", "==", u.uid))
-      );
-      await Promise.all(bookingsSnap.docs.map((d) => deleteDoc(d.ref)));
-
-      // Private subcollection (push token)
-      await deleteDoc(doc(webDb, "users", u.uid, "private", "push")).catch(() => {});
-
-      // Delete user document
-      await deleteDoc(doc(webDb, "users", u.uid));
-
-      // Finally delete the auth account
-      await u.delete();
+      // Server-side deletion: the Cloud Function removes Firestore data and the
+      // auth account atomically with admin privileges. Doing this client-side
+      // could leave data deleted but the account alive if the last step failed.
+      await callFunction("deleteAccount")({});
+      await webAuth.signOut().catch(() => {});
       router.replace("/(auth)/sign-in");
     } catch (e: any) {
-      if (e?.code === "auth/requires-recent-login") {
-        Alert.alert("Sign In Required", "Please sign out and sign back in, then try again.");
-      } else {
-        Alert.alert("DELETE FAILED (settings)", `${e?.code || "no-code"}: ${e?.message || String(e)}`);
-      }
-      console.error("Delete account failed:", e);
+      console.error("deleteAccount:", e);
+      Alert.alert("Error", "Could not delete your account. Please try again or contact help@mypetdex.app.");
     } finally {
       setDeleting(false);
     }
