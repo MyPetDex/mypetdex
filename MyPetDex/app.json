@@ -31,7 +31,7 @@
           "UIInterfaceOrientationLandscapeRight"
         ],
         "NSCameraUsageDescription": "MyPetDex uses your camera to add pet photos.",
-        "NSPhotoLibraryUsageDescription": "MyPetDex accesses your photos to set pet profile pictures.",
+        "NSPhotoLibraryUsageDescription": "MyPetDex accesses your photos so you can set pet profile pictures and, for service providers and shelters, a business profile photo.",
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": ["whatsapp", "fbapi", "fb-messenger-api", "sms", "tel"],
         "CFBundleURLTypes": [
