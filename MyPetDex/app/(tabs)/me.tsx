@@ -137,7 +137,8 @@ export default function MeScreen() {
       if (e?.code === "auth/requires-recent-login") {
         Alert.alert("Sign In Required", "Please sign out and sign back in, then try again.");
       } else {
-        Alert.alert("Error", "Could not delete account. Please try again.");
+        // TEMPORARY: surface the real error so we can see what's failing.
+        Alert.alert("Delete failed", `${e?.code || "no-code"}: ${e?.message || String(e)}`);
       }
     } finally {
       setDeleting(false);
