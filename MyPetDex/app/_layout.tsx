@@ -213,14 +213,15 @@ function AuthGuard() {
 
 export default Sentry.wrap(function RootLayout() {
   // Load Ionicons font — fixes empty-square tab bar icons on iOS and web
-  const [fontsLoaded] = useFonts({ ...Ionicons.font });
+  const [fontsLoaded, fontError] = useFonts({ ...Ionicons.font });
 
   useEffect(() => {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
   }, []);
 
-  // Don't render until fonts are ready; avoids the brief empty-square flash
-  if (!fontsLoaded) return null;
+  // Don't render until fonts are ready; avoids the brief empty-square flash.
+  // On failure, render anyway — wrong-looking icons beat a permanently blank app.
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <ErrorBoundary>
