@@ -6,7 +6,7 @@ import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 
 import { useAuth } from "@/contexts/AuthContext";
 import * as WebBrowser from "expo-web-browser";
 import { auth, db, webAuth, webDb, callFunction } from "@/lib/firebase";
-import { doc, deleteDoc, collection, getDocs, addDoc, serverTimestamp, query, where } from "firebase/firestore";
+import { doc, deleteDoc, updateDoc, collection, getDocs, addDoc, serverTimestamp, query, where } from "firebase/firestore";
 
 const BRAND = "#4486F4";
 
@@ -47,17 +47,26 @@ export default function SettingsScreen() {
       const petsSnap = await getDocs(collection(webDb, "users", u.uid, "pets"));
       await Promise.all(petsSnap.docs.map((petDoc) => deleteDoc(petDoc.ref)));
 
-      // Delete conversations
+      // Conversations are shared with the other participant, so rules forbid
+      // deleting them (allow delete: if false). Hide from this user instead —
+      // deleting here threw and aborted the whole account deletion.
       const convsSnap = await getDocs(
         query(collection(webDb, "conversations"), where("participants", "array-contains", u.uid))
       );
-      await Promise.all(convsSnap.docs.map((d) => deleteDoc(d.ref)));
+      await Promise.all(
+        convsSnap.docs.map((d) =>
+          updateDoc(d.ref, { [`hiddenBy.${u.uid}`]: true, ended: true })
+        )
+      );
 
       // Delete bookings (as pet owner)
       const bookingsSnap = await getDocs(
         query(collection(webDb, "bookings"), where("ownerId", "==", u.uid))
       );
       await Promise.all(bookingsSnap.docs.map((d) => deleteDoc(d.ref)));
+
+      // Private subcollection (push token)
+      await deleteDoc(doc(webDb, "users", u.uid, "private", "push")).catch(() => {});
 
       // Delete user document
       await deleteDoc(doc(webDb, "users", u.uid));
