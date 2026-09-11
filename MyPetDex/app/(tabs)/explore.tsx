@@ -739,18 +739,18 @@ export default function ExploreScreen() {
               )}
               onShouldStartLoadWithRequest={(request) => {
                 const url = request.url;
-                // Allow adoptapet.com and blank/about pages
-                if (
+                // Sub-frames (ads, analytics, images) always load in place.
+                // Previously these fell through to Linking.openURL and popped a
+                // blank Safari window over the app.
+                if (!request.isTopFrame) return true;
+
+                // Keep users inside the app: adoptapet pages load here, and
+                // anything else is simply refused rather than handed to Safari.
+                return (
                   url.startsWith("https://www.adoptapet.com") ||
                   url.startsWith("https://adoptapet.com") ||
-                  url.startsWith("about:blank") ||
-                  url === "about:blank"
-                ) {
-                  return true; // allow inside WebView
-                }
-                // Everything else opens in Safari
-                Linking.openURL(url).catch(() => {});
-                return false; // block inside WebView
+                  url.startsWith("about:blank")
+                );
               }}
             />
           ) : null}
