@@ -1,5 +1,5 @@
 import {
-  View, Text, StyleSheet, Pressable, ActivityIndicator, Image, Linking,
+  View, Text, StyleSheet, Pressable, ActivityIndicator, Image, Linking, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
@@ -30,7 +30,14 @@ export default function CheckEmailScreen() {
     const uid = webAuth.currentUser?.uid;
     if (!uid || sentForUid.has(uid) || webAuth.currentUser?.emailVerified) return;
     sentForUid.add(uid);
-    callFunction("sendVerificationEmail")().catch(console.error);
+    callFunction("sendVerificationEmail")().catch((e) => {
+      console.error("sendVerificationEmail:", e);
+      // Otherwise the user waits on this screen forever with no email coming.
+      Alert.alert(
+        "Couldn't send verification email",
+        "Tap Resend below, or contact help@mypetdex.app if this keeps happening."
+      );
+    });
   }, []);
 
   // Tick down the resend cooldown once a second

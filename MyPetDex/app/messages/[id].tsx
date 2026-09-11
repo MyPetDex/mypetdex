@@ -126,6 +126,8 @@ export default function ChatScreen() {
     } catch (e) {
       console.error("sendMessage error:", e);
       setText(msgText);
+      // console output is invisible in a TestFlight/App Store build — tell the user
+      Alert.alert("Message not sent", "Check your connection and try again.");
     } finally {
       setSending(false);
     }
