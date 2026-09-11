@@ -188,7 +188,7 @@ export default function BookingNew() {
     }
   }
 
-  async function checkConflict(date: string, slot: string): Promise<boolean> {
+  async function checkConflict(date: string, slot: string): Promise<"free" | "taken" | "error"> {
     try {
       const snap = await getDocs(
         query(
@@ -199,10 +199,12 @@ export default function BookingNew() {
           where("status", "in", ["pending", "confirmed"]),
         )
       );
-      return !snap.empty;
+      return snap.empty ? "free" : "taken";
     } catch (e) {
-      console.warn("Conflict check skipped:", e);
-      return false;
+      // Fail closed: an unverifiable slot must not count as available, or a
+      // query failure silently permits double-booking.
+      console.warn("Conflict check failed:", e);
+      return "error";
     }
   }
 
@@ -224,8 +226,11 @@ export default function BookingNew() {
       const booked = snap.docs.map((d) => (d.data().timeSlot || d.data().time) as string).filter(Boolean);
       setAvailableSlots(generateSlotsForDay(dayAvail, booked));
     } catch (e) {
+      // Showing every slot as free is how a failed read becomes a double
+      // booking. Show none and say so instead.
       console.error("selectDate slots error:", e);
-      setAvailableSlots(generateSlotsForDay(providerAvailability[dayName], []));
+      setAvailableSlots([]);
+      Alert.alert("Couldn't load times", "Availability couldn't be checked. Please try again in a moment.");
     } finally {
       setLoadingSlots(false);
     }
@@ -240,16 +245,20 @@ export default function BookingNew() {
     setCheckingConflict(true);
     setSlotTaken(false);
     try {
-      let conflict = false;
-      try {
-        conflict = await checkConflict(selectedDate, selectedTime);
-      } catch (e) {
-        console.warn("Conflict check error at submit:", e);
-      }
-      if (conflict) {
+      // Tri-state: only "free" may proceed. Swallowing the error here and
+      // continuing is what allowed a failed check to create a double booking.
+      const conflict = await checkConflict(selectedDate, selectedTime);
+      if (conflict === "taken") {
         setSlotTaken(true);
         setStep(2);
         Alert.alert("Slot unavailable", "This slot is already booked. Please choose another time.");
+        return;
+      }
+      if (conflict === "error") {
+        Alert.alert(
+          "Couldn't verify availability",
+          "Check your connection and try again. Your booking was not submitted."
+        );
         return;
       }
 
