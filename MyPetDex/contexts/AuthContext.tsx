@@ -114,35 +114,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
-        if (firebaseUser && isNewUser.current) {
-          try {
-            await ensureUserDoc(firebaseUser, pendingRole.current);
-          } catch (e) {
-            // A failed profile write must not block sign-in: the account exists
-            // in Auth either way, and AuthGuard routes them to onboarding where
-            // the document gets created. Throwing here left loading stuck true
-            // and blanked the whole app.
-            console.error("ensureUserDoc failed:", e);
-          }
-          isNewUser.current = false;
-          // OAuth users (Google/Apple) arrive already email-verified, so the
-          // prevEmailVerified false→true effect never fires for them. Send welcome here instead.
-          if (firebaseUser.emailVerified && !firebaseUser.isAnonymous) {
-            sendWelcomeIfNeeded(firebaseUser);
-          }
+      if (firebaseUser && isNewUser.current) {
+        await ensureUserDoc(firebaseUser, pendingRole.current);
+        isNewUser.current = false;
+        // OAuth users (Google/Apple) arrive already email-verified, so the
+        // prevEmailVerified false→true effect never fires for them. Send welcome here instead.
+        if (firebaseUser.emailVerified && !firebaseUser.isAnonymous) {
+          sendWelcomeIfNeeded(firebaseUser);
         }
-        // Establish this session's baseline BEFORE updating emailVerified state, so the
-        // welcome-email effect below only sees a "transition" for a real false->true flip
-        // (via refreshEmailVerification), never for an already-verified user just logging in.
-        prevEmailVerified.current = firebaseUser ? !!firebaseUser.emailVerified : null;
-        setUser(firebaseUser);
-        setEmailVerified(!!firebaseUser?.emailVerified);
-      } finally {
-        // Always clears, whatever happened above — this is the flag the entire
-        // app gates on.
-        setLoading(false);
       }
+      // Establish this session's baseline BEFORE updating emailVerified state, so the
+      // welcome-email effect below only sees a "transition" for a real false->true flip
+      // (via refreshEmailVerification), never for an already-verified user just logging in.
+      prevEmailVerified.current = firebaseUser ? !!firebaseUser.emailVerified : null;
+      setUser(firebaseUser);
+      setEmailVerified(!!firebaseUser?.emailVerified);
+      setLoading(false);
     });
     return unsub;
   }, []);
