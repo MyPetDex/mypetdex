@@ -409,7 +409,7 @@ export default function ExploreScreen() {
 
       {/* ── Services Tab ── */}
       {activeTab === "services" && (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
 
           {/* Hero */}
           <View style={styles.servicesHeroCard}>
@@ -549,7 +549,7 @@ export default function ExploreScreen() {
 
       {/* ── Adopt Tab ── */}
       {activeTab === "adopt" && (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
 
           {/* Hero */}
           <View style={styles.adoptHeroCard}>
