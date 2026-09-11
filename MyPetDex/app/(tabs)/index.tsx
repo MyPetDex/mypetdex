@@ -40,10 +40,14 @@ export default function HomeScreen() {
 
   // Redirect non-owners to their own dashboard
   useEffect(() => {
-    if (!user) { setRoleChecked(true); return; }
+    // The redirect paths below intentionally leave roleChecked false so a
+    // provider/shelter never flashes the owner Home. But if navigation is slow
+    // or fails, that left a permanent spinner — this clears it as a fallback.
+    const stuckGuard = setTimeout(() => setRoleChecked(true), 3000);
+    if (!user) { clearTimeout(stuckGuard); setRoleChecked(true); return; }
     if (user.email === "mypetdexapp@gmail.com") {
       router.replace("/(tabs)/admin-dashboard");
-      return;
+      return () => clearTimeout(stuckGuard);
     }
     getDoc(doc(db, "users", user.uid)).then((snap) => {
       if (!snap.exists()) { setRoleChecked(true); return; }
@@ -57,6 +61,8 @@ export default function HomeScreen() {
       }
       setRoleChecked(true);
     }).catch(() => setRoleChecked(true));
+
+    return () => clearTimeout(stuckGuard);
   }, [user]);
 
   useEffect(() => {
