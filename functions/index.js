@@ -1943,3 +1943,35 @@ exports.notifyProviderStatusChange = onDocumentUpdated(
     } catch (e) { console.error("notifyProviderStatusChange error:", e); }
   }
 );
+
+
+// ── Provider slot availability ────────────────────────────────────────────────
+// Owners cannot query another provider's bookings directly: security rules
+// reject any query not constrained to documents the caller may read. This
+// callable reads them server-side and returns ONLY the booked time strings,
+// never owner ids, pet data, or booking ids.
+exports.getProviderSlots = onCall({ cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new Error("Sign in required.");
+  }
+
+  const providerId = String(request.data?.providerId || "").trim();
+  const date = String(request.data?.date || "").trim();
+
+  if (!providerId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error("providerId and date (YYYY-MM-DD) are required.");
+  }
+
+  const snap = await admin.firestore()
+    .collection("bookings")
+    .where("providerId", "==", providerId)
+    .where("date", "==", date)
+    .where("status", "in", ["pending", "confirmed"])
+    .get();
+
+  const booked = snap.docs
+    .map((d) => d.data().timeSlot || d.data().time)
+    .filter(Boolean);
+
+  return { booked };
+});

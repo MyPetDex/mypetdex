@@ -7,7 +7,7 @@ import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { webDb } from "@/lib/firebase";
+import { webDb, callFunction } from "@/lib/firebase";
 import {
   doc, getDoc, collection, query, where, getDocs,
   addDoc, serverTimestamp,
@@ -188,18 +188,15 @@ export default function BookingNew() {
     }
   }
 
+  async function fetchBookedSlots(date: string): Promise<string[]> {
+    const res = await callFunction<{ booked: string[] }>("getProviderSlots")({ providerId, date });
+    return res.data.booked || [];
+  }
+
   async function checkConflict(date: string, slot: string): Promise<"free" | "taken" | "error"> {
     try {
-      const snap = await getDocs(
-        query(
-          collection(webDb, "bookings"),
-          where("providerId", "==", providerId),
-          where("date", "==", date),
-          where("timeSlot", "==", slot),
-          where("status", "in", ["pending", "confirmed"]),
-        )
-      );
-      return snap.empty ? "free" : "taken";
+      const booked = await fetchBookedSlots(date);
+      return booked.includes(slot) ? "taken" : "free";
     } catch (e) {
       // Fail closed: an unverifiable slot must not count as available, or a
       // query failure silently permits double-booking.
@@ -215,15 +212,7 @@ export default function BookingNew() {
     setLoadingSlots(true);
     try {
       const dayAvail = providerAvailability[dayName];
-      const snap = await getDocs(
-        query(
-          collection(webDb, "bookings"),
-          where("providerId", "==", providerId),
-          where("date", "==", date),
-          where("status", "in", ["pending", "confirmed"])
-        )
-      );
-      const booked = snap.docs.map((d) => (d.data().timeSlot || d.data().time) as string).filter(Boolean);
+      const booked = await fetchBookedSlots(date);
       setAvailableSlots(generateSlotsForDay(dayAvail, booked));
     } catch (e) {
       // Showing every slot as free is how a failed read becomes a double
