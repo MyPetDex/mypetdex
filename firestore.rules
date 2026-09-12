@@ -53,8 +53,15 @@ service cloud.firestore {
              (resource.data.role == 'shelter' && resource.data.status == 'approved') ||
              (resource.data.role == 'provider')
            ));
-      // Update own profile allowed without email verification (needed for onboarding step 2 before verify)
-      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      // Update own profile allowed without email verification (needed for onboarding step 2 before verify).
+      // Privileged fields are NOT user-writable: plan is granted only by verified
+      // purchase (Stripe webhook / RevenueCat), and role/approved/verified are set
+      // only by admin. Cloud Functions use the admin SDK and bypass these rules.
+      allow update: if isAdmin() || (
+        isSignedIn() && request.auth.uid == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['plan', 'role', 'approved', 'approvedAt', 'verified'])
+      );
       // Delete requires verification
       allow delete: if isAdmin() || ((isEmailVerified() || isDemoAccount()) && request.auth.uid == userId);
       match /pets/{petId}/reminders/{reminderId} {
