@@ -3,7 +3,7 @@ const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require("fir
 const { onRequest, onCall } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
-const { screenIngredients, ASPCA_POISON_CONTROL } = require("./toxicList");
+const { screenIngredients, findToxic, ASPCA_POISON_CONTROL } = require("./toxicList");
 const { Resend } = require("resend");
 
 admin.initializeApp();
@@ -178,7 +178,9 @@ Breed: ${breed}
 Age: ${age}
 Weight: ${weight}
 
-Always personalize answers using this pet's profile (e.g., breed-specific traits, age-appropriate advice, weight-based dosing).
+Always personalize answers using this pet's profile (e.g., breed-specific traits, age-appropriate advice).
+
+NEVER give medication doses, amounts, or dosing schedules for any drug or supplement, even if asked directly and even if the pet's weight is known. Say: "Medication amounts have to come from your vet, who knows ${petName}'s full history."
 
 TRUSTED SOURCES ONLY: Ground every answer in information from these authoritative sources:
 - VCA Animal Hospitals (vcahospitals.com)
@@ -226,6 +228,24 @@ exports.aiProxy = onRequest(
         [...rawMessages].reverse().find((m) => m.role === "user")?.content ||
         "";
       if (!lastUser) return res.status(400).json({ error: "Missing message" });
+
+      // Toxicity gate — deterministic. Questions touching a known toxic
+      // substance are answered from our vetted list, never by the model.
+      const toxicHit = findToxic(lastUser);
+      if (toxicHit) {
+        const petName = petContext.name || "your pet";
+        const vetted =
+          `No — ${toxicHit.name.toLowerCase()} should never be given to ${petName}.\n\n` +
+          `${toxicHit.note}\n\n` +
+          `If ${petName} has already eaten this, treat it as urgent: contact your ` +
+          `veterinarian or ${ASPCA_POISON_CONTROL} straight away. Do not wait for symptoms.\n\n` +
+          `This answer comes from MyPetDex's vetted toxic ingredient list, based on ASPCA guidance.`;
+        return res.status(200).json({
+          reply: vetted,
+          content: [{ type: "text", text: vetted }],
+          vetted: true,
+        });
+      }
 
       const { GoogleGenerativeAI } = require("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(geminiKey.value());
