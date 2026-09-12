@@ -3,6 +3,7 @@ const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require("fir
 const { onRequest, onCall } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
+const { screenIngredients, ASPCA_POISON_CONTROL } = require("./toxicList");
 const { Resend } = require("resend");
 
 admin.initializeApp();
@@ -229,7 +230,7 @@ exports.aiProxy = onRequest(
       const { GoogleGenerativeAI } = require("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(geminiKey.value());
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash",
+        model: "gemini-3.6-flash",
         systemInstruction: PET_SYSTEM,
       });
 
@@ -554,6 +555,17 @@ exports.getRecipe = onRequest(
     const { petName, species, breed, age, weight, weightUnit, activityLevel, neutered, dailyCalories, ingredients } = req.body;
     if (!species) return res.status(400).json({ error: "Missing pet species" });
 
+    // Toxicity blocklist — enforced before any nutrition work. See toxicList.js.
+    const toxicHits = screenIngredients(ingredients);
+    if (toxicHits.length) {
+      return res.status(400).json({
+        error: "Toxic ingredient blocked",
+        blocked: toxicHits.map((h) => h.name),
+        detail: toxicHits.map((h) => `${h.name}: ${h.note}`).join(" "),
+        poisonControl: ASPCA_POISON_CONTROL,
+      });
+    }
+
     try {
       const weightNum = parseFloat(weight) || 0;
       const weightLbs = weightUnit === "kg" ? weightNum * 2.20462 : weightNum;
@@ -625,7 +637,7 @@ Return ONLY a raw JSON object — no markdown, no explanation, no code fences.`;
 
       const { GoogleGenerativeAI } = require("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(geminiKey.value());
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
       const result = await model.generateContent(presentationPrompt);
       const text = result.response.text() || "{}";
