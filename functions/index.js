@@ -1130,7 +1130,15 @@ exports.sendWelcomeEmail = onCall({ cors: true, secrets: [resendKey] }, async (r
 
     const userDoc = await db.collection("users").doc(uid).get();
     const d = userDoc.exists ? userDoc.data() : {};
-    const role = d.role || "owner";
+    const rawRole = d.role || "owner";
+    // Roles carry approval state (pending_provider, rejected_provider), so match on
+    // the base role. Anything unrecognised is logged rather than silently treated
+    // as an owner — that is how providers were getting the pet-owner welcome email.
+    const role =
+      rawRole.includes("provider") ? "provider" :
+      rawRole.includes("shelter") ? "shelter" :
+      rawRole === "owner" || rawRole === "admin" ? "owner" :
+      (console.warn(`sendWelcomeEmail: unrecognised role "${rawRole}" for ${uid}`), "owner");
     const name = d.displayName || targetEmail.split("@")[0];
 
     let subject, html;
