@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator, Linking } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -170,12 +170,24 @@ export default function SubscriptionScreen() {
       <Text style={styles.legal}>
         Payment charged to your Apple ID at confirmation. Subscription renews automatically unless cancelled at least 24 hours before the end of the current period. Manage in Settings → Apple ID → Subscriptions.
       </Text>
+      <View style={styles.legalLinks}>
+        <Pressable onPress={() => Linking.openURL("https://home.mypetdex.app/terms.html")}>
+          <Text style={styles.legalLink}>Terms of Service</Text>
+        </Pressable>
+        <Text style={styles.legalLinkSep}>·</Text>
+        <Pressable onPress={() => Linking.openURL("https://home.mypetdex.app/privacy.html")}>
+          <Text style={styles.legalLink}>Privacy Policy</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
+  legalLinks: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 4 },
+  legalLink: { fontSize: 13, color: BRAND, fontWeight: "600" },
+  legalLinkSep: { fontSize: 13, color: TEXT2 },
   content: { padding: 20, paddingBottom: 48, gap: 16 },
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: BG },
   header: { alignItems: "center", paddingVertical: 8 },
