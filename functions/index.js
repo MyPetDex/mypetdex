@@ -1008,6 +1008,7 @@ exports.createCheckoutSession = onRequest({ secrets: [stripeSecretKey, resendKey
 
 // ─── Stripe Webhook ───────────────────────────────────────────────────────────
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
+const revenueCatSecret = defineSecret("REVENUECAT_WEBHOOK_SECRET");
 
 exports.stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecret, resendKey], cors: false }, async (req, res) => {
   const sig = req.headers["stripe-signature"];
@@ -2015,3 +2016,86 @@ exports.getProviderSlots = onCall({ cors: true }, async (request) => {
 
   return { booked };
 });
+
+
+// ─── RevenueCat Webhook — mobile subscriptions via Apple IAP ─────────────────
+// firestore.rules blocks clients from writing `plan`, so this is the ONLY path
+// that grants or revokes a paid plan on mobile. It is also the only thing that
+// ever downgrades a lapsed subscriber back to free.
+exports.revenueCatWebhook = onRequest(
+  { secrets: [revenueCatSecret, resendKey], cors: false },
+  async (req, res) => {
+    if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
+
+    if ((req.headers.authorization || "") !== revenueCatSecret.value()) {
+      console.error("revenueCatWebhook: bad authorization header");
+      return res.status(401).send("Unauthorized");
+    }
+
+    const event = req.body?.event || {};
+    const type = event.type;
+    const uid = event.app_user_id;
+    const entitlements = event.entitlement_ids || [];
+
+    // Always 200 on bad data — a non-200 makes RevenueCat retry for hours.
+    if (!uid) {
+      console.error("revenueCatWebhook: missing app_user_id on", type);
+      return res.status(200).json({ received: true });
+    }
+
+    const plan =
+      entitlements.includes("family") ? "family" :
+      entitlements.includes("plus") ? "plus" : null;
+
+    try {
+      const userRef = db.collection("users").doc(uid);
+      const snap = await userRef.get();
+      const user = snap.exists ? snap.data() : {};
+      const email = user.email;
+      const name = user.displayName || (email ? email.split("@")[0] : "there");
+      const planName = plan === "family" ? "Family" : "Plus";
+      const isYearly = String(event.product_id || "").includes("yearly");
+      const billing = isYearly ? "yearly" : "monthly";
+
+      if (["INITIAL_PURCHASE", "RENEWAL", "PRODUCT_CHANGE", "UNCANCELLATION"].includes(type)) {
+        if (!plan) {
+          console.warn("revenueCatWebhook: no known entitlement on", type, entitlements);
+          return res.status(200).json({ received: true });
+        }
+        await userRef.set({ plan, billing, cancelAtPeriodEnd: false }, { merge: true });
+        console.log(`revenueCatWebhook: plan -> ${plan} (${type}) for ${uid}`);
+
+        if (type === "INITIAL_PURCHASE" && email) {
+          const price = isYearly
+            ? (plan === "plus" ? "$29.99/year" : "$49.99/year")
+            : (plan === "plus" ? "$2.99/month" : "$4.99/month");
+          const trialEnd = new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString();
+          try {
+            await sendEmail(resendKey.value(), { to: email, subject: `\u{1F389} Welcome to MyPetDex ${planName}!`, html: subscriptionWelcomeHTML(email, planName, price, trialEnd) });
+            await sendEmail(resendKey.value(), { to: ADMIN_EMAIL, subject: `\u{1F4B0} New ${planName} subscription (iOS): ${email}`, html: subscriptionAdminHTML(email, planName, price, billing, trialEnd) });
+          } catch (e) { console.error("revenueCatWebhook welcome email error:", e); }
+        }
+      } else if (type === "CANCELLATION") {
+        // Cancelled, but paid through the end of the period — keep the plan.
+        await userRef.set({ cancelAtPeriodEnd: true }, { merge: true });
+        console.log("revenueCatWebhook: cancellation flagged for", uid);
+        try {
+          await sendEmail(resendKey.value(), {
+            to: ADMIN_EMAIL,
+            subject: `\u{274C} Subscription cancelled (iOS): ${email || uid}`,
+            html: emailBase(`<h1>Subscription cancelled</h1><p>${email || uid} cancelled their ${planName} plan. Access continues until the end of the paid period.</p><p>Reason given by Apple: ${event.cancel_reason || "not provided"}</p>`),
+          });
+        } catch (e) { console.error("revenueCatWebhook cancel email error:", e); }
+      } else if (type === "EXPIRATION") {
+        await userRef.set({ plan: "free", billing: null, cancelAtPeriodEnd: false }, { merge: true });
+        console.log("revenueCatWebhook: plan -> free (EXPIRATION) for", uid);
+      } else {
+        console.log("revenueCatWebhook: ignoring event type", type);
+      }
+    } catch (err) {
+      console.error("revenueCatWebhook handler error:", err);
+    }
+
+    return res.status(200).json({ received: true });
+  }
+);
