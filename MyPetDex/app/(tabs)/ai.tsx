@@ -244,6 +244,9 @@ export default function AIVetScreen() {
 
   function switchPet() {
     setSelectedPet(null);
+    // Without this the picker stays hidden (showPicker requires !chatStarted),
+    // leaving the user typing a pet name that never becomes petContext.
+    setChatStarted(false);
     setMessages([{
       role: "assistant",
       text: `Hi ${firstName}! 🐾 Which pet do you need help with today?`,
